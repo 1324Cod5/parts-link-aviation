@@ -491,6 +491,141 @@ paths:
         "401":
           description: Unauthorized
 
+  /rfqs:
+    get:
+      operationId: getRfqs
+      tags: [rfqs]
+      summary: List open RFQs
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [open, closed]
+        - name: q
+          in: query
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+            default: 20
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RfqsPage"
+    post:
+      operationId: createRfq
+      tags: [rfqs]
+      summary: Post a new RFQ (no auth required)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RfqInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Rfq"
+
+  /rfqs/{id}:
+    get:
+      operationId: getRfq
+      tags: [rfqs]
+      summary: Get a single RFQ with its responses
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RfqDetail"
+        "404":
+          description: Not found
+
+  /rfqs/{id}/close:
+    post:
+      operationId: closeRfq
+      tags: [rfqs]
+      summary: Close an RFQ
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Rfq"
+
+  /rfqs/{id}/responses:
+    post:
+      operationId: createRfqResponse
+      tags: [rfqs]
+      summary: Seller responds to an RFQ
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RfqResponseInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RfqResponseItem"
+        "401":
+          description: Unauthorized
+
+  /seller/rfqs:
+    get:
+      operationId: getSellerRfqStats
+      tags: [seller]
+      summary: Get RFQ summary stats for seller dashboard
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SellerRfqStats"
+        "401":
+          description: Unauthorized
+
 components:
   schemas:
     HealthStatus:
@@ -859,4 +994,125 @@ components:
         pendingVerification:
           type: integer
         totalInquiries:
+          type: integer
+
+    Rfq:
+      type: object
+      required: [id, buyerName, buyerEmail, partNumber, description, quantity, status, createdAt]
+      properties:
+        id:
+          type: integer
+        buyerName:
+          type: string
+        buyerEmail:
+          type: string
+        buyerCompany:
+          type: ["string", "null"]
+        buyerPhone:
+          type: ["string", "null"]
+        partNumber:
+          type: string
+        description:
+          type: string
+        aircraftApplicability:
+          type: ["string", "null"]
+        condition:
+          type: ["string", "null"]
+        quantity:
+          type: integer
+        status:
+          type: string
+          enum: [open, closed]
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+
+    RfqResponseItem:
+      type: object
+      required: [id, rfqId, sellerId, message, createdAt]
+      properties:
+        id:
+          type: integer
+        rfqId:
+          type: integer
+        sellerId:
+          type: integer
+        sellerCompanyName:
+          type: string
+        message:
+          type: string
+        listingId:
+          type: ["integer", "null"]
+        listingPartNumber:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+
+    RfqDetail:
+      type: object
+      required: [rfq, responses]
+      properties:
+        rfq:
+          $ref: "#/components/schemas/Rfq"
+        responses:
+          type: array
+          items:
+            $ref: "#/components/schemas/RfqResponseItem"
+
+    RfqInput:
+      type: object
+      required: [buyerName, buyerEmail, partNumber, description, quantity]
+      properties:
+        buyerName:
+          type: string
+        buyerEmail:
+          type: string
+        buyerCompany:
+          type: ["string", "null"]
+        buyerPhone:
+          type: ["string", "null"]
+        partNumber:
+          type: string
+        description:
+          type: string
+        aircraftApplicability:
+          type: ["string", "null"]
+        condition:
+          type: ["string", "null"]
+        quantity:
+          type: integer
+          minimum: 1
+
+    RfqResponseInput:
+      type: object
+      required: [message]
+      properties:
+        message:
+          type: string
+        listingId:
+          type: ["integer", "null"]
+
+    RfqsPage:
+      type: object
+      required: [rfqs, total, page, limit]
+      properties:
+        rfqs:
+          type: array
+          items:
+            $ref: "#/components/schemas/Rfq"
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+
+    SellerRfqStats:
+      type: object
+      required: [openRfqs, myResponses]
+      properties:
+        openRfqs:
+          type: integer
+        myResponses:
           type: integer

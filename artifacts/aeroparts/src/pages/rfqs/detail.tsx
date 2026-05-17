@@ -1,0 +1,321 @@
+import { useState } from "react";
+import { Link, useParams } from "wouter";
+import { useGetRfq, useCreateRfqResponse, useGetSellerListings, useCloseRfq } from "@workspace/api-client-react";
+import { useAuth } from "@/context/AuthContext";
+import { Navbar } from "@/components/layout/Navbar";
+import { Footer } from "@/components/layout/Footer";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { useToast } from "@/hooks/use-toast";
+import {
+  ArrowLeft, Clock, Package, Building2, Plane, Phone, Mail,
+  CheckCircle2, MessageSquare, Lock, Send, AlertCircle
+} from "lucide-react";
+
+function timeAgo(dateStr: string) {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 60) return `${mins} minute${mins !== 1 ? "s" : ""} ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours} hour${hours !== 1 ? "s" : ""} ago`;
+  const days = Math.floor(hours / 24);
+  return `${days} day${days !== 1 ? "s" : ""} ago`;
+}
+
+function formatDate(dateStr: string) {
+  return new Date(dateStr).toLocaleDateString("en-US", {
+    year: "numeric", month: "long", day: "numeric",
+    hour: "2-digit", minute: "2-digit",
+  });
+}
+
+export default function RfqDetailPage() {
+  const params = useParams<{ id: string }>();
+  const id = parseInt(params.id);
+  const { user } = useAuth();
+  const { toast } = useToast();
+
+  const { data, isLoading, refetch } = useGetRfq(id);
+  const { data: sellerListings } = useGetSellerListings({ enabled: !!user && user.role === "seller" });
+
+  const [message, setMessage] = useState("");
+  const [listingId, setListingId] = useState<string>("");
+
+  const { mutate: respond, isPending: isResponding } = useCreateRfqResponse({
+    mutation: {
+      onSuccess() {
+        toast({ title: "Response submitted", description: "Your quote has been sent to the buyer." });
+        setMessage("");
+        setListingId("");
+        refetch();
+      },
+      onError() {
+        toast({ title: "Failed to submit", description: "Please try again.", variant: "destructive" });
+      },
+    },
+  });
+
+  const { mutate: closeRfq, isPending: isClosing } = useCloseRfq({
+    mutation: {
+      onSuccess() {
+        toast({ title: "RFQ closed", description: "This RFQ is now marked as closed." });
+        refetch();
+      },
+    },
+  });
+
+  function handleRespond(e: React.FormEvent) {
+    e.preventDefault();
+    if (!message.trim()) return;
+    respond({
+      id,
+      data: {
+        message: message.trim(),
+        listingId: listingId && listingId !== "none" ? parseInt(listingId) : null,
+      },
+    });
+  }
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col">
+        <Navbar />
+        <main className="flex-1 container mx-auto px-4 py-12">
+          <div className="max-w-3xl mx-auto space-y-4">
+            <div className="h-8 w-48 bg-card/50 rounded animate-pulse" />
+            <div className="h-48 bg-card/50 rounded-lg animate-pulse" />
+            <div className="h-32 bg-card/50 rounded-lg animate-pulse" />
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
+  if (!data) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col">
+        <Navbar />
+        <main className="flex-1 container mx-auto px-4 py-20 text-center">
+          <AlertCircle className="w-12 h-12 mx-auto mb-4 text-muted-foreground opacity-30" />
+          <p className="text-muted-foreground">RFQ not found.</p>
+          <Link href="/rfqs"><Button className="mt-4">Back to RFQ Board</Button></Link>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
+  const { rfq, responses } = data;
+  const isOpen = rfq.status === "open";
+
+  return (
+    <div className="min-h-screen bg-background flex flex-col">
+      <Navbar />
+      <main className="flex-1">
+        <div className="border-b border-border bg-card/30 py-8">
+          <div className="container mx-auto px-4 max-w-3xl">
+            <Link href="/rfqs" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-white mb-4">
+              <ArrowLeft className="w-4 h-4" />
+              Back to RFQ Board
+            </Link>
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex-1">
+                <div className="flex items-center gap-3 mb-2">
+                  <span className="font-mono text-lg font-bold text-primary">{rfq.partNumber}</span>
+                  <Badge className={isOpen
+                    ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30"
+                    : "bg-muted text-muted-foreground"}>
+                    {rfq.status.toUpperCase()}
+                  </Badge>
+                </div>
+                <p className="text-white text-base leading-relaxed">{rfq.description}</p>
+              </div>
+              {user?.role === "admin" && isOpen && (
+                <Button variant="outline" size="sm" onClick={() => closeRfq({ id })} disabled={isClosing}
+                  className="border-border text-muted-foreground hover:text-white flex-shrink-0">
+                  {isClosing ? "Closing…" : "Close RFQ"}
+                </Button>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className="container mx-auto px-4 py-8 max-w-3xl">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* Main column */}
+            <div className="lg:col-span-2 space-y-8">
+              {/* Responses */}
+              <div>
+                <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-widest mb-4 flex items-center gap-2">
+                  <MessageSquare className="w-4 h-4" />
+                  {responses.length} Response{responses.length !== 1 ? "s" : ""}
+                </h2>
+
+                {responses.length === 0 ? (
+                  <div className="border border-border rounded-lg p-8 bg-card/30 text-center">
+                    <MessageSquare className="w-8 h-8 mx-auto mb-3 text-muted-foreground opacity-30" />
+                    <p className="text-muted-foreground text-sm">No responses yet.</p>
+                    {user?.role === "seller" && isOpen && (
+                      <p className="text-sm text-muted-foreground mt-1">Be the first to respond with your inventory.</p>
+                    )}
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {responses.map(r => (
+                      <div key={r.id} className="border border-border rounded-lg p-5 bg-card">
+                        <div className="flex items-start justify-between mb-3">
+                          <div>
+                            <span className="font-semibold text-white text-sm">{r.sellerCompanyName}</span>
+                            <div className="flex items-center gap-1.5 mt-0.5">
+                              <CheckCircle2 className="w-3 h-3 text-primary" />
+                              <span className="text-xs text-muted-foreground">Verified Seller</span>
+                            </div>
+                          </div>
+                          <span className="text-xs text-muted-foreground">{timeAgo(r.createdAt)}</span>
+                        </div>
+                        <p className="text-sm text-foreground leading-relaxed">{r.message}</p>
+                        {r.listingId && r.listingPartNumber && (
+                          <Link href={`/listings/${r.listingId}`}>
+                            <div className="mt-3 inline-flex items-center gap-2 text-xs text-primary border border-primary/30 rounded px-2.5 py-1 hover:bg-primary/10 transition-colors">
+                              <Package className="w-3 h-3" />
+                              View listing: {r.listingPartNumber}
+                            </div>
+                          </Link>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Response form */}
+              {user?.role === "seller" && isOpen ? (
+                <div className="border border-border rounded-lg p-6 bg-card">
+                  <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-widest mb-4 flex items-center gap-2">
+                    <Send className="w-4 h-4" />
+                    Submit Your Quote
+                  </h2>
+                  <form onSubmit={handleRespond} className="space-y-4">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="message">Your Response <span className="text-destructive">*</span></Label>
+                      <Textarea
+                        id="message"
+                        value={message}
+                        onChange={e => setMessage(e.target.value)}
+                        placeholder="Describe your available inventory, pricing, condition, certification, lead time…"
+                        required
+                        rows={5}
+                        className="bg-background border-border resize-none"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="listing">Link to a Listing (optional)</Label>
+                      <Select value={listingId} onValueChange={setListingId}>
+                        <SelectTrigger className="bg-background border-border">
+                          <SelectValue placeholder="Select a listing to attach" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">No listing</SelectItem>
+                          {sellerListings?.map(l => (
+                            <SelectItem key={l.id} value={String(l.id)}>
+                              {l.partNumber} — {l.description?.slice(0, 40)}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <Button type="submit" disabled={isResponding || !message.trim()} className="bg-primary hover:bg-primary/90 gap-2">
+                      <Send className="w-4 h-4" />
+                      {isResponding ? "Submitting…" : "Submit Quote"}
+                    </Button>
+                  </form>
+                </div>
+              ) : !user ? (
+                <div className="border border-border rounded-lg p-6 bg-card/30 text-center">
+                  <Lock className="w-8 h-8 mx-auto mb-3 text-muted-foreground opacity-40" />
+                  <p className="text-muted-foreground text-sm mb-3">Sign in as a seller to respond to this RFQ.</p>
+                  <Link href="/seller/login">
+                    <Button size="sm" className="gap-2">Sign In to Respond</Button>
+                  </Link>
+                </div>
+              ) : !isOpen ? (
+                <div className="border border-border rounded-lg p-6 bg-card/30 text-center">
+                  <Lock className="w-8 h-8 mx-auto mb-3 text-muted-foreground opacity-40" />
+                  <p className="text-muted-foreground text-sm">This RFQ has been closed.</p>
+                </div>
+              ) : null}
+            </div>
+
+            {/* Sidebar */}
+            <div className="space-y-4">
+              <div className="border border-border rounded-lg p-5 bg-card">
+                <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-4">RFQ Details</h3>
+                <dl className="space-y-3 text-sm">
+                  <div>
+                    <dt className="text-muted-foreground text-xs mb-0.5">Part Number</dt>
+                    <dd className="font-mono font-semibold text-primary">{rfq.partNumber}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-muted-foreground text-xs mb-0.5">Quantity</dt>
+                    <dd className="text-white font-medium">{rfq.quantity}</dd>
+                  </div>
+                  {rfq.condition && (
+                    <div>
+                      <dt className="text-muted-foreground text-xs mb-0.5">Condition</dt>
+                      <dd className="text-white">{rfq.condition}</dd>
+                    </div>
+                  )}
+                  {rfq.aircraftApplicability && (
+                    <div>
+                      <dt className="text-muted-foreground text-xs mb-0.5">Aircraft</dt>
+                      <dd className="text-white flex items-center gap-1.5">
+                        <Plane className="w-3 h-3 text-muted-foreground" />
+                        {rfq.aircraftApplicability}
+                      </dd>
+                    </div>
+                  )}
+                  <div>
+                    <dt className="text-muted-foreground text-xs mb-0.5">Posted</dt>
+                    <dd className="text-white flex items-center gap-1.5">
+                      <Clock className="w-3 h-3 text-muted-foreground" />
+                      {formatDate(rfq.createdAt)}
+                    </dd>
+                  </div>
+                </dl>
+              </div>
+
+              <div className="border border-border rounded-lg p-5 bg-card">
+                <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-4">Buyer</h3>
+                <dl className="space-y-3 text-sm">
+                  {rfq.buyerCompany && (
+                    <div className="flex items-center gap-2 text-white">
+                      <Building2 className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                      <span className="font-medium">{rfq.buyerCompany}</span>
+                    </div>
+                  )}
+                  <div className="flex items-center gap-2">
+                    <Mail className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                    <a href={`mailto:${rfq.buyerEmail}`} className="text-primary hover:underline truncate">
+                      {rfq.buyerEmail}
+                    </a>
+                  </div>
+                  {rfq.buyerPhone && (
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <Phone className="w-4 h-4 flex-shrink-0" />
+                      <span>{rfq.buyerPhone}</span>
+                    </div>
+                  )}
+                </dl>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+      <Footer />
+    </div>
+  );
+}

@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { db, listingsTable, inquiriesTable, usersTable } from "@workspace/db";
+import { db, listingsTable, inquiriesTable, usersTable, rfqsTable, rfqResponsesTable } from "@workspace/db";
 import { eq, and, count, inArray } from "drizzle-orm";
 
 const router: IRouter = Router();
@@ -91,6 +91,25 @@ router.get("/seller/stats", async (req, res): Promise<void> => {
     plan,
     listingLimit,
     canAddListing,
+  });
+});
+
+// GET /seller/rfqs — RFQ stats for dashboard
+router.get("/seller/rfqs", async (req, res): Promise<void> => {
+  const userId = req.session?.userId;
+  if (!userId) {
+    res.status(401).json({ error: "Not authenticated" });
+    return;
+  }
+
+  const [[openRow], [myRow]] = await Promise.all([
+    db.select({ count: count() }).from(rfqsTable).where(eq(rfqsTable.status, "open")),
+    db.select({ count: count() }).from(rfqResponsesTable).where(eq(rfqResponsesTable.sellerId, userId)),
+  ]);
+
+  res.json({
+    openRfqs: Number(openRow.count),
+    myResponses: Number(myRow.count),
   });
 });
 

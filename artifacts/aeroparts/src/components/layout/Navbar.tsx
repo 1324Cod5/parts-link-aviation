@@ -17,6 +17,9 @@ export function Navbar() {
             <Link href="/marketplace" className={`text-sm font-medium transition-colors hover:text-primary ${location === '/marketplace' ? 'text-primary' : 'text-muted-foreground'}`}>
               Marketplace
             </Link>
+            <Link href="/rfqs" className={`text-sm font-medium transition-colors hover:text-primary ${location.startsWith('/rfqs') ? 'text-primary' : 'text-muted-foreground'}`}>
+              RFQ Board
+            </Link>
             <Link href="/pricing" className={`text-sm font-medium transition-colors hover:text-primary ${location === '/pricing' ? 'text-primary' : 'text-muted-foreground'}`}>
               Pricing
             </Link>

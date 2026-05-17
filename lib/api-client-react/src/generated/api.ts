@@ -25,6 +25,7 @@ import type {
   BadgeUpdate,
   GetAdminListingsParams,
   GetListingsParams,
+  GetRfqsParams,
   HealthStatus,
   Inquiry,
   InquiryInput,
@@ -37,6 +38,13 @@ import type {
   MarketplaceStats,
   OkResponse,
   RegisterInput,
+  Rfq,
+  RfqDetail,
+  RfqInput,
+  RfqResponseInput,
+  RfqResponseItem,
+  RfqsPage,
+  SellerRfqStats,
   SellerStats,
   SubscriptionInfo,
   UpgradePlanInput,
@@ -1772,4 +1780,455 @@ export const useDowngradePlan = <TError = ErrorType<void>,
       > => {
       return useMutation(getDowngradePlanMutationOptions(options));
     }
+
+export const getGetRfqsUrl = (params?: GetRfqsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/rfqs?${stringifiedParams}` : `/api/rfqs`
+}
+
+/**
+ * @summary List open RFQs
+ */
+export const getRfqs = async (params?: GetRfqsParams, options?: RequestInit): Promise<RfqsPage> => {
+
+  return customFetch<RfqsPage>(getGetRfqsUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetRfqsQueryKey = (params?: GetRfqsParams,) => {
+    return [
+    `/api/rfqs`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetRfqsQueryOptions = <TData = Awaited<ReturnType<typeof getRfqs>>, TError = ErrorType<unknown>>(params?: GetRfqsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getRfqs>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetRfqsQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getRfqs>>> = ({ signal }) => getRfqs(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getRfqs>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetRfqsQueryResult = NonNullable<Awaited<ReturnType<typeof getRfqs>>>
+export type GetRfqsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List open RFQs
+ */
+
+export function useGetRfqs<TData = Awaited<ReturnType<typeof getRfqs>>, TError = ErrorType<unknown>>(
+ params?: GetRfqsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getRfqs>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetRfqsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getCreateRfqUrl = () => {
+
+
+
+
+  return `/api/rfqs`
+}
+
+/**
+ * @summary Post a new RFQ (no auth required)
+ */
+export const createRfq = async (rfqInput: RfqInput, options?: RequestInit): Promise<Rfq> => {
+
+  return customFetch<Rfq>(getCreateRfqUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      rfqInput,)
+  }
+);}
+
+
+
+
+export const getCreateRfqMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createRfq>>, TError,{data: BodyType<RfqInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createRfq>>, TError,{data: BodyType<RfqInput>}, TContext> => {
+
+const mutationKey = ['createRfq'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createRfq>>, {data: BodyType<RfqInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createRfq(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateRfqMutationResult = NonNullable<Awaited<ReturnType<typeof createRfq>>>
+    export type CreateRfqMutationBody = BodyType<RfqInput>
+    export type CreateRfqMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Post a new RFQ (no auth required)
+ */
+export const useCreateRfq = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createRfq>>, TError,{data: BodyType<RfqInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createRfq>>,
+        TError,
+        {data: BodyType<RfqInput>},
+        TContext
+      > => {
+      return useMutation(getCreateRfqMutationOptions(options));
+    }
+
+export const getGetRfqUrl = (id: number,) => {
+
+
+
+
+  return `/api/rfqs/${id}`
+}
+
+/**
+ * @summary Get a single RFQ with its responses
+ */
+export const getRfq = async (id: number, options?: RequestInit): Promise<RfqDetail> => {
+
+  return customFetch<RfqDetail>(getGetRfqUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetRfqQueryKey = (id: number,) => {
+    return [
+    `/api/rfqs/${id}`
+    ] as const;
+    }
+
+
+export const getGetRfqQueryOptions = <TData = Awaited<ReturnType<typeof getRfq>>, TError = ErrorType<void>>(id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getRfq>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetRfqQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getRfq>>> = ({ signal }) => getRfq(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getRfq>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetRfqQueryResult = NonNullable<Awaited<ReturnType<typeof getRfq>>>
+export type GetRfqQueryError = ErrorType<void>
+
+
+/**
+ * @summary Get a single RFQ with its responses
+ */
+
+export function useGetRfq<TData = Awaited<ReturnType<typeof getRfq>>, TError = ErrorType<void>>(
+ id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getRfq>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetRfqQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getCloseRfqUrl = (id: number,) => {
+
+
+
+
+  return `/api/rfqs/${id}/close`
+}
+
+/**
+ * @summary Close an RFQ
+ */
+export const closeRfq = async (id: number, options?: RequestInit): Promise<Rfq> => {
+
+  return customFetch<Rfq>(getCloseRfqUrl(id),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getCloseRfqMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof closeRfq>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof closeRfq>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['closeRfq'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof closeRfq>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  closeRfq(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CloseRfqMutationResult = NonNullable<Awaited<ReturnType<typeof closeRfq>>>
+
+    export type CloseRfqMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Close an RFQ
+ */
+export const useCloseRfq = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof closeRfq>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof closeRfq>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+      return useMutation(getCloseRfqMutationOptions(options));
+    }
+
+export const getCreateRfqResponseUrl = (id: number,) => {
+
+
+
+
+  return `/api/rfqs/${id}/responses`
+}
+
+/**
+ * @summary Seller responds to an RFQ
+ */
+export const createRfqResponse = async (id: number,
+    rfqResponseInput: RfqResponseInput, options?: RequestInit): Promise<RfqResponseItem> => {
+
+  return customFetch<RfqResponseItem>(getCreateRfqResponseUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      rfqResponseInput,)
+  }
+);}
+
+
+
+
+export const getCreateRfqResponseMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createRfqResponse>>, TError,{id: number;data: BodyType<RfqResponseInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createRfqResponse>>, TError,{id: number;data: BodyType<RfqResponseInput>}, TContext> => {
+
+const mutationKey = ['createRfqResponse'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createRfqResponse>>, {id: number;data: BodyType<RfqResponseInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  createRfqResponse(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateRfqResponseMutationResult = NonNullable<Awaited<ReturnType<typeof createRfqResponse>>>
+    export type CreateRfqResponseMutationBody = BodyType<RfqResponseInput>
+    export type CreateRfqResponseMutationError = ErrorType<void>
+
+    /**
+ * @summary Seller responds to an RFQ
+ */
+export const useCreateRfqResponse = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createRfqResponse>>, TError,{id: number;data: BodyType<RfqResponseInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createRfqResponse>>,
+        TError,
+        {id: number;data: BodyType<RfqResponseInput>},
+        TContext
+      > => {
+      return useMutation(getCreateRfqResponseMutationOptions(options));
+    }
+
+export const getGetSellerRfqStatsUrl = () => {
+
+
+
+
+  return `/api/seller/rfqs`
+}
+
+/**
+ * @summary Get RFQ summary stats for seller dashboard
+ */
+export const getSellerRfqStats = async ( options?: RequestInit): Promise<SellerRfqStats> => {
+
+  return customFetch<SellerRfqStats>(getGetSellerRfqStatsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetSellerRfqStatsQueryKey = () => {
+    return [
+    `/api/seller/rfqs`
+    ] as const;
+    }
+
+
+export const getGetSellerRfqStatsQueryOptions = <TData = Awaited<ReturnType<typeof getSellerRfqStats>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getSellerRfqStats>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetSellerRfqStatsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getSellerRfqStats>>> = ({ signal }) => getSellerRfqStats({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getSellerRfqStats>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetSellerRfqStatsQueryResult = NonNullable<Awaited<ReturnType<typeof getSellerRfqStats>>>
+export type GetSellerRfqStatsQueryError = ErrorType<void>
+
+
+/**
+ * @summary Get RFQ summary stats for seller dashboard
+ */
+
+export function useGetSellerRfqStats<TData = Awaited<ReturnType<typeof getSellerRfqStats>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getSellerRfqStats>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetSellerRfqStatsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
 

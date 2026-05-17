@@ -6,12 +6,13 @@ import { BadgeIndicator } from "@/components/ui/badge-indicator";
 import {
   useGetSellerListings, getGetSellerListingsQueryKey,
   useGetSellerStats, getGetSellerStatsQueryKey,
+  useGetSellerRfqStats,
   useDeleteListing
 } from "@workspace/api-client-react";
 import { useAuth } from "@/context/AuthContext";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Edit2, Trash2, Package, FileCheck2, MessageSquare, ShieldCheck, Zap, Building2, AlertTriangle } from "lucide-react";
+import { Plus, Edit2, Trash2, Package, FileCheck2, MessageSquare, ShieldCheck, Zap, Building2, AlertTriangle, ClipboardList } from "lucide-react";
 
 function formatPrice(price: number | null) {
   if (price == null) return "POA";
@@ -40,6 +41,7 @@ export default function SellerDashboard() {
   const { data: stats, isLoading: statsLoading } = useGetSellerStats({
     query: { queryKey: getGetSellerStatsQueryKey() },
   });
+  const { data: rfqStats } = useGetSellerRfqStats();
 
   const deleteMutation = useDeleteListing();
 
@@ -185,6 +187,33 @@ export default function SellerDashboard() {
               </Link>
             )}
           </div>
+        </div>
+
+        {/* RFQ Opportunity Card */}
+        <div className="bg-card border border-border rounded-md p-5 mb-6 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="h-9 w-9 rounded-md flex items-center justify-center bg-primary/10">
+              <ClipboardList className="h-4 w-4 text-primary" />
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground uppercase tracking-wider">RFQ Board</p>
+              <p className="font-bold text-lg text-white">
+                {rfqStats ? rfqStats.openRfqs : "—"}
+                <span className="text-sm font-normal text-muted-foreground ml-1.5">open requests</span>
+              </p>
+            </div>
+          </div>
+          <div className="hidden md:flex items-center gap-4 text-sm text-muted-foreground">
+            <span>
+              <span className="text-white font-medium">{rfqStats?.myResponses ?? 0}</span> my responses
+            </span>
+          </div>
+          <Link href="/rfqs">
+            <Button variant="outline" size="sm" className="text-xs h-8 gap-1.5 border-border text-muted-foreground hover:text-white">
+              <ClipboardList className="h-3.5 w-3.5" />
+              Browse RFQs
+            </Button>
+          </Link>
         </div>
 
         {/* Listings Table */}

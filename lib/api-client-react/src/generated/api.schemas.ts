@@ -341,6 +341,87 @@ export interface AdminStats {
   totalInquiries: number;
 }
 
+export type RfqStatus = typeof RfqStatus[keyof typeof RfqStatus];
+
+
+export const RfqStatus = {
+  open: 'open',
+  closed: 'closed',
+} as const;
+
+export interface Rfq {
+  id: number;
+  buyerName: string;
+  buyerEmail: string;
+  /** @nullable */
+  buyerCompany?: string | null;
+  /** @nullable */
+  buyerPhone?: string | null;
+  partNumber: string;
+  description: string;
+  /** @nullable */
+  aircraftApplicability?: string | null;
+  /** @nullable */
+  condition?: string | null;
+  quantity: number;
+  status: RfqStatus;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface RfqResponseItem {
+  id: number;
+  rfqId: number;
+  sellerId: number;
+  sellerCompanyName?: string;
+  message: string;
+  /** @nullable */
+  listingId?: number | null;
+  /** @nullable */
+  listingPartNumber?: string | null;
+  createdAt: string;
+}
+
+export interface RfqDetail {
+  rfq: Rfq;
+  responses: RfqResponseItem[];
+}
+
+export interface RfqInput {
+  buyerName: string;
+  buyerEmail: string;
+  /** @nullable */
+  buyerCompany?: string | null;
+  /** @nullable */
+  buyerPhone?: string | null;
+  partNumber: string;
+  description: string;
+  /** @nullable */
+  aircraftApplicability?: string | null;
+  /** @nullable */
+  condition?: string | null;
+  /** @minimum 1 */
+  quantity: number;
+}
+
+export interface RfqResponseInput {
+  message: string;
+  /** @nullable */
+  listingId?: number | null;
+}
+
+export interface RfqsPage {
+  rfqs: Rfq[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
+export interface SellerRfqStats {
+  openRfqs: number;
+  myResponses: number;
+}
+
 export type GetListingsParams = {
 q?: string;
 aircraft?: string;
@@ -410,5 +491,27 @@ export type GetAdminListingsStatus = typeof GetAdminListingsStatus[keyof typeof 
 export const GetAdminListingsStatus = {
   active: 'active',
   removed: 'removed',
+} as const;
+
+export type GetRfqsParams = {
+status?: GetRfqsStatus;
+q?: string;
+/**
+ * @minimum 1
+ */
+page?: number;
+/**
+ * @minimum 1
+ * @maximum 50
+ */
+limit?: number;
+};
+
+export type GetRfqsStatus = typeof GetRfqsStatus[keyof typeof GetRfqsStatus];
+
+
+export const GetRfqsStatus = {
+  open: 'open',
+  closed: 'closed',
 } as const;
 

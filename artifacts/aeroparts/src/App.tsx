@@ -15,6 +15,9 @@ import EditListing from "@/pages/seller/edit-listing";
 import AdminDashboard from "@/pages/admin/dashboard";
 import Pricing from "@/pages/pricing";
 import SubscriptionManagement from "@/pages/seller/subscription";
+import RfqsPage from "@/pages/rfqs/index";
+import NewRfqPage from "@/pages/rfqs/new";
+import RfqDetailPage from "@/pages/rfqs/detail";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -39,6 +42,9 @@ function Router() {
       <Route path="/admin" component={AdminDashboard} />
       <Route path="/pricing" component={Pricing} />
       <Route path="/seller/subscription" component={SubscriptionManagement} />
+      <Route path="/rfqs" component={RfqsPage} />
+      <Route path="/rfqs/new" component={NewRfqPage} />
+      <Route path="/rfqs/:id" component={RfqDetailPage} />
       <Route component={NotFound} />
     </Switch>
   );

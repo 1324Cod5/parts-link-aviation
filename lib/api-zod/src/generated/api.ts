@@ -531,3 +531,143 @@ export const DowngradePlanResponse = zod.object({
 })
 
 
+/**
+ * @summary List open RFQs
+ */
+export const getRfqsQueryPageDefault = 1;
+
+export const getRfqsQueryLimitDefault = 20;
+export const getRfqsQueryLimitMax = 50;
+
+
+
+export const GetRfqsQueryParams = zod.object({
+  "status": zod.enum(['open', 'closed']).optional(),
+  "q": zod.coerce.string().optional(),
+  "page": zod.coerce.number().min(1).default(getRfqsQueryPageDefault),
+  "limit": zod.coerce.number().min(1).max(getRfqsQueryLimitMax).default(getRfqsQueryLimitDefault)
+})
+
+export const GetRfqsResponse = zod.object({
+  "rfqs": zod.array(zod.object({
+  "id": zod.number(),
+  "buyerName": zod.string(),
+  "buyerEmail": zod.string(),
+  "buyerCompany": zod.string().nullish(),
+  "buyerPhone": zod.string().nullish(),
+  "partNumber": zod.string(),
+  "description": zod.string(),
+  "aircraftApplicability": zod.string().nullish(),
+  "condition": zod.string().nullish(),
+  "quantity": zod.number(),
+  "status": zod.enum(['open', 'closed']),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string().optional()
+})),
+  "total": zod.number(),
+  "page": zod.number(),
+  "limit": zod.number()
+})
+
+
+/**
+ * @summary Post a new RFQ (no auth required)
+ */
+
+
+
+export const CreateRfqBody = zod.object({
+  "buyerName": zod.string(),
+  "buyerEmail": zod.string(),
+  "buyerCompany": zod.string().nullish(),
+  "buyerPhone": zod.string().nullish(),
+  "partNumber": zod.string(),
+  "description": zod.string(),
+  "aircraftApplicability": zod.string().nullish(),
+  "condition": zod.string().nullish(),
+  "quantity": zod.number().min(1)
+})
+
+
+/**
+ * @summary Get a single RFQ with its responses
+ */
+export const GetRfqParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const GetRfqResponse = zod.object({
+  "rfq": zod.object({
+  "id": zod.number(),
+  "buyerName": zod.string(),
+  "buyerEmail": zod.string(),
+  "buyerCompany": zod.string().nullish(),
+  "buyerPhone": zod.string().nullish(),
+  "partNumber": zod.string(),
+  "description": zod.string(),
+  "aircraftApplicability": zod.string().nullish(),
+  "condition": zod.string().nullish(),
+  "quantity": zod.number(),
+  "status": zod.enum(['open', 'closed']),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string().optional()
+}),
+  "responses": zod.array(zod.object({
+  "id": zod.number(),
+  "rfqId": zod.number(),
+  "sellerId": zod.number(),
+  "sellerCompanyName": zod.string().optional(),
+  "message": zod.string(),
+  "listingId": zod.number().nullish(),
+  "listingPartNumber": zod.string().nullish(),
+  "createdAt": zod.string()
+}))
+})
+
+
+/**
+ * @summary Close an RFQ
+ */
+export const CloseRfqParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const CloseRfqResponse = zod.object({
+  "id": zod.number(),
+  "buyerName": zod.string(),
+  "buyerEmail": zod.string(),
+  "buyerCompany": zod.string().nullish(),
+  "buyerPhone": zod.string().nullish(),
+  "partNumber": zod.string(),
+  "description": zod.string(),
+  "aircraftApplicability": zod.string().nullish(),
+  "condition": zod.string().nullish(),
+  "quantity": zod.number(),
+  "status": zod.enum(['open', 'closed']),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string().optional()
+})
+
+
+/**
+ * @summary Seller responds to an RFQ
+ */
+export const CreateRfqResponseParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const CreateRfqResponseBody = zod.object({
+  "message": zod.string(),
+  "listingId": zod.number().nullish()
+})
+
+
+/**
+ * @summary Get RFQ summary stats for seller dashboard
+ */
+export const GetSellerRfqStatsResponse = zod.object({
+  "openRfqs": zod.number(),
+  "myResponses": zod.number()
+})
+
+
