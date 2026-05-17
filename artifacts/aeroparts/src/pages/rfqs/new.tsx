@@ -53,7 +53,7 @@ export default function NewRfqPage() {
         partNumber: form.partNumber,
         description: form.description,
         aircraftApplicability: form.aircraftApplicability || null,
-        condition: form.condition || null,
+        condition: (form.condition && form.condition !== "any") ? form.condition : null,
         quantity: form.quantity,
       },
     });
@@ -174,7 +174,7 @@ export default function NewRfqPage() {
                       <SelectValue placeholder="Any condition" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Any condition</SelectItem>
+                      <SelectItem value="any">Any condition</SelectItem>
                       {CONDITIONS.map(c => (
                         <SelectItem key={c} value={c}>{c}</SelectItem>
                       ))}
