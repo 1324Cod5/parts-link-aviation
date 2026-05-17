@@ -1093,6 +1093,13 @@ components:
           enum: [active, trial, past_due, cancelled, suspended, null]
         mustChangePassword:
           type: boolean
+        trustScore:
+          type: integer
+          description: Seller trust score 0–100
+        trustBadge:
+          $ref: "#/components/schemas/TrustBadge"
+        trustScoreBreakdown:
+          $ref: "#/components/schemas/TrustScoreBreakdown"
         createdAt:
           type: string
 
@@ -1216,6 +1223,29 @@ components:
                       additionalProperties:
                         type: string
 
+    TrustBadge:
+      type: string
+      enum: [unverified, document_verified, aviation_verified, trusted_partner]
+
+    TrustScoreBreakdown:
+      type: object
+      required: [certDocScore, listingAccuracyScore, transactionScore, responseTimeScore, disputePenalty, subscriptionBoost, total, badge]
+      properties:
+        certDocScore: { type: integer }
+        certDocMax: { type: integer }
+        listingAccuracyScore: { type: integer }
+        listingAccuracyMax: { type: integer }
+        transactionScore: { type: integer }
+        transactionMax: { type: integer }
+        responseTimeScore: { type: integer }
+        responseTimeMax: { type: integer }
+        disputePenalty: { type: integer }
+        subscriptionBoost: { type: integer }
+        subscriptionBoostMax: { type: integer }
+        total: { type: integer }
+        badge:
+          $ref: "#/components/schemas/TrustBadge"
+
     Seller:
       type: object
       required: [id, companyName, contactName, country]
@@ -1232,6 +1262,10 @@ components:
           type: ["string", "null"]
         country:
           type: ["string", "null"]
+        trustScore:
+          type: integer
+        trustBadge:
+          $ref: "#/components/schemas/TrustBadge"
 
     Listing:
       type: object

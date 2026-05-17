@@ -13,7 +13,8 @@ import {
 import { useAuth } from "@/context/AuthContext";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Edit2, Trash2, Package, FileCheck2, MessageSquare, ShieldCheck, Zap, Building2, AlertTriangle, ClipboardList, Wrench } from "lucide-react";
+import { Plus, Edit2, Trash2, Package, FileCheck2, MessageSquare, ShieldCheck, Zap, Building2, AlertTriangle, ClipboardList, Wrench, Shield } from "lucide-react";
+import { TrustBadge, TrustScoreBar, TRUST_BADGE_META } from "@/components/ui/trust-badge";
 
 function formatPrice(price: number | null) {
   if (price == null) return "POA";
@@ -219,6 +220,76 @@ export default function SellerDashboard() {
             </Button>
           </Link>
         </div>
+
+        {/* Trust Score Card */}
+        {user.trustScore != null && (
+          <div className="bg-card border border-border rounded-md p-5 mb-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <Shield className="h-4 w-4 text-primary" />
+                <h2 className="font-semibold text-white text-sm">Trust Score</h2>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="font-mono text-2xl font-bold text-white">{user.trustScore}</span>
+                <span className="text-muted-foreground text-sm">/100</span>
+                <TrustBadge badge={user.trustBadge} size="md" />
+              </div>
+            </div>
+
+            <TrustScoreBar score={user.trustScore} />
+
+            {/* Next tier hint */}
+            {(() => {
+              const score = user.trustScore ?? 0;
+              const next =
+                score < 40 ? { label: "Doc Verified", at: 40 } :
+                score < 70 ? { label: "Aviation Verified", at: 70 } :
+                score < 90 ? { label: "Trusted Partner", at: 90 } : null;
+              return next ? (
+                <p className="text-xs text-muted-foreground mt-2">
+                  {next.at - score} more points to reach <span className="text-white">{next.label}</span>
+                </p>
+              ) : null;
+            })()}
+
+            {/* Score breakdown */}
+            {user.trustScoreBreakdown && (
+              <div className="mt-4 pt-4 border-t border-border grid grid-cols-2 md:grid-cols-3 gap-3">
+                {([
+                  { key: "certDocScore",         label: "Cert Docs",       max: 30 },
+                  { key: "listingAccuracyScore",  label: "Listing Detail",  max: 20 },
+                  { key: "transactionScore",      label: "Transactions",    max: 15 },
+                  { key: "responseTimeScore",     label: "Responsiveness",  max: 10 },
+                  { key: "subscriptionBoost",     label: "Plan Boost",      max: 10 },
+                  { key: "disputePenalty",        label: "Disputes",        max: 0  },
+                ] as const).map(({ key, label, max }) => {
+                  const val = (user.trustScoreBreakdown as any)?.[key] ?? 0;
+                  const pct = max > 0 ? Math.round((val / max) * 100) : 0;
+                  const isNegative = val < 0;
+                  return (
+                    <div key={key} className="bg-secondary/30 rounded p-2.5">
+                      <p className="text-xs text-muted-foreground mb-1.5">{label}</p>
+                      <div className="flex items-end justify-between gap-1 mb-1.5">
+                        <span className={`font-mono text-sm font-bold ${isNegative ? "text-red-400" : "text-white"}`}>
+                          {isNegative ? val : `+${val}`}
+                        </span>
+                        {max > 0 && <span className="text-xs text-muted-foreground">/ {max}</span>}
+                      </div>
+                      {max > 0 && (
+                        <div className="h-1 bg-secondary rounded-full overflow-hidden">
+                          <div
+                            className="h-full rounded-full bg-primary/70 transition-all"
+                            style={{ width: `${pct}%` }}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* MRO Services Card */}
         <div className="bg-card border border-border rounded-md p-5 mb-6 flex items-center justify-between gap-4">

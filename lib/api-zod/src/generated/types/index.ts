@@ -91,6 +91,8 @@ export * from './subscriptionProductsResponseProductsItem';
 export * from './subscriptionProductsResponseProductsItemMetadata';
 export * from './subscriptionProductsResponseProductsItemPricesItem';
 export * from './subscriptionProductsResponseProductsItemPricesItemMetadata';
+export * from './trustBadge';
+export * from './trustScoreBreakdown';
 export * from './user';
 export * from './userComputedRole';
 export * from './userPlan';

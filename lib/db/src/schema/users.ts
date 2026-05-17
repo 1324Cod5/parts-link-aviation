@@ -1,4 +1,4 @@
-import { pgTable, serial, text, timestamp, boolean, integer, pgEnum } from "drizzle-orm/pg-core";
+import { pgTable, serial, text, timestamp, boolean, integer, pgEnum, jsonb } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
@@ -7,6 +7,9 @@ export const userPlanEnum = pgEnum("user_plan", ["free", "pro", "enterprise", "m
 export const userStatusEnum = pgEnum("user_status", ["active", "suspended"]);
 export const subscriptionStatusEnum = pgEnum("subscription_status", [
   "active", "trial", "past_due", "cancelled", "suspended",
+]);
+export const trustBadgeEnum = pgEnum("trust_badge", [
+  "unverified", "document_verified", "aviation_verified", "trusted_partner",
 ]);
 
 export const usersTable = pgTable("users", {
@@ -32,6 +35,10 @@ export const usersTable = pgTable("users", {
   currentPeriodEnd: timestamp("current_period_end"),
   gracePeriodEnd: timestamp("grace_period_end"),
   trialEndsAt: timestamp("trial_ends_at"),
+  // Trust scoring
+  trustScore: integer("trust_score").notNull().default(0),
+  trustBadge: trustBadgeEnum("trust_badge").notNull().default("unverified"),
+  trustScoreBreakdown: jsonb("trust_score_breakdown"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });

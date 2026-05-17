@@ -2,6 +2,9 @@ import app from "./app";
 import { logger } from "./lib/logger";
 import { seedAdmin } from "./lib/seed-admin";
 import { seedTestAccounts } from "./lib/seed-test-accounts";
+import { db, usersTable } from "@workspace/db";
+import { eq } from "drizzle-orm";
+import { recomputeAndSave } from "./lib/trustScore";
 
 const rawPort = process.env["PORT"];
 
@@ -60,4 +63,16 @@ app.listen(port, async (err) => {
   await seedAdmin();
   await seedTestAccounts();
   await initStripe();
+
+  // Recompute trust scores for all sellers on startup (fire-and-forget)
+  void (async () => {
+    try {
+      const sellers = await db.select({ id: usersTable.id })
+        .from(usersTable).where(eq(usersTable.role, "seller"));
+      await Promise.all(sellers.map(s => recomputeAndSave(s.id)));
+      logger.info({ count: sellers.length }, "Trust scores recomputed");
+    } catch (err) {
+      logger.warn({ err }, "Trust score startup recompute failed (non-fatal)");
+    }
+  })();
 });

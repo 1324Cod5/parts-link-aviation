@@ -5,6 +5,8 @@
  * AeroParts Marketplace API
  * OpenAPI spec version: 0.1.0
  */
+import type { TrustBadge } from './trustBadge';
+import type { TrustScoreBreakdown } from './trustScoreBreakdown';
 import type { UserComputedRole } from './userComputedRole';
 import type { UserPlan } from './userPlan';
 import type { UserRole } from './userRole';
@@ -28,5 +30,9 @@ export interface User {
   /** @nullable */
   subscriptionStatus?: UserSubscriptionStatus;
   mustChangePassword?: boolean;
+  /** Seller trust score 0–100 */
+  trustScore?: number;
+  trustBadge?: TrustBadge;
+  trustScoreBreakdown?: TrustScoreBreakdown;
   createdAt: string;
 }

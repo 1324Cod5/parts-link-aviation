@@ -77,6 +77,9 @@ function serializeUser(
     planExpiresAt: user.planExpiresAt ? user.planExpiresAt.toISOString() : null,
     subscriptionStatus: user.subscriptionStatus ?? null,
     mustChangePassword: user.mustChangePassword,
+    trustScore: user.trustScore ?? 0,
+    trustBadge: user.trustBadge ?? "unverified",
+    trustScoreBreakdown: user.trustScoreBreakdown ?? null,
     createdAt: user.createdAt.toISOString(),
   });
 }

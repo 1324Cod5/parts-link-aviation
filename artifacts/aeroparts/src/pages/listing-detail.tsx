@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import {
   ArrowLeft, FileText, Camera, Building2, Phone, Mail, Package, RefreshCw, ChevronRight
 } from "lucide-react";
+import { TrustBadge, TrustScoreBar } from "@/components/ui/trust-badge";
 
 function formatCondition(c: string) {
   return c.split("_").map(w => w[0].toUpperCase() + w.slice(1)).join(" ");
@@ -223,6 +224,16 @@ export default function ListingDetail() {
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <Phone className="h-3.5 w-3.5" />
                       {listing.seller.phone}
+                    </div>
+                  )}
+                  {/* Trust score */}
+                  {listing.seller.trustBadge && (
+                    <div className="pt-2 border-t border-border/50 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-muted-foreground uppercase tracking-wider">Trust Score</span>
+                        <TrustBadge badge={listing.seller.trustBadge} score={listing.seller.trustScore} showScore />
+                      </div>
+                      <TrustScoreBar score={listing.seller.trustScore ?? 0} />
                     </div>
                   )}
                 </div>

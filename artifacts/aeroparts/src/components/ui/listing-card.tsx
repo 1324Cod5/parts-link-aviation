@@ -1,6 +1,7 @@
 import { Link } from "wouter";
-import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
+import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { BadgeIndicator } from "./badge-indicator";
+import { TrustBadge } from "./trust-badge";
 import type { Listing } from "@workspace/api-client-react";
 
 interface ListingCardProps {
@@ -68,12 +69,17 @@ export function ListingCard({ listing }: ListingCardProps) {
           )}
         </CardContent>
         
-        <CardFooter className="p-4 bg-secondary/30 border-t border-border flex items-center justify-between">
+        <CardFooter className="p-4 bg-secondary/30 border-t border-border flex items-center justify-between gap-2">
           <div className="font-mono font-medium text-primary">
             {formatPrice(listing.price)}
           </div>
-          <div className="text-xs text-muted-foreground">
-            {listing.saleType === 'both' ? 'Outright / Exchange' : listing.saleType.charAt(0).toUpperCase() + listing.saleType.slice(1)}
+          <div className="flex items-center gap-2">
+            {listing.seller?.trustBadge && listing.seller.trustBadge !== "unverified" && (
+              <TrustBadge badge={listing.seller.trustBadge} />
+            )}
+            <span className="text-xs text-muted-foreground">
+              {listing.saleType === 'both' ? 'Outright / Exchange' : listing.saleType.charAt(0).toUpperCase() + listing.saleType.slice(1)}
+            </span>
           </div>
         </CardFooter>
       </Card>

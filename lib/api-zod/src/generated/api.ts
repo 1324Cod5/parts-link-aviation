@@ -55,6 +55,23 @@ export const LoginUserResponse = zod.object({
   "planExpiresAt": zod.string().nullish(),
   "subscriptionStatus": zod.union([zod.literal('active'),zod.literal('trial'),zod.literal('past_due'),zod.literal('cancelled'),zod.literal('suspended'),zod.literal(null)]).nullish(),
   "mustChangePassword": zod.boolean().optional(),
+  "trustScore": zod.number().optional().describe('Seller trust score 0–100'),
+  "trustBadge": zod.enum(['unverified', 'document_verified', 'aviation_verified', 'trusted_partner']).optional(),
+  "trustScoreBreakdown": zod.object({
+  "certDocScore": zod.number(),
+  "certDocMax": zod.number().optional(),
+  "listingAccuracyScore": zod.number(),
+  "listingAccuracyMax": zod.number().optional(),
+  "transactionScore": zod.number(),
+  "transactionMax": zod.number().optional(),
+  "responseTimeScore": zod.number(),
+  "responseTimeMax": zod.number().optional(),
+  "disputePenalty": zod.number(),
+  "subscriptionBoost": zod.number(),
+  "subscriptionBoostMax": zod.number().optional(),
+  "total": zod.number(),
+  "badge": zod.enum(['unverified', 'document_verified', 'aviation_verified', 'trusted_partner'])
+}).optional(),
   "createdAt": zod.string()
 })
 })
@@ -101,6 +118,23 @@ export const GetCurrentUserResponse = zod.object({
   "planExpiresAt": zod.string().nullish(),
   "subscriptionStatus": zod.union([zod.literal('active'),zod.literal('trial'),zod.literal('past_due'),zod.literal('cancelled'),zod.literal('suspended'),zod.literal(null)]).nullish(),
   "mustChangePassword": zod.boolean().optional(),
+  "trustScore": zod.number().optional().describe('Seller trust score 0–100'),
+  "trustBadge": zod.enum(['unverified', 'document_verified', 'aviation_verified', 'trusted_partner']).optional(),
+  "trustScoreBreakdown": zod.object({
+  "certDocScore": zod.number(),
+  "certDocMax": zod.number().optional(),
+  "listingAccuracyScore": zod.number(),
+  "listingAccuracyMax": zod.number().optional(),
+  "transactionScore": zod.number(),
+  "transactionMax": zod.number().optional(),
+  "responseTimeScore": zod.number(),
+  "responseTimeMax": zod.number().optional(),
+  "disputePenalty": zod.number(),
+  "subscriptionBoost": zod.number(),
+  "subscriptionBoostMax": zod.number().optional(),
+  "total": zod.number(),
+  "badge": zod.enum(['unverified', 'document_verified', 'aviation_verified', 'trusted_partner'])
+}).optional(),
   "createdAt": zod.string()
 })
 
@@ -149,7 +183,9 @@ export const GetFeaturedListingsResponseItem = zod.object({
   "contactName": zod.string(),
   "email": zod.string().optional(),
   "phone": zod.string().nullish(),
-  "country": zod.string().nullable()
+  "country": zod.string().nullable(),
+  "trustScore": zod.number().optional(),
+  "trustBadge": zod.enum(['unverified', 'document_verified', 'aviation_verified', 'trusted_partner']).optional()
 }).optional(),
   "createdAt": zod.string(),
   "updatedAt": zod.string().optional()
@@ -203,7 +239,9 @@ export const GetListingsResponse = zod.object({
   "contactName": zod.string(),
   "email": zod.string().optional(),
   "phone": zod.string().nullish(),
-  "country": zod.string().nullable()
+  "country": zod.string().nullable(),
+  "trustScore": zod.number().optional(),
+  "trustBadge": zod.enum(['unverified', 'document_verified', 'aviation_verified', 'trusted_partner']).optional()
 }).optional(),
   "createdAt": zod.string(),
   "updatedAt": zod.string().optional()
@@ -261,7 +299,9 @@ export const GetListingResponse = zod.object({
   "contactName": zod.string(),
   "email": zod.string().optional(),
   "phone": zod.string().nullish(),
-  "country": zod.string().nullable()
+  "country": zod.string().nullable(),
+  "trustScore": zod.number().optional(),
+  "trustBadge": zod.enum(['unverified', 'document_verified', 'aviation_verified', 'trusted_partner']).optional()
 }).optional(),
   "createdAt": zod.string(),
   "updatedAt": zod.string().optional()
@@ -311,7 +351,9 @@ export const UpdateListingResponse = zod.object({
   "contactName": zod.string(),
   "email": zod.string().optional(),
   "phone": zod.string().nullish(),
-  "country": zod.string().nullable()
+  "country": zod.string().nullable(),
+  "trustScore": zod.number().optional(),
+  "trustBadge": zod.enum(['unverified', 'document_verified', 'aviation_verified', 'trusted_partner']).optional()
 }).optional(),
   "createdAt": zod.string(),
   "updatedAt": zod.string().optional()
@@ -363,7 +405,9 @@ export const UpdateListingBadgeResponse = zod.object({
   "contactName": zod.string(),
   "email": zod.string().optional(),
   "phone": zod.string().nullish(),
-  "country": zod.string().nullable()
+  "country": zod.string().nullable(),
+  "trustScore": zod.number().optional(),
+  "trustBadge": zod.enum(['unverified', 'document_verified', 'aviation_verified', 'trusted_partner']).optional()
 }).optional(),
   "createdAt": zod.string(),
   "updatedAt": zod.string().optional()
@@ -431,7 +475,9 @@ export const GetSellerListingsResponseItem = zod.object({
   "contactName": zod.string(),
   "email": zod.string().optional(),
   "phone": zod.string().nullish(),
-  "country": zod.string().nullable()
+  "country": zod.string().nullable(),
+  "trustScore": zod.number().optional(),
+  "trustBadge": zod.enum(['unverified', 'document_verified', 'aviation_verified', 'trusted_partner']).optional()
 }).optional(),
   "createdAt": zod.string(),
   "updatedAt": zod.string().optional()
@@ -503,7 +549,9 @@ export const GetAdminListingsResponseItem = zod.object({
   "contactName": zod.string(),
   "email": zod.string().optional(),
   "phone": zod.string().nullish(),
-  "country": zod.string().nullable()
+  "country": zod.string().nullable(),
+  "trustScore": zod.number().optional(),
+  "trustBadge": zod.enum(['unverified', 'document_verified', 'aviation_verified', 'trusted_partner']).optional()
 }).optional(),
   "createdAt": zod.string(),
   "updatedAt": zod.string().optional()
@@ -540,7 +588,9 @@ export const GetAdminListingResponse = zod.object({
   "contactName": zod.string(),
   "email": zod.string().optional(),
   "phone": zod.string().nullish(),
-  "country": zod.string().nullable()
+  "country": zod.string().nullable(),
+  "trustScore": zod.number().optional(),
+  "trustBadge": zod.enum(['unverified', 'document_verified', 'aviation_verified', 'trusted_partner']).optional()
 }).optional(),
   "createdAt": zod.string(),
   "updatedAt": zod.string().optional()

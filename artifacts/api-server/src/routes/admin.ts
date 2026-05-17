@@ -2,6 +2,7 @@ import { Router, type IRouter } from "express";
 import { db, listingsTable, usersTable, inquiriesTable, mroProfilesTable } from "@workspace/db";
 import { eq, and, count, sql } from "drizzle-orm";
 import { GetAdminListingsQueryParams, AdminRemoveListingParams } from "@workspace/api-zod";
+import { recomputeAndSave } from "../lib/trustScore";
 
 const router: IRouter = Router();
 
@@ -29,6 +30,8 @@ function serializeListing(listing: any, seller: any) {
       email: seller.email,
       phone: seller.phone,
       country: seller.country,
+      trustScore: seller.trustScore ?? 0,
+      trustBadge: seller.trustBadge ?? "unverified",
     } : undefined,
     createdAt: listing.createdAt.toISOString(),
     updatedAt: listing.updatedAt.toISOString(),
@@ -106,6 +109,7 @@ router.patch("/admin/listings/:id/remove", async (req, res): Promise<void> => {
   }
 
   const [seller] = await db.select().from(usersTable).where(eq(usersTable.id, updated.sellerId));
+  void recomputeAndSave(updated.sellerId);
   res.json(serializeListing(updated, seller));
 });
 

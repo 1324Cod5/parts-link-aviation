@@ -88,6 +88,32 @@ export const UserSubscriptionStatus = {
   suspended: 'suspended',
 } as const;
 
+export type TrustBadge = typeof TrustBadge[keyof typeof TrustBadge];
+
+
+export const TrustBadge = {
+  unverified: 'unverified',
+  document_verified: 'document_verified',
+  aviation_verified: 'aviation_verified',
+  trusted_partner: 'trusted_partner',
+} as const;
+
+export interface TrustScoreBreakdown {
+  certDocScore: number;
+  certDocMax?: number;
+  listingAccuracyScore: number;
+  listingAccuracyMax?: number;
+  transactionScore: number;
+  transactionMax?: number;
+  responseTimeScore: number;
+  responseTimeMax?: number;
+  disputePenalty: number;
+  subscriptionBoost: number;
+  subscriptionBoostMax?: number;
+  total: number;
+  badge: TrustBadge;
+}
+
 export interface User {
   id: number;
   email: string;
@@ -106,6 +132,10 @@ export interface User {
   /** @nullable */
   subscriptionStatus?: UserSubscriptionStatus;
   mustChangePassword?: boolean;
+  /** Seller trust score 0–100 */
+  trustScore?: number;
+  trustBadge?: TrustBadge;
+  trustScoreBreakdown?: TrustScoreBreakdown;
   createdAt: string;
 }
 
@@ -245,6 +275,8 @@ export interface Seller {
   phone?: string | null;
   /** @nullable */
   country: string | null;
+  trustScore?: number;
+  trustBadge?: TrustBadge;
 }
 
 export type ListingCondition = typeof ListingCondition[keyof typeof ListingCondition];

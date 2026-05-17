@@ -15,6 +15,7 @@ import {
   CreateListingBody,
 } from "@workspace/api-zod";
 import { resolveEffectivePlan, PLAN_LISTING_LIMITS } from "../lib/planEnforcement";
+import { recomputeAndSave } from "../lib/trustScore";
 
 const router: IRouter = Router();
 
@@ -57,6 +58,8 @@ function serializeListing(listing: any, seller: any) {
           phone: seller.phone,
           country: seller.country,
           plan: seller.plan,
+          trustScore: seller.trustScore ?? 0,
+          trustBadge: seller.trustBadge ?? "unverified",
         }
       : undefined,
     createdAt: listing.createdAt.toISOString(),
@@ -221,6 +224,7 @@ router.post("/listings", async (req, res): Promise<void> => {
     })
     .returning();
 
+  void recomputeAndSave(userId);
   res.status(201).json(serializeListing(listing, seller));
 });
 
@@ -274,6 +278,7 @@ router.patch("/listings/:id", async (req, res): Promise<void> => {
     .returning();
 
   const [seller] = await db.select().from(usersTable).where(eq(usersTable.id, updated.sellerId));
+  void recomputeAndSave(updated.sellerId);
   res.json(serializeListing(updated, seller));
 });
 
@@ -290,6 +295,7 @@ router.delete("/listings/:id", async (req, res): Promise<void> => {
   if (existing.sellerId !== userId) { res.status(403).json({ error: "Forbidden" }); return; }
 
   await db.delete(listingsTable).where(eq(listingsTable.id, params.data.id));
+  void recomputeAndSave(existing.sellerId);
   res.sendStatus(204);
 });
 
@@ -313,6 +319,7 @@ router.patch("/listings/:id/badge", async (req, res): Promise<void> => {
   if (!updated) { res.status(404).json({ error: "Listing not found" }); return; }
 
   const [seller] = await db.select().from(usersTable).where(eq(usersTable.id, updated.sellerId));
+  void recomputeAndSave(updated.sellerId);
   res.json(serializeListing(updated, seller));
 });
 

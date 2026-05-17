@@ -5,6 +5,7 @@
  * AeroParts Marketplace API
  * OpenAPI spec version: 0.1.0
  */
+import type { TrustBadge } from './trustBadge';
 
 export interface Seller {
   id: number;
@@ -15,4 +16,6 @@ export interface Seller {
   phone?: string | null;
   /** @nullable */
   country: string | null;
+  trustScore?: number;
+  trustBadge?: TrustBadge;
 }
