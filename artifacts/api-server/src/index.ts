@@ -1,6 +1,7 @@
 import app from "./app";
 import { logger } from "./lib/logger";
 import { seedAdmin } from "./lib/seed-admin";
+import { seedTestAccounts } from "./lib/seed-test-accounts";
 
 const rawPort = process.env["PORT"];
 
@@ -57,5 +58,6 @@ app.listen(port, async (err) => {
 
   logger.info({ port }, "Server listening");
   await seedAdmin();
+  await seedTestAccounts();
   await initStripe();
 });
