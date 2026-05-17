@@ -156,19 +156,19 @@ const TEST_ACCOUNTS: TestAccount[] = [
 export async function seedTestAccounts(): Promise<void> {
   try {
     for (const account of TEST_ACCOUNTS) {
+      const email = account.email.trim().toLowerCase();
+      const passwordHash = await bcrypt.hash(account.password, 10);
+
       const [existing] = await db
         .select({ id: usersTable.id })
         .from(usersTable)
-        .where(eq(usersTable.email, account.email));
+        .where(eq(usersTable.email, email));
 
-      if (existing) continue;
+      let userId: number;
 
-      const passwordHash = await bcrypt.hash(account.password, 10);
-
-      const [inserted] = await db
-        .insert(usersTable)
-        .values({
-          email: account.email,
+      if (existing) {
+        // Always refresh password hash, role, and plan so test creds stay in sync
+        await db.update(usersTable).set({
           passwordHash,
           role: account.role,
           plan: account.plan,
@@ -176,29 +176,53 @@ export async function seedTestAccounts(): Promise<void> {
           contactName: account.contactName,
           subscriptionStatus: account.subscriptionStatus ?? null,
           currentPeriodEnd: account.currentPeriodEnd ?? null,
-        })
-        .returning({ id: usersTable.id });
+          updatedAt: new Date(),
+        }).where(eq(usersTable.id, existing.id));
+        userId = existing.id;
+        logger.info({ email, plan: account.plan }, "Test account refreshed");
+      } else {
+        const [inserted] = await db
+          .insert(usersTable)
+          .values({
+            email,
+            passwordHash,
+            role: account.role,
+            plan: account.plan,
+            companyName: account.companyName,
+            contactName: account.contactName,
+            subscriptionStatus: account.subscriptionStatus ?? null,
+            currentPeriodEnd: account.currentPeriodEnd ?? null,
+          })
+          .returning({ id: usersTable.id });
+        userId = inserted.id;
+        logger.info({ email, plan: account.plan }, "Test account created");
+      }
 
-      logger.info({ email: account.email, plan: account.plan }, "Test account created");
+      if (account.mroProfile) {
+        const [existingMro] = await db
+          .select({ id: mroProfilesTable.id })
+          .from(mroProfilesTable)
+          .where(eq(mroProfilesTable.userId, userId));
 
-      if (account.mroProfile && inserted) {
-        await db.insert(mroProfilesTable).values({
-          userId: inserted.id,
-          companyName: account.mroProfile.companyName,
-          description: account.mroProfile.description,
-          country: account.mroProfile.country,
-          city: account.mroProfile.city,
-          contactName: account.mroProfile.contactName,
-          contactEmail: account.mroProfile.contactEmail,
-          contactPhone: account.mroProfile.contactPhone,
-          serviceTypes: account.mroProfile.serviceTypes,
-          aircraftTypes: account.mroProfile.aircraftTypes,
-          certifications: account.mroProfile.certifications,
-          turnaroundTime: account.mroProfile.turnaroundTime,
-          status: "active",
-          featured: account.plan === "mro_premium",
-        });
-        logger.info({ email: account.email }, "MRO profile created for test account");
+        if (!existingMro) {
+          await db.insert(mroProfilesTable).values({
+            userId,
+            companyName: account.mroProfile.companyName,
+            description: account.mroProfile.description,
+            country: account.mroProfile.country,
+            city: account.mroProfile.city,
+            contactName: account.mroProfile.contactName,
+            contactEmail: account.mroProfile.contactEmail,
+            contactPhone: account.mroProfile.contactPhone,
+            serviceTypes: account.mroProfile.serviceTypes,
+            aircraftTypes: account.mroProfile.aircraftTypes,
+            certifications: account.mroProfile.certifications,
+            turnaroundTime: account.mroProfile.turnaroundTime,
+            status: "active",
+            featured: account.plan === "mro_premium",
+          });
+          logger.info({ email }, "MRO profile created for test account");
+        }
       }
     }
   } catch (err) {

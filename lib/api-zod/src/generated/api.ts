@@ -57,7 +57,7 @@ export const LoginUserResponse = zod.object({
   "mustChangePassword": zod.boolean().optional(),
   "trustScore": zod.number().optional().describe('Seller trust score 0–100'),
   "trustBadge": zod.enum(['unverified', 'document_verified', 'aviation_verified', 'trusted_partner']).optional(),
-  "trustScoreBreakdown": zod.object({
+  "trustScoreBreakdown": zod.union([zod.object({
   "certDocScore": zod.number(),
   "certDocMax": zod.number().optional(),
   "listingAccuracyScore": zod.number(),
@@ -71,7 +71,7 @@ export const LoginUserResponse = zod.object({
   "subscriptionBoostMax": zod.number().optional(),
   "total": zod.number(),
   "badge": zod.enum(['unverified', 'document_verified', 'aviation_verified', 'trusted_partner'])
-}).optional(),
+}),zod.null()]).optional(),
   "createdAt": zod.string()
 })
 })
@@ -120,7 +120,7 @@ export const GetCurrentUserResponse = zod.object({
   "mustChangePassword": zod.boolean().optional(),
   "trustScore": zod.number().optional().describe('Seller trust score 0–100'),
   "trustBadge": zod.enum(['unverified', 'document_verified', 'aviation_verified', 'trusted_partner']).optional(),
-  "trustScoreBreakdown": zod.object({
+  "trustScoreBreakdown": zod.union([zod.object({
   "certDocScore": zod.number(),
   "certDocMax": zod.number().optional(),
   "listingAccuracyScore": zod.number(),
@@ -134,7 +134,7 @@ export const GetCurrentUserResponse = zod.object({
   "subscriptionBoostMax": zod.number().optional(),
   "total": zod.number(),
   "badge": zod.enum(['unverified', 'document_verified', 'aviation_verified', 'trusted_partner'])
-}).optional(),
+}),zod.null()]).optional(),
   "createdAt": zod.string()
 })
 

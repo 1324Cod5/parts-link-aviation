@@ -1099,7 +1099,9 @@ components:
         trustBadge:
           $ref: "#/components/schemas/TrustBadge"
         trustScoreBreakdown:
-          $ref: "#/components/schemas/TrustScoreBreakdown"
+          anyOf:
+            - $ref: "#/components/schemas/TrustScoreBreakdown"
+            - type: "null"
         createdAt:
           type: string
 

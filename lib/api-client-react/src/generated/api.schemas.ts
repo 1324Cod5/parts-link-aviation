@@ -135,7 +135,7 @@ export interface User {
   /** Seller trust score 0–100 */
   trustScore?: number;
   trustBadge?: TrustBadge;
-  trustScoreBreakdown?: TrustScoreBreakdown;
+  trustScoreBreakdown?: TrustScoreBreakdown | null;
   createdAt: string;
 }
 
