@@ -93,7 +93,8 @@ router.post("/auth/register", async (req, res): Promise<void> => {
     return;
   }
 
-  const { email, password, companyName, contactName, phone, country } = parsed.data;
+  const { password, companyName, contactName, phone, country } = parsed.data;
+  const email = parsed.data.email.trim().toLowerCase();
 
   const [existing] = await db.select().from(usersTable).where(eq(usersTable.email, email));
   if (existing) {
@@ -125,7 +126,8 @@ router.post("/auth/login", async (req, res): Promise<void> => {
     return;
   }
 
-  const { email, password } = parsed.data;
+  const { password } = parsed.data;
+  const email = parsed.data.email.trim().toLowerCase();
 
   // Fetch user + MRO profile in one query
   const rows = await db
