@@ -33,8 +33,8 @@ const TEST_ACCOUNTS: TestAccount[] = [
   {
     email: "admin@test.com",
     password: "Admin123!",
-    role: "super_admin",
-    plan: "enterprise",
+    role: "admin",
+    plan: "free",
     companyName: "AeroParts Test Admin",
     contactName: "Test Administrator",
   },
