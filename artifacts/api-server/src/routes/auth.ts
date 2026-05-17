@@ -11,6 +11,7 @@ import {
 import {
   getEffectivePlan,
   getComputedRole,
+  assertValidComputedRole,
   type ComputedRole,
 } from "../lib/planEnforcement";
 
@@ -55,6 +56,7 @@ function deriveRole(
   });
   const computedRole = getComputedRole(user.role, effectivePlan, hasMroProfile);
   if (!computedRole) return null;
+  assertValidComputedRole(computedRole);
   return { effectivePlan, computedRole };
 }
 

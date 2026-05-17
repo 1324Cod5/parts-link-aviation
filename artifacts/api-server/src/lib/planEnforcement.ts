@@ -49,6 +49,24 @@ export const VALID_COMPUTED_ROLES = [
 export type ComputedRole = (typeof VALID_COMPUTED_ROLES)[number];
 
 /**
+ * Throws if the given value is not one of the 7 valid computed roles.
+ * Use this at every trust boundary before acting on a role value.
+ */
+export function assertValidComputedRole(role: unknown): asserts role is ComputedRole {
+  if (
+    role !== "admin" &&
+    role !== "seller_free" &&
+    role !== "seller_pro" &&
+    role !== "seller_enterprise" &&
+    role !== "mro_free" &&
+    role !== "mro_verified" &&
+    role !== "mro_premium"
+  ) {
+    throw new Error(`Invalid role: ${String(role)}`);
+  }
+}
+
+/**
  * Derives the combined role from the user's DB role, effective plan, and
  * whether they have an MRO profile.
  *

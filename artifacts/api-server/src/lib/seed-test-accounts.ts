@@ -6,7 +6,7 @@ import { logger } from "./logger";
 interface TestAccount {
   email: string;
   password: string;
-  role: "seller" | "super_admin";
+  role: "seller" | "admin" | "super_admin";
   plan: "free" | "pro" | "enterprise" | "mro_verified" | "mro_premium";
   companyName: string;
   contactName: string;
