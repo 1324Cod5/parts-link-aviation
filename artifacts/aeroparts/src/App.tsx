@@ -15,6 +15,7 @@ import EditListing from "@/pages/seller/edit-listing";
 import AdminDashboard from "@/pages/admin/dashboard";
 import AdminLogin from "@/pages/admin/login";
 import AdminChangePassword from "@/pages/admin/change-password";
+import AdminCertReview from "@/pages/admin/cert-review";
 import Pricing from "@/pages/pricing";
 import SubscriptionManagement from "@/pages/seller/subscription";
 import RfqsPage from "@/pages/rfqs/index";
@@ -46,6 +47,7 @@ function Router() {
       <Route path="/seller/listings/:id/edit" component={EditListing} />
       <Route path="/admin/login" component={AdminLogin} />
       <Route path="/admin/change-password" component={AdminChangePassword} />
+      <Route path="/admin/review-cert/:id" component={AdminCertReview} />
       <Route path="/admin" component={AdminDashboard} />
       <Route path="/pricing" component={Pricing} />
       <Route path="/seller/subscription" component={SubscriptionManagement} />

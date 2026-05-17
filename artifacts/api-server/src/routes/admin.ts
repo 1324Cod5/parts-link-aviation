@@ -72,6 +72,21 @@ router.get("/admin/listings", async (req, res): Promise<void> => {
   res.json(rows.map(r => serializeListing(r.listing, r.seller)));
 });
 
+router.get("/admin/listings/:id", async (req, res): Promise<void> => {
+  const rawId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const id = parseInt(rawId, 10);
+  if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+
+  const rows = await db.select({ listing: listingsTable, seller: usersTable })
+    .from(listingsTable)
+    .leftJoin(usersTable, eq(listingsTable.sellerId, usersTable.id))
+    .where(eq(listingsTable.id, id));
+
+  if (!rows.length) { res.status(404).json({ error: "Listing not found" }); return; }
+
+  res.json(serializeListing(rows[0].listing, rows[0].seller));
+});
+
 router.patch("/admin/listings/:id/remove", async (req, res): Promise<void> => {
   const rawId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
   const params = AdminRemoveListingParams.safeParse({ id: parseInt(rawId, 10) });

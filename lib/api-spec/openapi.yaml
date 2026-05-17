@@ -458,6 +458,27 @@ paths:
                 items:
                   $ref: "#/components/schemas/Listing"
 
+  /admin/listings/{id}:
+    get:
+      operationId: getAdminListing
+      tags: [admin]
+      summary: Get a single listing for admin review
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Listing"
+        "404":
+          description: Not found
+
   /admin/listings/{id}/remove:
     post:
       operationId: adminRemoveListing

@@ -539,6 +539,11 @@ function CertificationsSection() {
                 </div>
 
                 <div className="flex items-center gap-2 flex-shrink-0">
+                  <Link href={`/admin/review-cert/${listing.id}`}>
+                    <Button size="sm" variant="outline" className="text-xs h-7 border-border text-muted-foreground hover:text-white gap-1">
+                      <FileText className="w-3 h-3" /> Review
+                    </Button>
+                  </Link>
                   <Button size="sm" variant="outline" className="text-xs h-7 border-blue-500/30 text-blue-400 hover:bg-blue-500/10 gap-1"
                     onClick={() => handleApprove(listing.id, listing.partNumber)} disabled={badgeMutation.isPending}>
                     <CheckCircle2 className="w-3 h-3" /> Approve Docs

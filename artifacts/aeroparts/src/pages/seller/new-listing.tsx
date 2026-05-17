@@ -208,11 +208,11 @@ export default function NewListing() {
             {/* Certification Documents */}
             <div className="space-y-4">
               <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider border-b border-border pb-2">Certification Documents</h2>
-              <p className="text-xs text-muted-foreground">List certification documents (e.g. FAA Form 8130-3, EASA Form 1)</p>
+              <p className="text-xs text-muted-foreground">Enter URLs to uploaded certification documents (e.g. FAA Form 8130-3, EASA Form 1). Use a public link so admin can preview the document.</p>
               <div className="space-y-2">
                 {form.certificationDocs.map((doc, i) => (
                   <div key={i} className="flex gap-2">
-                    <Input value={doc} onChange={e => updateDoc(i, e.target.value)} placeholder="e.g. FAA Form 8130-3" className="flex-1" />
+                    <Input value={doc} onChange={e => updateDoc(i, e.target.value)} placeholder="https://docs.example.com/faa-8130-3.pdf" className="flex-1 font-mono text-sm" />
                     {form.certificationDocs.length > 1 && (
                       <Button type="button" variant="ghost" size="sm" className="h-9 w-9 p-0 text-destructive" onClick={() => removeDoc(i)}>
                         <Trash2 className="h-3.5 w-3.5" />

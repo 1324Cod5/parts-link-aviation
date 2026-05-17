@@ -1581,6 +1581,83 @@ export function useGetAdminListings<TData = Awaited<ReturnType<typeof getAdminLi
 
 
 
+export const getGetAdminListingUrl = (id: number,) => {
+
+
+
+
+  return `/api/admin/listings/${id}`
+}
+
+/**
+ * @summary Get a single listing for admin review
+ */
+export const getAdminListing = async (id: number, options?: RequestInit): Promise<Listing> => {
+
+  return customFetch<Listing>(getGetAdminListingUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAdminListingQueryKey = (id: number,) => {
+    return [
+    `/api/admin/listings/${id}`
+    ] as const;
+    }
+
+
+export const getGetAdminListingQueryOptions = <TData = Awaited<ReturnType<typeof getAdminListing>>, TError = ErrorType<void>>(id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminListing>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAdminListingQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAdminListing>>> = ({ signal }) => getAdminListing(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAdminListing>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetAdminListingQueryResult = NonNullable<Awaited<ReturnType<typeof getAdminListing>>>
+export type GetAdminListingQueryError = ErrorType<void>
+
+
+/**
+ * @summary Get a single listing for admin review
+ */
+
+export function useGetAdminListing<TData = Awaited<ReturnType<typeof getAdminListing>>, TError = ErrorType<void>>(
+ id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminListing>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetAdminListingQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
 export const getAdminRemoveListingUrl = (id: number,) => {
 
 

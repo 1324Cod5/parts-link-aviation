@@ -512,6 +512,42 @@ export const GetAdminListingsResponse = zod.array(GetAdminListingsResponseItem)
 
 
 /**
+ * @summary Get a single listing for admin review
+ */
+export const GetAdminListingParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const GetAdminListingResponse = zod.object({
+  "id": zod.number(),
+  "partNumber": zod.string(),
+  "description": zod.string(),
+  "aircraftApplicability": zod.string().nullish(),
+  "manufacturer": zod.string(),
+  "condition": zod.enum(['new', 'overhauled', 'serviceable', 'as_removed', 'repaired']),
+  "saleType": zod.enum(['outright', 'exchange', 'both']),
+  "quantity": zod.number(),
+  "price": zod.number().nullable(),
+  "certificationDocs": zod.array(zod.string()).optional(),
+  "photos": zod.array(zod.string()).optional(),
+  "traceHistory": zod.string().nullish(),
+  "badge": zod.enum(['pending_verification', 'documentation_reviewed', 'verified']),
+  "status": zod.enum(['active', 'removed']),
+  "sellerId": zod.number(),
+  "seller": zod.object({
+  "id": zod.number(),
+  "companyName": zod.string(),
+  "contactName": zod.string(),
+  "email": zod.string().optional(),
+  "phone": zod.string().nullish(),
+  "country": zod.string().nullable()
+}).optional(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string().optional()
+})
+
+
+/**
  * @summary Remove a listing (admin)
  */
 export const AdminRemoveListingParams = zod.object({
