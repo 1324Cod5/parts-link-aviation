@@ -111,8 +111,8 @@ const MRO_TIERS = [
   {
     id: "mro_premium",
     name: "Premium MRO",
-    price: 99,
-    priceLabel: "$99/mo",
+    price: 149,
+    priceLabel: "$149/mo",
     icon: Star,
     description: "Maximum visibility for high-volume service providers.",
     features: [
@@ -289,11 +289,11 @@ export default function Pricing() {
                       </span>
                     </div>
                     <h3 className="text-xl font-bold text-white mb-1">
-                      First 6 months at <span className="text-amber-400 font-mono">$10/mo</span> for early MRO adopters
+                      First 3 months at <span className="text-amber-400 font-mono">$20/mo</span> for early MRO adopters
                     </h3>
                     <p className="text-sm text-amber-200/60 leading-relaxed">
                       Be among the first MRO providers on AeroParts and lock in the launch partner rate on any paid MRO plan.
-                      After 6 months, your plan renews at the standard rate — cancel anytime.
+                      After 3 months, your plan renews at the standard rate — cancel anytime.
                     </p>
                   </div>
                 </div>
@@ -356,7 +356,7 @@ export default function Pricing() {
                         <div className="flex items-center gap-1.5">
                           <span className="text-xs text-amber-400 font-medium line-through opacity-60">{tier.priceLabel}</span>
                           <span className="text-xs bg-amber-500/20 border border-amber-500/30 text-amber-400 rounded-full px-2 py-0.5 font-medium flex items-center gap-1">
-                            <Rocket className="w-2.5 h-2.5" /> $10/mo for 6 months
+                            <Rocket className="w-2.5 h-2.5" /> $20/mo for 3 months
                           </span>
                         </div>
                       )}
@@ -401,7 +401,7 @@ export default function Pricing() {
               },
               {
                 q: "How does the Launch Partner promotion work?",
-                a: "Early MRO adopters who sign up during the launch period receive the first 6 months at $10/month on any paid MRO plan. After 6 months, the plan renews at the standard rate ($49/mo or $99/mo).",
+                a: "Early MRO adopters who sign up during the launch period receive the first 3 months at $20/month on any paid MRO plan. After 3 months, the plan renews at the standard rate ($49/mo or $149/mo).",
               },
               {
                 q: "What is the difference between Parts listings and MRO listings?",
