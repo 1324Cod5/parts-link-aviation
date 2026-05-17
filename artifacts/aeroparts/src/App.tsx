@@ -1,0 +1,58 @@
+import { Switch, Route, Router as WouterRouter } from "wouter";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { Toaster } from "@/components/ui/toaster";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { AuthProvider } from "@/context/AuthContext";
+import NotFound from "@/pages/not-found";
+import Home from "@/pages/home";
+import Marketplace from "@/pages/marketplace";
+import ListingDetail from "@/pages/listing-detail";
+import SellerRegister from "@/pages/seller/register";
+import SellerLogin from "@/pages/seller/login";
+import SellerDashboard from "@/pages/seller/dashboard";
+import NewListing from "@/pages/seller/new-listing";
+import EditListing from "@/pages/seller/edit-listing";
+import AdminDashboard from "@/pages/admin/dashboard";
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      staleTime: 30_000,
+    },
+  },
+});
+
+function Router() {
+  return (
+    <Switch>
+      <Route path="/" component={Home} />
+      <Route path="/marketplace" component={Marketplace} />
+      <Route path="/listings/:id" component={ListingDetail} />
+      <Route path="/seller/register" component={SellerRegister} />
+      <Route path="/seller/login" component={SellerLogin} />
+      <Route path="/seller/dashboard" component={SellerDashboard} />
+      <Route path="/seller/listings/new" component={NewListing} />
+      <Route path="/seller/listings/:id/edit" component={EditListing} />
+      <Route path="/admin" component={AdminDashboard} />
+      <Route component={NotFound} />
+    </Switch>
+  );
+}
+
+function App() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <TooltipProvider>
+          <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+            <Router />
+          </WouterRouter>
+          <Toaster />
+        </TooltipProvider>
+      </AuthProvider>
+    </QueryClientProvider>
+  );
+}
+
+export default App;

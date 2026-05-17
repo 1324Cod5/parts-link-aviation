@@ -1,22 +1,30 @@
 openapi: 3.1.0
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: AeroParts Marketplace API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: auth
+    description: Authentication
+  - name: listings
+    description: Part listings
+  - name: inquiries
+    description: Buyer inquiries
+  - name: seller
+    description: Seller dashboard
+  - name: admin
+    description: Admin operations
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,6 +32,393 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /auth/register:
+    post:
+      operationId: registerUser
+      tags: [auth]
+      summary: Register a new seller account
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "400":
+          description: Validation error
+
+  /auth/login:
+    post:
+      operationId: loginUser
+      tags: [auth]
+      summary: Login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginInput"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "401":
+          description: Unauthorized
+
+  /auth/logout:
+    post:
+      operationId: logoutUser
+      tags: [auth]
+      summary: Logout
+      responses:
+        "200":
+          description: OK
+
+  /auth/me:
+    get:
+      operationId: getCurrentUser
+      tags: [auth]
+      summary: Get current user
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "401":
+          description: Unauthorized
+
+  /listings:
+    get:
+      operationId: getListings
+      tags: [listings]
+      summary: List/search part listings
+      parameters:
+        - name: q
+          in: query
+          schema:
+            type: string
+        - name: aircraft
+          in: query
+          schema:
+            type: string
+        - name: condition
+          in: query
+          schema:
+            type: string
+            enum: [new, overhauled, serviceable, as_removed, repaired]
+        - name: saleType
+          in: query
+          schema:
+            type: string
+            enum: [outright, exchange, both]
+        - name: manufacturer
+          in: query
+          schema:
+            type: string
+        - name: badge
+          in: query
+          schema:
+            type: string
+            enum: [verified, pending_verification, documentation_reviewed]
+        - name: minPrice
+          in: query
+          schema:
+            type: number
+        - name: maxPrice
+          in: query
+          schema:
+            type: number
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ListingsPage"
+
+    post:
+      operationId: createListing
+      tags: [listings]
+      summary: Create a new part listing
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ListingInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Listing"
+
+  /listings/stats:
+    get:
+      operationId: getMarketplaceStats
+      tags: [listings]
+      summary: Marketplace overview stats
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MarketplaceStats"
+
+  /listings/featured:
+    get:
+      operationId: getFeaturedListings
+      tags: [listings]
+      summary: Get featured/verified listings for homepage
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Listing"
+
+  /listings/{id}:
+    get:
+      operationId: getListing
+      tags: [listings]
+      summary: Get listing detail
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Listing"
+        "404":
+          description: Not found
+
+    patch:
+      operationId: updateListing
+      tags: [listings]
+      summary: Update a listing
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ListingUpdate"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Listing"
+
+    delete:
+      operationId: deleteListing
+      tags: [listings]
+      summary: Delete a listing
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /listings/{id}/badge:
+    patch:
+      operationId: updateListingBadge
+      tags: [admin]
+      summary: Admin — set verification badge on a listing
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BadgeUpdate"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Listing"
+
+  /listings/{id}/inquiries:
+    get:
+      operationId: getInquiries
+      tags: [inquiries]
+      summary: Get inquiries for a listing (seller/admin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Inquiry"
+
+    post:
+      operationId: createInquiry
+      tags: [inquiries]
+      summary: Buyer sends inquiry to seller
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/InquiryInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Inquiry"
+
+  /seller/listings:
+    get:
+      operationId: getSellerListings
+      tags: [seller]
+      summary: Get current seller's listings
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Listing"
+
+  /seller/stats:
+    get:
+      operationId: getSellerStats
+      tags: [seller]
+      summary: Seller dashboard stats
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SellerStats"
+
+  /admin/listings:
+    get:
+      operationId: getAdminListings
+      tags: [admin]
+      summary: Admin — all listings for review
+      parameters:
+        - name: badge
+          in: query
+          schema:
+            type: string
+            enum: [verified, pending_verification, documentation_reviewed]
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [active, removed]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Listing"
+
+  /admin/listings/{id}/remove:
+    patch:
+      operationId: adminRemoveListing
+      tags: [admin]
+      summary: Admin — remove a fraudulent listing
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Listing"
+
+  /admin/stats:
+    get:
+      operationId: getAdminStats
+      tags: [admin]
+      summary: Admin dashboard stats
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminStats"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +429,306 @@ components:
       required:
         - status
 
+    RegisterInput:
+      type: object
+      required: [email, password, companyName, contactName]
+      properties:
+        email:
+          type: string
+        password:
+          type: string
+        companyName:
+          type: string
+        contactName:
+          type: string
+        phone:
+          type: ["string", "null"]
+        country:
+          type: ["string", "null"]
+
+    LoginInput:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+        password:
+          type: string
+
+    User:
+      type: object
+      required: [id, email, role, companyName, contactName, createdAt]
+      properties:
+        id:
+          type: integer
+        email:
+          type: string
+        role:
+          type: string
+          enum: [buyer, seller, admin]
+        companyName:
+          type: string
+        contactName:
+          type: string
+        phone:
+          type: ["string", "null"]
+        country:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+
+    AuthResponse:
+      type: object
+      required: [user]
+      properties:
+        user:
+          $ref: "#/components/schemas/User"
+
+    Seller:
+      type: object
+      required: [id, companyName, contactName, country]
+      properties:
+        id:
+          type: integer
+        companyName:
+          type: string
+        contactName:
+          type: string
+        email:
+          type: string
+        phone:
+          type: ["string", "null"]
+        country:
+          type: ["string", "null"]
+
+    Listing:
+      type: object
+      required: [id, partNumber, description, manufacturer, condition, saleType, quantity, price, badge, status, sellerId, createdAt]
+      properties:
+        id:
+          type: integer
+        partNumber:
+          type: string
+        description:
+          type: string
+        aircraftApplicability:
+          type: ["string", "null"]
+        manufacturer:
+          type: string
+        condition:
+          type: string
+          enum: [new, overhauled, serviceable, as_removed, repaired]
+        saleType:
+          type: string
+          enum: [outright, exchange, both]
+        quantity:
+          type: integer
+        price:
+          type: ["number", "null"]
+        certificationDocs:
+          type: array
+          items:
+            type: string
+        photos:
+          type: array
+          items:
+            type: string
+        traceHistory:
+          type: ["string", "null"]
+        badge:
+          type: string
+          enum: [pending_verification, documentation_reviewed, verified]
+        status:
+          type: string
+          enum: [active, removed]
+        sellerId:
+          type: integer
+        seller:
+          $ref: "#/components/schemas/Seller"
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+
+    ListingInput:
+      type: object
+      required: [partNumber, description, manufacturer, condition, saleType, quantity]
+      properties:
+        partNumber:
+          type: string
+        description:
+          type: string
+        aircraftApplicability:
+          type: ["string", "null"]
+        manufacturer:
+          type: string
+        condition:
+          type: string
+          enum: [new, overhauled, serviceable, as_removed, repaired]
+        saleType:
+          type: string
+          enum: [outright, exchange, both]
+        quantity:
+          type: integer
+        price:
+          type: ["number", "null"]
+        certificationDocs:
+          type: array
+          items:
+            type: string
+        photos:
+          type: array
+          items:
+            type: string
+        traceHistory:
+          type: ["string", "null"]
+
+    ListingUpdate:
+      type: object
+      properties:
+        partNumber:
+          type: string
+        description:
+          type: string
+        aircraftApplicability:
+          type: ["string", "null"]
+        manufacturer:
+          type: string
+        condition:
+          type: string
+          enum: [new, overhauled, serviceable, as_removed, repaired]
+        saleType:
+          type: string
+          enum: [outright, exchange, both]
+        quantity:
+          type: integer
+        price:
+          type: ["number", "null"]
+        certificationDocs:
+          type: array
+          items:
+            type: string
+        photos:
+          type: array
+          items:
+            type: string
+        traceHistory:
+          type: ["string", "null"]
+
+    BadgeUpdate:
+      type: object
+      required: [badge]
+      properties:
+        badge:
+          type: string
+          enum: [pending_verification, documentation_reviewed, verified]
+
+    ListingsPage:
+      type: object
+      required: [listings, total, page, limit]
+      properties:
+        listings:
+          type: array
+          items:
+            $ref: "#/components/schemas/Listing"
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+
+    Inquiry:
+      type: object
+      required: [id, listingId, buyerName, buyerEmail, message, createdAt]
+      properties:
+        id:
+          type: integer
+        listingId:
+          type: integer
+        buyerName:
+          type: string
+        buyerEmail:
+          type: string
+        buyerPhone:
+          type: ["string", "null"]
+        buyerCompany:
+          type: ["string", "null"]
+        message:
+          type: string
+        createdAt:
+          type: string
+
+    InquiryInput:
+      type: object
+      required: [buyerName, buyerEmail, message]
+      properties:
+        buyerName:
+          type: string
+        buyerEmail:
+          type: string
+        buyerPhone:
+          type: ["string", "null"]
+        buyerCompany:
+          type: ["string", "null"]
+        message:
+          type: string
+
+    MarketplaceStats:
+      type: object
+      required: [totalListings, verifiedSellers, totalManufacturers, recentListings]
+      properties:
+        totalListings:
+          type: integer
+        verifiedSellers:
+          type: integer
+        totalManufacturers:
+          type: integer
+        recentListings:
+          type: integer
+        byCondition:
+          type: array
+          items:
+            type: object
+            required: [condition, count]
+            properties:
+              condition:
+                type: string
+              count:
+                type: integer
+        byBadge:
+          type: array
+          items:
+            type: object
+            required: [badge, count]
+            properties:
+              badge:
+                type: string
+              count:
+                type: integer
+
+    SellerStats:
+      type: object
+      required: [totalListings, activeListings, totalInquiries, verifiedListings]
+      properties:
+        totalListings:
+          type: integer
+        activeListings:
+          type: integer
+        totalInquiries:
+          type: integer
+        verifiedListings:
+          type: integer
+
+    AdminStats:
+      type: object
+      required: [totalListings, totalSellers, pendingVerification, totalInquiries]
+      properties:
+        totalListings:
+          type: integer
+        totalSellers:
+          type: integer
+        pendingVerification:
+          type: integer
+        totalInquiries:
+          type: integer

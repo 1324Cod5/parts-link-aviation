@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "AeroParts Marketplace"
+version = "1.0.0"
+id = "artifacts/aeroparts"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 20655
+
+[services.development]
+run = "pnpm --filter @workspace/aeroparts run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/aeroparts", "run", "build" ]
+publicDir = "artifacts/aeroparts/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "20655"
+BASE_PATH = "/"
