@@ -5,10 +5,15 @@
  * AeroParts Marketplace API
  * OpenAPI spec version: 0.1.0
  */
+import type { SellerStatsPlan } from './sellerStatsPlan';
 
 export interface SellerStats {
   totalListings: number;
   activeListings: number;
   totalInquiries: number;
   verifiedListings: number;
+  plan: SellerStatsPlan;
+  /** @nullable */
+  listingLimit: number | null;
+  canAddListing: boolean;
 }

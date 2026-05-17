@@ -10,7 +10,7 @@ export type GetAdminListingsBadge = typeof GetAdminListingsBadge[keyof typeof Ge
 
 
 export const GetAdminListingsBadge = {
-  verified: 'verified',
   pending_verification: 'pending_verification',
   documentation_reviewed: 'documentation_reviewed',
+  verified: 'verified',
 } as const;

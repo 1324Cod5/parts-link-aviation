@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { db, listingsTable, inquiriesTable, usersTable } from "@workspace/db";
-import { eq, and, count } from "drizzle-orm";
+import { eq, and, count, inArray } from "drizzle-orm";
 
 const router: IRouter = Router();
 
@@ -73,15 +73,24 @@ router.get("/seller/stats", async (req, res): Promise<void> => {
   let totalInquiries = 0;
   if (listingIds.length > 0) {
     const [inq] = await db.select({ count: count() }).from(inquiriesTable)
-      .where(inquiriesTable.listingId.in(listingIds));
+      .where(inArray(inquiriesTable.listingId, listingIds));
     totalInquiries = Number(inq.count);
   }
+
+  const [sellerUser] = await db.select({ plan: usersTable.plan }).from(usersTable).where(eq(usersTable.id, userId));
+  const plan = sellerUser?.plan ?? "free";
+  const PLAN_LIMITS: Record<string, number | null> = { free: 5, pro: 50, enterprise: null };
+  const listingLimit = PLAN_LIMITS[plan];
+  const canAddListing = listingLimit === null || Number(activeListings.count) < listingLimit;
 
   res.json({
     totalListings: Number(totalListings.count),
     activeListings: Number(activeListings.count),
     verifiedListings: Number(verifiedListings.count),
     totalInquiries,
+    plan,
+    listingLimit,
+    canAddListing,
   });
 });
 

@@ -8,6 +8,7 @@
 
 export interface RegisterInput {
   email: string;
+  /** @minLength 8 */
   password: string;
   companyName: string;
   contactName: string;

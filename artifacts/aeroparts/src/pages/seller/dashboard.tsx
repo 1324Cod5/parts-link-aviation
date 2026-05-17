@@ -11,7 +11,7 @@ import {
 import { useAuth } from "@/context/AuthContext";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Edit2, Trash2, Package, FileCheck2, MessageSquare, ShieldCheck } from "lucide-react";
+import { Plus, Edit2, Trash2, Package, FileCheck2, MessageSquare, ShieldCheck, Zap, Building2, AlertTriangle } from "lucide-react";
 
 function formatPrice(price: number | null) {
   if (price == null) return "POA";
@@ -21,6 +21,12 @@ function formatPrice(price: number | null) {
 function formatCondition(c: string) {
   return c.split("_").map(w => w[0].toUpperCase() + w.slice(1)).join(" ");
 }
+
+const PLAN_META = {
+  free:       { label: "Free",       icon: Package,   color: "text-muted-foreground", bg: "bg-secondary/50"  },
+  pro:        { label: "Pro",        icon: Zap,        color: "text-primary",          bg: "bg-primary/10"    },
+  enterprise: { label: "Enterprise", icon: Building2,  color: "text-amber-400",        bg: "bg-amber-500/10"  },
+};
 
 export default function SellerDashboard() {
   const { user, isLoading: authLoading } = useAuth();
@@ -63,6 +69,14 @@ export default function SellerDashboard() {
     );
   }
 
+  const plan = (stats?.plan ?? user.plan ?? "free") as keyof typeof PLAN_META;
+  const planMeta = PLAN_META[plan] ?? PLAN_META.free;
+  const PlanIcon = planMeta.icon;
+  const canAdd = stats?.canAddListing ?? true;
+  const usedPct = stats && stats.listingLimit
+    ? Math.min(100, Math.round((stats.activeListings / stats.listingLimit) * 100))
+    : 0;
+
   return (
     <MainLayout>
       <div className="container mx-auto px-4 py-8">
@@ -72,15 +86,42 @@ export default function SellerDashboard() {
             <h1 className="text-2xl font-bold text-white">Seller Dashboard</h1>
             <p className="text-muted-foreground text-sm mt-1">{user.companyName}</p>
           </div>
-          <Link href="/seller/listings/new">
-            <Button className="flex items-center gap-2">
-              <Plus className="h-4 w-4" /> New Listing
-            </Button>
-          </Link>
+          {canAdd ? (
+            <Link href="/seller/listings/new">
+              <Button className="flex items-center gap-2">
+                <Plus className="h-4 w-4" /> New Listing
+              </Button>
+            </Link>
+          ) : (
+            <Link href="/pricing">
+              <Button className="flex items-center gap-2 bg-amber-500/10 text-amber-400 border border-amber-500/30 hover:bg-amber-500/20">
+                <Zap className="h-4 w-4" /> Upgrade Plan
+              </Button>
+            </Link>
+          )}
         </div>
 
+        {/* Limit warning banner */}
+        {!statsLoading && stats && !canAdd && (
+          <div className="mb-6 flex items-center gap-3 p-4 bg-amber-500/10 border border-amber-500/30 rounded-md">
+            <AlertTriangle className="h-5 w-5 text-amber-400 flex-shrink-0" />
+            <div className="flex-1">
+              <p className="text-amber-300 font-medium text-sm">Listing limit reached</p>
+              <p className="text-amber-400/80 text-xs mt-0.5">
+                You've used all {stats.listingLimit} listings on your {plan} plan.
+                Upgrade to add more inventory.
+              </p>
+            </div>
+            <Link href="/pricing">
+              <Button size="sm" className="bg-amber-500 text-black hover:bg-amber-400 text-xs h-8">
+                View Plans
+              </Button>
+            </Link>
+          </div>
+        )}
+
         {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
           {[
             { icon: Package, label: "Total Listings", value: stats?.totalListings, loading: statsLoading },
             { icon: FileCheck2, label: "Active", value: stats?.activeListings, loading: statsLoading },
@@ -99,6 +140,51 @@ export default function SellerDashboard() {
               )}
             </div>
           ))}
+        </div>
+
+        {/* Plan Card */}
+        <div className="bg-card border border-border rounded-md p-5 mb-6 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className={`h-9 w-9 rounded-md flex items-center justify-center ${planMeta.bg}`}>
+              <PlanIcon className={`h-4 w-4 ${planMeta.color}`} />
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground uppercase tracking-wider">Current Plan</p>
+              <p className={`font-bold text-lg ${planMeta.color}`}>{planMeta.label}</p>
+            </div>
+          </div>
+
+          {/* Usage bar */}
+          {!statsLoading && stats?.listingLimit != null && (
+            <div className="flex-1 max-w-xs hidden md:block">
+              <div className="flex justify-between text-xs text-muted-foreground mb-1.5">
+                <span>{stats.activeListings} active</span>
+                <span>of {stats.listingLimit}</span>
+              </div>
+              <div className="h-1.5 bg-secondary rounded-full overflow-hidden">
+                <div
+                  className={`h-full rounded-full transition-all ${usedPct >= 90 ? "bg-red-500" : usedPct >= 70 ? "bg-amber-500" : "bg-primary"}`}
+                  style={{ width: `${usedPct}%` }}
+                />
+              </div>
+            </div>
+          )}
+          {!statsLoading && stats?.listingLimit == null && (
+            <p className="text-xs text-muted-foreground hidden md:block">Unlimited listings</p>
+          )}
+
+          <div className="flex gap-2">
+            <Link href="/seller/subscription">
+              <Button variant="outline" size="sm" className="text-xs h-8">Manage</Button>
+            </Link>
+            {plan === "free" && (
+              <Link href="/pricing">
+                <Button size="sm" className="text-xs h-8 flex items-center gap-1">
+                  <Zap className="h-3 w-3" /> Upgrade
+                </Button>
+              </Link>
+            )}
+          </div>
         </div>
 
         {/* Listings Table */}

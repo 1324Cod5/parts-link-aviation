@@ -149,6 +149,27 @@ router.post("/listings", async (req, res): Promise<void> => {
     return;
   }
 
+  const PLAN_LIMITS: Record<string, number | null> = { free: 5, pro: 50, enterprise: null };
+
+  const [seller] = await db.select().from(usersTable).where(eq(usersTable.id, userId));
+  if (seller) {
+    const limit = PLAN_LIMITS[seller.plan];
+    if (limit !== null) {
+      const [activeRow] = await db.select({ count: count() }).from(listingsTable)
+        .where(and(eq(listingsTable.sellerId, userId), eq(listingsTable.status, "active")));
+      const activeListings = Number(activeRow.count);
+      if (activeListings >= limit) {
+        res.status(402).json({
+          error: `You have reached the ${limit}-listing limit for your ${seller.plan} plan. Upgrade to add more listings.`,
+          plan: seller.plan,
+          activeListings,
+          listingLimit: limit,
+        });
+        return;
+      }
+    }
+  }
+
   const parsed = CreateListingBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });
@@ -163,7 +184,6 @@ router.post("/listings", async (req, res): Promise<void> => {
     photos: parsed.data.photos ?? [],
   }).returning();
 
-  const [seller] = await db.select().from(usersTable).where(eq(usersTable.id, userId));
   res.status(201).json(serializeListing(listing, seller));
 });
 

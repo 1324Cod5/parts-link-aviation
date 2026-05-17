@@ -9,8 +9,20 @@ export interface HealthStatus {
   status: string;
 }
 
+export interface OkResponse {
+  ok: boolean;
+}
+
+export interface LimitReachedError {
+  error: string;
+  plan: string;
+  activeListings: number;
+  listingLimit: number;
+}
+
 export interface RegisterInput {
   email: string;
+  /** @minLength 8 */
   password: string;
   companyName: string;
   contactName: string;
@@ -34,6 +46,15 @@ export const UserRole = {
   admin: 'admin',
 } as const;
 
+export type UserPlan = typeof UserPlan[keyof typeof UserPlan];
+
+
+export const UserPlan = {
+  free: 'free',
+  pro: 'pro',
+  enterprise: 'enterprise',
+} as const;
+
 export interface User {
   id: number;
   email: string;
@@ -44,11 +65,45 @@ export interface User {
   phone?: string | null;
   /** @nullable */
   country?: string | null;
+  plan: UserPlan;
+  /** @nullable */
+  planExpiresAt?: string | null;
   createdAt: string;
 }
 
 export interface AuthResponse {
   user: User;
+}
+
+export type SubscriptionInfoPlan = typeof SubscriptionInfoPlan[keyof typeof SubscriptionInfoPlan];
+
+
+export const SubscriptionInfoPlan = {
+  free: 'free',
+  pro: 'pro',
+  enterprise: 'enterprise',
+} as const;
+
+export interface SubscriptionInfo {
+  plan: SubscriptionInfoPlan;
+  /** @nullable */
+  planExpiresAt?: string | null;
+  activeListings: number;
+  /** @nullable */
+  listingLimit: number | null;
+  canAddListing?: boolean;
+}
+
+export type UpgradePlanInputPlan = typeof UpgradePlanInputPlan[keyof typeof UpgradePlanInputPlan];
+
+
+export const UpgradePlanInputPlan = {
+  pro: 'pro',
+  enterprise: 'enterprise',
+} as const;
+
+export interface UpgradePlanInput {
+  plan: UpgradePlanInputPlan;
 }
 
 export interface Seller {
@@ -259,11 +314,24 @@ export interface MarketplaceStats {
   byBadge?: MarketplaceStatsByBadgeItem[];
 }
 
+export type SellerStatsPlan = typeof SellerStatsPlan[keyof typeof SellerStatsPlan];
+
+
+export const SellerStatsPlan = {
+  free: 'free',
+  pro: 'pro',
+  enterprise: 'enterprise',
+} as const;
+
 export interface SellerStats {
   totalListings: number;
   activeListings: number;
   totalInquiries: number;
   verifiedListings: number;
+  plan: SellerStatsPlan;
+  /** @nullable */
+  listingLimit: number | null;
+  canAddListing: boolean;
 }
 
 export interface AdminStats {
@@ -282,7 +350,14 @@ manufacturer?: string;
 badge?: GetListingsBadge;
 minPrice?: number;
 maxPrice?: number;
+/**
+ * @minimum 1
+ */
 page?: number;
+/**
+ * @minimum 1
+ * @maximum 100
+ */
 limit?: number;
 };
 
@@ -310,9 +385,9 @@ export type GetListingsBadge = typeof GetListingsBadge[keyof typeof GetListingsB
 
 
 export const GetListingsBadge = {
-  verified: 'verified',
   pending_verification: 'pending_verification',
   documentation_reviewed: 'documentation_reviewed',
+  verified: 'verified',
 } as const;
 
 export type GetAdminListingsParams = {
@@ -324,9 +399,9 @@ export type GetAdminListingsBadge = typeof GetAdminListingsBadge[keyof typeof Ge
 
 
 export const GetAdminListingsBadge = {
-  verified: 'verified',
   pending_verification: 'pending_verification',
   documentation_reviewed: 'documentation_reviewed',
+  verified: 'verified',
 } as const;
 
 export type GetAdminListingsStatus = typeof GetAdminListingsStatus[keyof typeof GetAdminListingsStatus];

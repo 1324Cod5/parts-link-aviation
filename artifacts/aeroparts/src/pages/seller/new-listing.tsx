@@ -5,11 +5,17 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useCreateListing, getGetSellerListingsQueryKey } from "@workspace/api-client-react";
+import { useCreateListing, getGetSellerListingsQueryKey, getGetSellerStatsQueryKey } from "@workspace/api-client-react";
 import { useAuth } from "@/context/AuthContext";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Trash2, ArrowLeft } from "lucide-react";
+import { Plus, Trash2, ArrowLeft, Zap } from "lucide-react";
+
+interface LimitError {
+  plan: string;
+  activeListings: number;
+  listingLimit: number;
+}
 
 export default function NewListing() {
   const { user, isLoading: authLoading } = useAuth();
@@ -17,6 +23,8 @@ export default function NewListing() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const createListing = useCreateListing();
+
+  const [limitError, setLimitError] = useState<LimitError | null>(null);
 
   const [form, setForm] = useState({
     partNumber: "",
@@ -34,6 +42,7 @@ export default function NewListing() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setLimitError(null);
     const data = {
       ...form,
       price: form.price !== "" ? Number(form.price) : null,
@@ -45,11 +54,22 @@ export default function NewListing() {
     createListing.mutate({ data }, {
       onSuccess: (listing) => {
         queryClient.invalidateQueries({ queryKey: getGetSellerListingsQueryKey() });
+        queryClient.invalidateQueries({ queryKey: getGetSellerStatsQueryKey() });
         toast({ title: "Listing created", description: `${listing.partNumber} is now live.` });
         navigate("/seller/dashboard");
       },
-      onError: () => {
-        toast({ title: "Error", description: "Could not create listing.", variant: "destructive" });
+      onError: (err: any) => {
+        const status = err?.response?.status;
+        if (status === 402) {
+          const data = err?.response?.data;
+          setLimitError({
+            plan: data?.plan ?? "free",
+            activeListings: data?.activeListings ?? 0,
+            listingLimit: data?.listingLimit ?? 5,
+          });
+        } else {
+          toast({ title: "Error", description: "Could not create listing.", variant: "destructive" });
+        }
       },
     });
   };
@@ -68,6 +88,41 @@ export default function NewListing() {
         <div className="container mx-auto px-4 py-16 text-center">
           <p className="text-muted-foreground mb-4">You must be signed in to create listings.</p>
           <Link href="/seller/login"><Button>Sign In</Button></Link>
+        </div>
+      </MainLayout>
+    );
+  }
+
+  /* Limit reached — show upgrade wall */
+  if (limitError) {
+    return (
+      <MainLayout>
+        <div className="container mx-auto px-4 py-16 max-w-md">
+          <div className="bg-card border border-amber-500/30 rounded-md p-8 text-center">
+            <div className="h-14 w-14 rounded-full bg-amber-500/10 flex items-center justify-center mx-auto mb-5">
+              <Zap className="h-7 w-7 text-amber-400" />
+            </div>
+            <h1 className="text-xl font-bold text-white mb-2">Listing Limit Reached</h1>
+            <p className="text-muted-foreground text-sm mb-1">
+              You have <span className="text-white font-medium">{limitError.activeListings}</span> active listings
+              on your <span className="text-white font-medium capitalize">{limitError.plan}</span> plan
+              (limit: {limitError.listingLimit}).
+            </p>
+            <p className="text-muted-foreground text-sm mb-8">
+              Upgrade to add more inventory and unlock priority placement.
+            </p>
+
+            <div className="space-y-3">
+              <Link href="/pricing" className="block">
+                <Button className="w-full bg-amber-500 text-black hover:bg-amber-400">
+                  <Zap className="h-4 w-4 mr-2" /> View Upgrade Plans
+                </Button>
+              </Link>
+              <Link href="/seller/dashboard" className="block">
+                <Button variant="outline" className="w-full">Back to Dashboard</Button>
+              </Link>
+            </div>
+          </div>
         </div>
       </MainLayout>
     );

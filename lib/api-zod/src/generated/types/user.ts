@@ -5,6 +5,7 @@
  * AeroParts Marketplace API
  * OpenAPI spec version: 0.1.0
  */
+import type { UserPlan } from './userPlan';
 import type { UserRole } from './userRole';
 
 export interface User {
@@ -17,5 +18,8 @@ export interface User {
   phone?: string | null;
   /** @nullable */
   country?: string | null;
+  plan: UserPlan;
+  /** @nullable */
+  planExpiresAt?: string | null;
   createdAt: string;
 }

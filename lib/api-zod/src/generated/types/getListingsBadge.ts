@@ -10,7 +10,7 @@ export type GetListingsBadge = typeof GetListingsBadge[keyof typeof GetListingsB
 
 
 export const GetListingsBadge = {
-  verified: 'verified',
   pending_verification: 'pending_verification',
   documentation_reviewed: 'documentation_reviewed',
+  verified: 'verified',
 } as const;

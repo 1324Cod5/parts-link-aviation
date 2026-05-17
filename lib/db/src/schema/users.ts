@@ -3,6 +3,7 @@ import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
 export const userRoleEnum = pgEnum("user_role", ["buyer", "seller", "admin"]);
+export const userPlanEnum = pgEnum("user_plan", ["free", "pro", "enterprise"]);
 
 export const usersTable = pgTable("users", {
   id: serial("id").primaryKey(),
@@ -13,6 +14,8 @@ export const usersTable = pgTable("users", {
   contactName: text("contact_name").notNull(),
   phone: text("phone"),
   country: text("country"),
+  plan: userPlanEnum("plan").notNull().default("free"),
+  planExpiresAt: timestamp("plan_expires_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });

@@ -19,6 +19,8 @@ tags:
     description: Seller dashboard
   - name: admin
     description: Admin operations
+  - name: subscription
+    description: Subscription management
 paths:
   /healthz:
     get:
@@ -83,6 +85,10 @@ paths:
       responses:
         "200":
           description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OkResponse"
 
   /auth/me:
     get:
@@ -99,11 +105,39 @@ paths:
         "401":
           description: Unauthorized
 
+  /listings/stats:
+    get:
+      operationId: getMarketplaceStats
+      tags: [listings]
+      summary: Get marketplace statistics
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MarketplaceStats"
+
+  /listings/featured:
+    get:
+      operationId: getFeaturedListings
+      tags: [listings]
+      summary: Get featured verified listings
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Listing"
+
   /listings:
     get:
       operationId: getListings
       tags: [listings]
-      summary: List/search part listings
+      summary: Browse listings
       parameters:
         - name: q
           in: query
@@ -131,7 +165,7 @@ paths:
           in: query
           schema:
             type: string
-            enum: [verified, pending_verification, documentation_reviewed]
+            enum: [pending_verification, documentation_reviewed, verified]
         - name: minPrice
           in: query
           schema:
@@ -144,11 +178,14 @@ paths:
           in: query
           schema:
             type: integer
+            minimum: 1
             default: 1
         - name: limit
           in: query
           schema:
             type: integer
+            minimum: 1
+            maximum: 100
             default: 20
       responses:
         "200":
@@ -161,7 +198,7 @@ paths:
     post:
       operationId: createListing
       tags: [listings]
-      summary: Create a new part listing
+      summary: Create a new listing
       requestBody:
         required: true
         content:
@@ -175,40 +212,20 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Listing"
-
-  /listings/stats:
-    get:
-      operationId: getMarketplaceStats
-      tags: [listings]
-      summary: Marketplace overview stats
-      responses:
-        "200":
-          description: OK
+        "402":
+          description: Listing limit reached — upgrade required
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/MarketplaceStats"
-
-  /listings/featured:
-    get:
-      operationId: getFeaturedListings
-      tags: [listings]
-      summary: Get featured/verified listings for homepage
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/Listing"
+                $ref: "#/components/schemas/LimitReachedError"
+        "401":
+          description: Unauthorized
 
   /listings/{id}:
     get:
       operationId: getListing
       tags: [listings]
-      summary: Get listing detail
+      summary: Get a single listing
       parameters:
         - name: id
           in: path
@@ -260,14 +277,18 @@ paths:
           schema:
             type: integer
       responses:
-        "204":
-          description: Deleted
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OkResponse"
 
   /listings/{id}/badge:
     patch:
       operationId: updateListingBadge
       tags: [admin]
-      summary: Admin — set verification badge on a listing
+      summary: Update listing badge (admin)
       parameters:
         - name: id
           in: path
@@ -292,7 +313,7 @@ paths:
     get:
       operationId: getInquiries
       tags: [inquiries]
-      summary: Get inquiries for a listing (seller/admin)
+      summary: Get inquiries for a listing
       parameters:
         - name: id
           in: path
@@ -312,7 +333,7 @@ paths:
     post:
       operationId: createInquiry
       tags: [inquiries]
-      summary: Buyer sends inquiry to seller
+      summary: Submit a buyer inquiry
       parameters:
         - name: id
           in: path
@@ -352,7 +373,7 @@ paths:
     get:
       operationId: getSellerStats
       tags: [seller]
-      summary: Seller dashboard stats
+      summary: Get seller statistics
       responses:
         "200":
           description: OK
@@ -365,13 +386,13 @@ paths:
     get:
       operationId: getAdminListings
       tags: [admin]
-      summary: Admin — all listings for review
+      summary: Get all listings for admin review
       parameters:
         - name: badge
           in: query
           schema:
             type: string
-            enum: [verified, pending_verification, documentation_reviewed]
+            enum: [pending_verification, documentation_reviewed, verified]
         - name: status
           in: query
           schema:
@@ -388,10 +409,10 @@ paths:
                   $ref: "#/components/schemas/Listing"
 
   /admin/listings/{id}/remove:
-    patch:
+    post:
       operationId: adminRemoveListing
       tags: [admin]
-      summary: Admin — remove a fraudulent listing
+      summary: Remove a listing (admin)
       parameters:
         - name: id
           in: path
@@ -404,13 +425,13 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Listing"
+                $ref: "#/components/schemas/OkResponse"
 
   /admin/stats:
     get:
       operationId: getAdminStats
       tags: [admin]
-      summary: Admin dashboard stats
+      summary: Get admin statistics
       responses:
         "200":
           description: OK
@@ -419,15 +440,85 @@ paths:
               schema:
                 $ref: "#/components/schemas/AdminStats"
 
+  /subscription:
+    get:
+      operationId: getSubscription
+      tags: [subscription]
+      summary: Get current seller's subscription info
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SubscriptionInfo"
+        "401":
+          description: Unauthorized
+
+  /subscription/upgrade:
+    post:
+      operationId: upgradePlan
+      tags: [subscription]
+      summary: Upgrade to a paid plan (simulated)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpgradePlanInput"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SubscriptionInfo"
+        "401":
+          description: Unauthorized
+
+  /subscription/downgrade:
+    post:
+      operationId: downgradePlan
+      tags: [subscription]
+      summary: Downgrade to free plan
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SubscriptionInfo"
+        "401":
+          description: Unauthorized
+
 components:
   schemas:
     HealthStatus:
       type: object
+      required: [status]
       properties:
         status:
           type: string
-      required:
-        - status
+
+    OkResponse:
+      type: object
+      required: [ok]
+      properties:
+        ok:
+          type: boolean
+
+    LimitReachedError:
+      type: object
+      required: [error, plan, activeListings, listingLimit]
+      properties:
+        error:
+          type: string
+        plan:
+          type: string
+        activeListings:
+          type: integer
+        listingLimit:
+          type: integer
 
     RegisterInput:
       type: object
@@ -437,6 +528,7 @@ components:
           type: string
         password:
           type: string
+          minLength: 8
         companyName:
           type: string
         contactName:
@@ -457,7 +549,7 @@ components:
 
     User:
       type: object
-      required: [id, email, role, companyName, contactName, createdAt]
+      required: [id, email, role, companyName, contactName, plan, createdAt]
       properties:
         id:
           type: integer
@@ -474,6 +566,11 @@ components:
           type: ["string", "null"]
         country:
           type: ["string", "null"]
+        plan:
+          type: string
+          enum: [free, pro, enterprise]
+        planExpiresAt:
+          type: ["string", "null"]
         createdAt:
           type: string
 
@@ -483,6 +580,30 @@ components:
       properties:
         user:
           $ref: "#/components/schemas/User"
+
+    SubscriptionInfo:
+      type: object
+      required: [plan, activeListings, listingLimit]
+      properties:
+        plan:
+          type: string
+          enum: [free, pro, enterprise]
+        planExpiresAt:
+          type: ["string", "null"]
+        activeListings:
+          type: integer
+        listingLimit:
+          type: ["integer", "null"]
+        canAddListing:
+          type: boolean
+
+    UpgradePlanInput:
+      type: object
+      required: [plan]
+      properties:
+        plan:
+          type: string
+          enum: [pro, enterprise]
 
     Seller:
       type: object
@@ -709,7 +830,7 @@ components:
 
     SellerStats:
       type: object
-      required: [totalListings, activeListings, totalInquiries, verifiedListings]
+      required: [totalListings, activeListings, totalInquiries, verifiedListings, plan, listingLimit, canAddListing]
       properties:
         totalListings:
           type: integer
@@ -719,6 +840,13 @@ components:
           type: integer
         verifiedListings:
           type: integer
+        plan:
+          type: string
+          enum: [free, pro, enterprise]
+        listingLimit:
+          type: ["integer", "null"]
+        canAddListing:
+          type: boolean
 
     AdminStats:
       type: object

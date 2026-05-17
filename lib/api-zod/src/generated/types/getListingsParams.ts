@@ -18,6 +18,13 @@ manufacturer?: string;
 badge?: GetListingsBadge;
 minPrice?: number;
 maxPrice?: number;
+/**
+ * @minimum 1
+ */
 page?: number;
+/**
+ * @minimum 1
+ * @maximum 100
+ */
 limit?: number;
 };

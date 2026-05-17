@@ -17,9 +17,12 @@ export function Navbar() {
             <Link href="/marketplace" className={`text-sm font-medium transition-colors hover:text-primary ${location === '/marketplace' ? 'text-primary' : 'text-muted-foreground'}`}>
               Marketplace
             </Link>
+            <Link href="/pricing" className={`text-sm font-medium transition-colors hover:text-primary ${location === '/pricing' ? 'text-primary' : 'text-muted-foreground'}`}>
+              Pricing
+            </Link>
             {user?.role === 'seller' && (
               <Link href="/seller/dashboard" className={`text-sm font-medium transition-colors hover:text-primary ${location.startsWith('/seller') ? 'text-primary' : 'text-muted-foreground'}`}>
-                Seller Dashboard
+                Dashboard
               </Link>
             )}
             {user?.role === 'admin' && (
@@ -42,8 +45,15 @@ export function Navbar() {
             </>
           ) : (
             <div className="flex items-center gap-4">
-              <span className="text-sm text-muted-foreground hidden md:inline-block">
-                {user.contactName} ({user.companyName})
+              <span className="text-sm text-muted-foreground hidden md:inline-flex items-center gap-2">
+                {user.contactName}
+                {user.plan && user.plan !== 'free' && (
+                  <span className={`text-xs px-1.5 py-0.5 rounded font-medium uppercase tracking-wide ${
+                    user.plan === 'enterprise' ? 'bg-amber-500/20 text-amber-400' : 'bg-primary/20 text-primary'
+                  }`}>
+                    {user.plan}
+                  </span>
+                )}
               </span>
               <Button variant="ghost" onClick={logout} className="text-muted-foreground hover:text-white">
                 Sign Out

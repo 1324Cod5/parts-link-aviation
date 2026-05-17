@@ -19,9 +19,13 @@ export const HealthCheckResponse = zod.object({
 /**
  * @summary Register a new seller account
  */
+export const registerUserBodyPasswordMin = 8;
+
+
+
 export const RegisterUserBody = zod.object({
   "email": zod.string(),
-  "password": zod.string(),
+  "password": zod.string().min(registerUserBodyPasswordMin),
   "companyName": zod.string(),
   "contactName": zod.string(),
   "phone": zod.string().nullish(),
@@ -46,8 +50,18 @@ export const LoginUserResponse = zod.object({
   "contactName": zod.string(),
   "phone": zod.string().nullish(),
   "country": zod.string().nullish(),
+  "plan": zod.enum(['free', 'pro', 'enterprise']),
+  "planExpiresAt": zod.string().nullish(),
   "createdAt": zod.string()
 })
+})
+
+
+/**
+ * @summary Logout
+ */
+export const LogoutUserResponse = zod.object({
+  "ok": zod.boolean()
 })
 
 
@@ -62,15 +76,73 @@ export const GetCurrentUserResponse = zod.object({
   "contactName": zod.string(),
   "phone": zod.string().nullish(),
   "country": zod.string().nullish(),
+  "plan": zod.enum(['free', 'pro', 'enterprise']),
+  "planExpiresAt": zod.string().nullish(),
   "createdAt": zod.string()
 })
 
 
 /**
- * @summary List/search part listings
+ * @summary Get marketplace statistics
+ */
+export const GetMarketplaceStatsResponse = zod.object({
+  "totalListings": zod.number(),
+  "verifiedSellers": zod.number(),
+  "totalManufacturers": zod.number(),
+  "recentListings": zod.number(),
+  "byCondition": zod.array(zod.object({
+  "condition": zod.string(),
+  "count": zod.number()
+})).optional(),
+  "byBadge": zod.array(zod.object({
+  "badge": zod.string(),
+  "count": zod.number()
+})).optional()
+})
+
+
+/**
+ * @summary Get featured verified listings
+ */
+export const GetFeaturedListingsResponseItem = zod.object({
+  "id": zod.number(),
+  "partNumber": zod.string(),
+  "description": zod.string(),
+  "aircraftApplicability": zod.string().nullish(),
+  "manufacturer": zod.string(),
+  "condition": zod.enum(['new', 'overhauled', 'serviceable', 'as_removed', 'repaired']),
+  "saleType": zod.enum(['outright', 'exchange', 'both']),
+  "quantity": zod.number(),
+  "price": zod.number().nullable(),
+  "certificationDocs": zod.array(zod.string()).optional(),
+  "photos": zod.array(zod.string()).optional(),
+  "traceHistory": zod.string().nullish(),
+  "badge": zod.enum(['pending_verification', 'documentation_reviewed', 'verified']),
+  "status": zod.enum(['active', 'removed']),
+  "sellerId": zod.number(),
+  "seller": zod.object({
+  "id": zod.number(),
+  "companyName": zod.string(),
+  "contactName": zod.string(),
+  "email": zod.string().optional(),
+  "phone": zod.string().nullish(),
+  "country": zod.string().nullable()
+}).optional(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string().optional()
+})
+export const GetFeaturedListingsResponse = zod.array(GetFeaturedListingsResponseItem)
+
+
+/**
+ * @summary Browse listings
  */
 export const getListingsQueryPageDefault = 1;
+
 export const getListingsQueryLimitDefault = 20;
+export const getListingsQueryLimitMax = 100;
+
+
 
 export const GetListingsQueryParams = zod.object({
   "q": zod.coerce.string().optional(),
@@ -78,11 +150,11 @@ export const GetListingsQueryParams = zod.object({
   "condition": zod.enum(['new', 'overhauled', 'serviceable', 'as_removed', 'repaired']).optional(),
   "saleType": zod.enum(['outright', 'exchange', 'both']).optional(),
   "manufacturer": zod.coerce.string().optional(),
-  "badge": zod.enum(['verified', 'pending_verification', 'documentation_reviewed']).optional(),
+  "badge": zod.enum(['pending_verification', 'documentation_reviewed', 'verified']).optional(),
   "minPrice": zod.coerce.number().optional(),
   "maxPrice": zod.coerce.number().optional(),
-  "page": zod.coerce.number().default(getListingsQueryPageDefault),
-  "limit": zod.coerce.number().default(getListingsQueryLimitDefault)
+  "page": zod.coerce.number().min(1).default(getListingsQueryPageDefault),
+  "limit": zod.coerce.number().min(1).max(getListingsQueryLimitMax).default(getListingsQueryLimitDefault)
 })
 
 export const GetListingsResponse = zod.object({
@@ -120,7 +192,7 @@ export const GetListingsResponse = zod.object({
 
 
 /**
- * @summary Create a new part listing
+ * @summary Create a new listing
  */
 export const CreateListingBody = zod.object({
   "partNumber": zod.string(),
@@ -138,59 +210,7 @@ export const CreateListingBody = zod.object({
 
 
 /**
- * @summary Marketplace overview stats
- */
-export const GetMarketplaceStatsResponse = zod.object({
-  "totalListings": zod.number(),
-  "verifiedSellers": zod.number(),
-  "totalManufacturers": zod.number(),
-  "recentListings": zod.number(),
-  "byCondition": zod.array(zod.object({
-  "condition": zod.string(),
-  "count": zod.number()
-})).optional(),
-  "byBadge": zod.array(zod.object({
-  "badge": zod.string(),
-  "count": zod.number()
-})).optional()
-})
-
-
-/**
- * @summary Get featured/verified listings for homepage
- */
-export const GetFeaturedListingsResponseItem = zod.object({
-  "id": zod.number(),
-  "partNumber": zod.string(),
-  "description": zod.string(),
-  "aircraftApplicability": zod.string().nullish(),
-  "manufacturer": zod.string(),
-  "condition": zod.enum(['new', 'overhauled', 'serviceable', 'as_removed', 'repaired']),
-  "saleType": zod.enum(['outright', 'exchange', 'both']),
-  "quantity": zod.number(),
-  "price": zod.number().nullable(),
-  "certificationDocs": zod.array(zod.string()).optional(),
-  "photos": zod.array(zod.string()).optional(),
-  "traceHistory": zod.string().nullish(),
-  "badge": zod.enum(['pending_verification', 'documentation_reviewed', 'verified']),
-  "status": zod.enum(['active', 'removed']),
-  "sellerId": zod.number(),
-  "seller": zod.object({
-  "id": zod.number(),
-  "companyName": zod.string(),
-  "contactName": zod.string(),
-  "email": zod.string().optional(),
-  "phone": zod.string().nullish(),
-  "country": zod.string().nullable()
-}).optional(),
-  "createdAt": zod.string(),
-  "updatedAt": zod.string().optional()
-})
-export const GetFeaturedListingsResponse = zod.array(GetFeaturedListingsResponseItem)
-
-
-/**
- * @summary Get listing detail
+ * @summary Get a single listing
  */
 export const GetListingParams = zod.object({
   "id": zod.coerce.number()
@@ -282,9 +302,13 @@ export const DeleteListingParams = zod.object({
   "id": zod.coerce.number()
 })
 
+export const DeleteListingResponse = zod.object({
+  "ok": zod.boolean()
+})
+
 
 /**
- * @summary Admin — set verification badge on a listing
+ * @summary Update listing badge (admin)
  */
 export const UpdateListingBadgeParams = zod.object({
   "id": zod.coerce.number()
@@ -324,7 +348,7 @@ export const UpdateListingBadgeResponse = zod.object({
 
 
 /**
- * @summary Get inquiries for a listing (seller/admin)
+ * @summary Get inquiries for a listing
  */
 export const GetInquiriesParams = zod.object({
   "id": zod.coerce.number()
@@ -344,7 +368,7 @@ export const GetInquiriesResponse = zod.array(GetInquiriesResponseItem)
 
 
 /**
- * @summary Buyer sends inquiry to seller
+ * @summary Submit a buyer inquiry
  */
 export const CreateInquiryParams = zod.object({
   "id": zod.coerce.number()
@@ -393,21 +417,24 @@ export const GetSellerListingsResponse = zod.array(GetSellerListingsResponseItem
 
 
 /**
- * @summary Seller dashboard stats
+ * @summary Get seller statistics
  */
 export const GetSellerStatsResponse = zod.object({
   "totalListings": zod.number(),
   "activeListings": zod.number(),
   "totalInquiries": zod.number(),
-  "verifiedListings": zod.number()
+  "verifiedListings": zod.number(),
+  "plan": zod.enum(['free', 'pro', 'enterprise']),
+  "listingLimit": zod.number().nullable(),
+  "canAddListing": zod.boolean()
 })
 
 
 /**
- * @summary Admin — all listings for review
+ * @summary Get all listings for admin review
  */
 export const GetAdminListingsQueryParams = zod.object({
-  "badge": zod.enum(['verified', 'pending_verification', 'documentation_reviewed']).optional(),
+  "badge": zod.enum(['pending_verification', 'documentation_reviewed', 'verified']).optional(),
   "status": zod.enum(['active', 'removed']).optional()
 })
 
@@ -442,49 +469,65 @@ export const GetAdminListingsResponse = zod.array(GetAdminListingsResponseItem)
 
 
 /**
- * @summary Admin — remove a fraudulent listing
+ * @summary Remove a listing (admin)
  */
 export const AdminRemoveListingParams = zod.object({
   "id": zod.coerce.number()
 })
 
 export const AdminRemoveListingResponse = zod.object({
-  "id": zod.number(),
-  "partNumber": zod.string(),
-  "description": zod.string(),
-  "aircraftApplicability": zod.string().nullish(),
-  "manufacturer": zod.string(),
-  "condition": zod.enum(['new', 'overhauled', 'serviceable', 'as_removed', 'repaired']),
-  "saleType": zod.enum(['outright', 'exchange', 'both']),
-  "quantity": zod.number(),
-  "price": zod.number().nullable(),
-  "certificationDocs": zod.array(zod.string()).optional(),
-  "photos": zod.array(zod.string()).optional(),
-  "traceHistory": zod.string().nullish(),
-  "badge": zod.enum(['pending_verification', 'documentation_reviewed', 'verified']),
-  "status": zod.enum(['active', 'removed']),
-  "sellerId": zod.number(),
-  "seller": zod.object({
-  "id": zod.number(),
-  "companyName": zod.string(),
-  "contactName": zod.string(),
-  "email": zod.string().optional(),
-  "phone": zod.string().nullish(),
-  "country": zod.string().nullable()
-}).optional(),
-  "createdAt": zod.string(),
-  "updatedAt": zod.string().optional()
+  "ok": zod.boolean()
 })
 
 
 /**
- * @summary Admin dashboard stats
+ * @summary Get admin statistics
  */
 export const GetAdminStatsResponse = zod.object({
   "totalListings": zod.number(),
   "totalSellers": zod.number(),
   "pendingVerification": zod.number(),
   "totalInquiries": zod.number()
+})
+
+
+/**
+ * @summary Get current seller's subscription info
+ */
+export const GetSubscriptionResponse = zod.object({
+  "plan": zod.enum(['free', 'pro', 'enterprise']),
+  "planExpiresAt": zod.string().nullish(),
+  "activeListings": zod.number(),
+  "listingLimit": zod.number().nullable(),
+  "canAddListing": zod.boolean().optional()
+})
+
+
+/**
+ * @summary Upgrade to a paid plan (simulated)
+ */
+export const UpgradePlanBody = zod.object({
+  "plan": zod.enum(['pro', 'enterprise'])
+})
+
+export const UpgradePlanResponse = zod.object({
+  "plan": zod.enum(['free', 'pro', 'enterprise']),
+  "planExpiresAt": zod.string().nullish(),
+  "activeListings": zod.number(),
+  "listingLimit": zod.number().nullable(),
+  "canAddListing": zod.boolean().optional()
+})
+
+
+/**
+ * @summary Downgrade to free plan
+ */
+export const DowngradePlanResponse = zod.object({
+  "plan": zod.enum(['free', 'pro', 'enterprise']),
+  "planExpiresAt": zod.string().nullish(),
+  "activeListings": zod.number(),
+  "listingLimit": zod.number().nullable(),
+  "canAddListing": zod.boolean().optional()
 })
 
 

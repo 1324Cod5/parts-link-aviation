@@ -46,6 +46,8 @@ router.post("/auth/register", async (req, res): Promise<void> => {
     contactName: user.contactName,
     phone: user.phone,
     country: user.country,
+    plan: user.plan,
+    planExpiresAt: user.planExpiresAt ? user.planExpiresAt.toISOString() : null,
     createdAt: user.createdAt.toISOString(),
   });
 
@@ -83,6 +85,8 @@ router.post("/auth/login", async (req, res): Promise<void> => {
     contactName: user.contactName,
     phone: user.phone,
     country: user.country,
+    plan: user.plan,
+    planExpiresAt: user.planExpiresAt ? user.planExpiresAt.toISOString() : null,
     createdAt: user.createdAt.toISOString(),
   });
 
@@ -115,6 +119,8 @@ router.get("/auth/me", async (req, res): Promise<void> => {
     contactName: user.contactName,
     phone: user.phone,
     country: user.country,
+    plan: user.plan,
+    planExpiresAt: user.planExpiresAt ? user.planExpiresAt.toISOString() : null,
     createdAt: user.createdAt.toISOString(),
   });
 
