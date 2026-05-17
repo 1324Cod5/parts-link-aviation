@@ -148,7 +148,7 @@ export default function SubscriptionManagement() {
             {[
               { id: "free",       label: "Free",       price: "Free",    limit: "5 listings",        features: ["Standard visibility"] },
               { id: "pro",        label: "Pro",         price: "$149/mo", limit: "50 listings",       features: ["Priority placement", "Verified badge", "Analytics"] },
-              { id: "enterprise", label: "Enterprise",  price: "$399/mo", limit: "Unlimited",          features: ["Premium placement", "Bulk upload", "Dedicated support"] },
+              { id: "enterprise", label: "Enterprise",  price: "$299/mo", limit: "Unlimited",          features: ["Premium placement", "Bulk upload", "Dedicated support"] },
             ].map(tier => (
               <div
                 key={tier.id}

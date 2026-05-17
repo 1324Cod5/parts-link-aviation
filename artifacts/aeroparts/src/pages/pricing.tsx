@@ -48,8 +48,8 @@ const PARTS_TIERS = [
   {
     id: "enterprise" as const,
     name: "Enterprise",
-    price: 399,
-    priceLabel: "$399/mo",
+    price: 299,
+    priceLabel: "$299/mo",
     icon: Building2,
     listingLimit: null,
     description: "For airlines, large MROs, and global distributors.",
