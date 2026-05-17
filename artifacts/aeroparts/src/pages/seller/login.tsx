@@ -3,13 +3,15 @@ import { Link, useLocation } from "wouter";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { useLoginUser } from "@workspace/api-client-react";
+import { useLoginUser, getGetCurrentUserQueryKey } from "@workspace/api-client-react";
 import { useToast } from "@/hooks/use-toast";
 import { Eye, EyeOff } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
 
 export default function SellerLogin() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [form, setForm] = useState({ email: "", password: "" });
   const [showPassword, setShowPassword] = useState(false);
 
@@ -22,6 +24,8 @@ export default function SellerLogin() {
       {
         onSuccess: (data) => {
           const { computedRole, contactName } = data.user;
+          toast({ title: "Signed in", description: `Welcome back, ${contactName}` });
+          queryClient.invalidateQueries({ queryKey: getGetCurrentUserQueryKey() });
           if (computedRole === "admin") {
             navigate("/admin");
           } else if (computedRole.startsWith("seller_")) {
@@ -30,10 +34,7 @@ export default function SellerLogin() {
             navigate("/mro");
           } else {
             toast({ title: "Access denied", description: "Your account does not have a valid role.", variant: "destructive" });
-            return;
           }
-          toast({ title: "Signed in", description: `Welcome back, ${contactName}` });
-          window.location.reload();
         },
         onError: (err: any) => {
           const msg: string = err?.response?.data?.error ?? "Invalid email or password.";

@@ -1,0 +1,105 @@
+Rebuild and stabilize the backend into a production-grade marketplace system.
+
+CURRENT PROBLEMS TO FIX:
+- Login session does not persist after refresh
+- Users are redirected to login after signing in
+- Role system is inconsistent (admin sometimes becomes enterprise)
+- RFQ data is not properly permission-gated
+- Subscription logic is not consistently enforced
+- Certification review sometimes fails due to missing data handling
+
+---
+
+ARCHITECTURE REQUIREMENTS:
+
+1. AUTH SYSTEM (CRITICAL)
+- Use secure session-based auth (httpOnly cookies preferred)
+- Persist login across page refresh
+- Implement /auth/login, /auth/logout, /auth/me
+- Always restore user from session on every request
+- No frontend-only auth checks
+
+---
+
+2. USER MODEL
+Each user must include:
+- id
+- email
+- passwordHash
+- role: admin | seller | mro
+- status: active | suspended
+
+---
+
+3. SUBSCRIPTION SYSTEM (Stripe integration)
+- Integrate Stripe subscriptions properly
+- Store:
+  - plan (free, pro, enterprise, mro_basic, mro_premium)
+  - subscriptionStatus (active, past_due, canceled)
+  - stripeCustomerId
+  - stripeSubscriptionId
+- Webhooks must update subscription status automatically
+
+---
+
+4. PERMISSION ENGINE (CENTRALIZED)
+Create a single backend permission layer that controls:
+- RFQ visibility (buyer info hidden for free users)
+- listing limits (free = 5 listings max)
+- admin access control
+- MRO feature access
+- certification upload/review permissions
+
+ALL permissions must be derived server-side only.
+
+---
+
+5. RFQ SYSTEM
+- RFQs must be filtered based on permissions
+- Free users see limited RFQ data only
+- Paid users see full RFQ details including buyer info
+- RFQ matching must rank sellers by:
+  - trustScore
+  - subscription tier
+  - response performance
+
+---
+
+6. CERTIFICATION SYSTEM
+- Upload must never break UI if file is missing
+- Admin review must safely handle missing or invalid documents
+- Certification status must be stored per listing
+
+---
+
+7. ROLE SYSTEM FIX
+- Remove all default fallback roles (DO NOT default to enterprise)
+- Admin must always be role = admin
+- Seller and MRO roles must be strictly enforced
+
+---
+
+8. API STRUCTURE REQUIRED:
+/auth/login
+/auth/logout
+/auth/me
+
+/listings
+/listings/:id
+
+/rfq
+/rfq/:id
+/rfq/:id/respond
+
+/billing/webhook
+/billing/create-checkout-session
+
+/permissions/me
+
+---
+
+9. IMPORTANT RULES
+- Never trust frontend for authentication or permissions
+- Always validate user session on backend
+- Always enforce permissions in backend routes
+- Ensure consistent user state across refresh
