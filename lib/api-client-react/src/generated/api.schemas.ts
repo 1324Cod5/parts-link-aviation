@@ -44,6 +44,7 @@ export const UserRole = {
   buyer: 'buyer',
   seller: 'seller',
   admin: 'admin',
+  super_admin: 'super_admin',
 } as const;
 
 export type UserPlan = typeof UserPlan[keyof typeof UserPlan];
@@ -68,7 +69,14 @@ export interface User {
   plan: UserPlan;
   /** @nullable */
   planExpiresAt?: string | null;
+  mustChangePassword?: boolean;
   createdAt: string;
+}
+
+export interface ChangePasswordInput {
+  currentPassword: string;
+  /** @minLength 8 */
+  newPassword: string;
 }
 
 export interface AuthResponse {
@@ -639,6 +647,10 @@ export const MroStatusUpdateStatus = {
 export interface MroStatusUpdate {
   status: MroStatusUpdateStatus;
 }
+
+export type ChangePassword200 = {
+  ok: boolean;
+};
 
 export type GetListingsParams = {
 q?: string;

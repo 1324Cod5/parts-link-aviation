@@ -17,6 +17,8 @@ export * from './adminStats';
 export * from './authResponse';
 export * from './badgeUpdate';
 export * from './badgeUpdateBadge';
+export * from './changePassword200';
+export * from './changePasswordInput';
 export * from './getAdminListingsBadge';
 export * from './getAdminListingsParams';
 export * from './getAdminListingsStatus';

@@ -21,5 +21,6 @@ export interface User {
   plan: UserPlan;
   /** @nullable */
   planExpiresAt?: string | null;
+  mustChangePassword?: boolean;
   createdAt: string;
 }

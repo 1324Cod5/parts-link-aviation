@@ -79,6 +79,33 @@ paths:
         "401":
           description: Unauthorized
 
+  /auth/change-password:
+    patch:
+      operationId: changePassword
+      tags: [auth]
+      summary: Change password (required on first admin login)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChangePasswordInput"
+      responses:
+        "200":
+          description: Password changed
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ok]
+                properties:
+                  ok:
+                    type: boolean
+        "400":
+          description: Validation error or incorrect current password
+        "401":
+          description: Not authenticated
+
   /auth/logout:
     post:
       operationId: logoutUser
@@ -967,7 +994,7 @@ components:
           type: string
         role:
           type: string
-          enum: [buyer, seller, admin]
+          enum: [buyer, seller, admin, super_admin]
         companyName:
           type: string
         contactName:
@@ -981,8 +1008,20 @@ components:
           enum: [free, pro, enterprise]
         planExpiresAt:
           type: ["string", "null"]
+        mustChangePassword:
+          type: boolean
         createdAt:
           type: string
+
+    ChangePasswordInput:
+      type: object
+      required: [currentPassword, newPassword]
+      properties:
+        currentPassword:
+          type: string
+        newPassword:
+          type: string
+          minLength: 8
 
     AuthResponse:
       type: object

@@ -13,4 +13,5 @@ export const UserRole = {
   buyer: 'buyer',
   seller: 'seller',
   admin: 'admin',
+  super_admin: 'super_admin',
 } as const;

@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Link } from "wouter";
+import { useState, useEffect } from "react";
+import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -965,6 +965,14 @@ export default function AdminDashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { data: stats } = useGetAdminStats({ query: { queryKey: getGetAdminStatsQueryKey() } });
 
+  const [, navigate] = useLocation();
+
+  useEffect(() => {
+    if (!authLoading && user?.mustChangePassword) {
+      navigate("/admin/change-password");
+    }
+  }, [authLoading, user, navigate]);
+
   if (authLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -973,7 +981,9 @@ export default function AdminDashboard() {
     );
   }
 
-  if (!user || user.role !== "admin") {
+  const isAdmin = user?.role === "admin" || user?.role === "super_admin";
+
+  if (!user || !isAdmin) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="max-w-sm w-full mx-auto px-4 text-center">
@@ -982,8 +992,8 @@ export default function AdminDashboard() {
           </div>
           <h1 className="text-xl font-bold text-white mb-2">Admin Access Required</h1>
           <p className="text-muted-foreground text-sm mb-6">This area is restricted to AeroParts administrators only.</p>
-          <Link href="/seller/login">
-            <Button className="w-full mb-3">Sign In as Admin</Button>
+          <Link href="/admin/login">
+            <Button className="w-full mb-3">Sign In to Admin Portal</Button>
           </Link>
           <p className="text-xs text-muted-foreground">Use <span className="font-mono">admin@aeroparts.com</span> / <span className="font-mono">password</span></p>
         </div>

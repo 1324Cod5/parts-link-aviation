@@ -45,15 +45,33 @@ export const LoginUserResponse = zod.object({
   "user": zod.object({
   "id": zod.number(),
   "email": zod.string(),
-  "role": zod.enum(['buyer', 'seller', 'admin']),
+  "role": zod.enum(['buyer', 'seller', 'admin', 'super_admin']),
   "companyName": zod.string(),
   "contactName": zod.string(),
   "phone": zod.string().nullish(),
   "country": zod.string().nullish(),
   "plan": zod.enum(['free', 'pro', 'enterprise']),
   "planExpiresAt": zod.string().nullish(),
+  "mustChangePassword": zod.boolean().optional(),
   "createdAt": zod.string()
 })
+})
+
+
+/**
+ * @summary Change password (required on first admin login)
+ */
+export const changePasswordBodyNewPasswordMin = 8;
+
+
+
+export const ChangePasswordBody = zod.object({
+  "currentPassword": zod.string(),
+  "newPassword": zod.string().min(changePasswordBodyNewPasswordMin)
+})
+
+export const ChangePasswordResponse = zod.object({
+  "ok": zod.boolean()
 })
 
 
@@ -71,13 +89,14 @@ export const LogoutUserResponse = zod.object({
 export const GetCurrentUserResponse = zod.object({
   "id": zod.number(),
   "email": zod.string(),
-  "role": zod.enum(['buyer', 'seller', 'admin']),
+  "role": zod.enum(['buyer', 'seller', 'admin', 'super_admin']),
   "companyName": zod.string(),
   "contactName": zod.string(),
   "phone": zod.string().nullish(),
   "country": zod.string().nullish(),
   "plan": zod.enum(['free', 'pro', 'enterprise']),
   "planExpiresAt": zod.string().nullish(),
+  "mustChangePassword": zod.boolean().optional(),
   "createdAt": zod.string()
 })
 

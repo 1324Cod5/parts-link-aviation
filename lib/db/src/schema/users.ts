@@ -1,8 +1,8 @@
-import { pgTable, serial, text, timestamp, pgEnum } from "drizzle-orm/pg-core";
+import { pgTable, serial, text, timestamp, boolean, pgEnum } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
-export const userRoleEnum = pgEnum("user_role", ["buyer", "seller", "admin"]);
+export const userRoleEnum = pgEnum("user_role", ["buyer", "seller", "admin", "super_admin"]);
 export const userPlanEnum = pgEnum("user_plan", ["free", "pro", "enterprise"]);
 export const userStatusEnum = pgEnum("user_status", ["active", "suspended"]);
 
@@ -18,6 +18,7 @@ export const usersTable = pgTable("users", {
   plan: userPlanEnum("plan").notNull().default("free"),
   planExpiresAt: timestamp("plan_expires_at"),
   status: userStatusEnum("status").notNull().default("active"),
+  mustChangePassword: boolean("must_change_password").notNull().default(false),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
