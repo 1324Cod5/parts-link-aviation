@@ -2,6 +2,8 @@ import express, { type Express } from "express";
 import cors from "cors";
 import pinoHttp from "pino-http";
 import session from "express-session";
+import connectPgSimple from "connect-pg-simple";
+import pg from "pg";
 import router from "./routes";
 import { logger } from "./lib/logger";
 import { WebhookHandlers } from "./webhookHandlers";
@@ -9,6 +11,11 @@ import { WebhookHandlers } from "./webhookHandlers";
 const ADMIN_SESSION_TIMEOUT = 30 * 60 * 1000; // 30 minutes
 
 const app: Express = express();
+
+// Trust the Replit reverse proxy so Express sees X-Forwarded-Proto: https.
+// Without this, secure: true cookies are never sent because Express sees a
+// plain-HTTP connection from the proxy (TLS is terminated upstream).
+app.set("trust proxy", 1);
 
 app.use(
   pinoHttp({
@@ -63,16 +70,28 @@ app.use(cors({ origin: true, credentials: true }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// ─── Session store (PostgreSQL-backed for persistence across restarts) ────────
+const PgStore = connectPgSimple(session);
+const pgPool = new pg.Pool({ connectionString: process.env.DATABASE_URL });
+
 app.use(
   session({
+    store: new PgStore({
+      pool: pgPool,
+      tableName: "user_sessions",
+      createTableIfMissing: true,
+    }),
     secret: process.env.SESSION_SECRET ?? "aeroparts-dev-secret",
     resave: false,
     saveUninitialized: false,
     rolling: true,
     cookie: {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
+      // SameSite=None is required for the Replit preview pane (cross-site iframe).
+      // Secure=true is required by browsers when SameSite=None is set.
+      // The Replit environment always serves over HTTPS, so this is safe.
+      sameSite: "none",
+      secure: true,
       maxAge: ADMIN_SESSION_TIMEOUT,
     },
   }),

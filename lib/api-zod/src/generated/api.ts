@@ -140,6 +140,20 @@ export const GetCurrentUserResponse = zod.object({
 
 
 /**
+ * @summary Get current user's server-derived permissions
+ */
+export const GetMyPermissionsResponse = zod.object({
+  "computedRole": zod.string(),
+  "plan": zod.string(),
+  "canViewFullRfqs": zod.boolean(),
+  "canRespondToRfqs": zod.boolean(),
+  "canViewAnalytics": zod.boolean(),
+  "listingLimit": zod.number().nullable(),
+  "canUploadCertifications": zod.boolean()
+})
+
+
+/**
  * @summary Get marketplace statistics
  */
 export const GetMarketplaceStatsResponse = zod.object({

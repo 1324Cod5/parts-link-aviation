@@ -16,7 +16,7 @@ import {
   useAdminSetSellerStatus, useAdminSetSellerPlan,
   useGetRfqs,
 } from "@workspace/api-client-react";
-import { useAuth } from "@/context/AuthContext";
+import { useAuth } from "@/context/useAuth";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import {

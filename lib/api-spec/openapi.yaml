@@ -134,6 +134,21 @@ paths:
         "401":
           description: Unauthorized
 
+  /permissions/me:
+    get:
+      operationId: getMyPermissions
+      tags: [auth]
+      summary: Get current user's server-derived permissions
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Permissions"
+        "401":
+          description: Unauthorized
+
   /listings/stats:
     get:
       operationId: getMarketplaceStats
@@ -1224,6 +1239,32 @@ components:
                       type: object
                       additionalProperties:
                         type: string
+
+    Permissions:
+      type: object
+      required:
+        - computedRole
+        - plan
+        - canViewFullRfqs
+        - canRespondToRfqs
+        - canViewAnalytics
+        - listingLimit
+        - canUploadCertifications
+      properties:
+        computedRole:
+          type: string
+        plan:
+          type: string
+        canViewFullRfqs:
+          type: boolean
+        canRespondToRfqs:
+          type: boolean
+        canViewAnalytics:
+          type: boolean
+        listingLimit:
+          type: ["integer", "null"]
+        canUploadCertifications:
+          type: boolean
 
     TrustBadge:
       type: string

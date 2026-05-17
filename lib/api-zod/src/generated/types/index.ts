@@ -59,6 +59,7 @@ export * from './mroProfileStatus';
 export * from './mroStatusUpdate';
 export * from './mroStatusUpdateStatus';
 export * from './okResponse';
+export * from './permissions';
 export * from './portalSessionResponse';
 export * from './registerInput';
 export * from './rfq';

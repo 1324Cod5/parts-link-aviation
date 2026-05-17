@@ -12,6 +12,10 @@ import {
   getEffectivePlan,
   getComputedRole,
   assertValidComputedRole,
+  resolveUserContext,
+  FULL_ACCESS_PLANS,
+  ANALYTICS_PLANS,
+  PLAN_LISTING_LIMITS,
   type ComputedRole,
 } from "../lib/planEnforcement";
 
@@ -278,6 +282,35 @@ router.get("/auth/me", async (req, res): Promise<void> => {
   }
 
   res.json(serializeUser(user, derived.computedRole));
+});
+
+// ─── GET /permissions/me ──────────────────────────────────────────────────────
+// Returns the current user's server-derived permissions.
+// All permission checks MUST be derived server-side via this endpoint.
+router.get("/permissions/me", async (req, res): Promise<void> => {
+  const userId = req.session?.userId;
+  if (!userId) {
+    res.status(401).json({ error: "Not authenticated" });
+    return;
+  }
+
+  const ctx = await resolveUserContext(userId);
+  if (!ctx) {
+    res.status(401).json({ error: "Not authenticated" });
+    return;
+  }
+
+  const { effectivePlan, computedRole } = ctx;
+
+  res.json({
+    computedRole,
+    plan: effectivePlan,
+    canViewFullRfqs: FULL_ACCESS_PLANS.has(effectivePlan),
+    canRespondToRfqs: FULL_ACCESS_PLANS.has(effectivePlan),
+    canViewAnalytics: ANALYTICS_PLANS.has(effectivePlan),
+    listingLimit: PLAN_LISTING_LIMITS[effectivePlan] ?? 5,
+    canUploadCertifications: computedRole !== "admin",
+  });
 });
 
 export default router;

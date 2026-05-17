@@ -266,6 +266,17 @@ export interface SubscriptionProductsResponse {
   products: SubscriptionProductsResponseProductsItem[];
 }
 
+export interface Permissions {
+  computedRole: string;
+  plan: string;
+  canViewFullRfqs: boolean;
+  canRespondToRfqs: boolean;
+  canViewAnalytics: boolean;
+  /** @nullable */
+  listingLimit: number | null;
+  canUploadCertifications: boolean;
+}
+
 export interface Seller {
   id: number;
   companyName: string;
