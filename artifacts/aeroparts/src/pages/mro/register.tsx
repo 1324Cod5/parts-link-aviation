@@ -13,9 +13,9 @@ import { CheckCircle2, ArrowLeft, Wrench, X, Plus, Lock, Zap } from "lucide-reac
 import { SERVICE_TYPES, CERTIFICATIONS, AIRCRAFT_FAMILIES } from "./index";
 
 const PLAN_LIMITS = {
-  free: { serviceTypes: 3, partNumbers: 5, capDocs: 0 },
-  pro: { serviceTypes: 12, partNumbers: 50, capDocs: 10 },
-  enterprise: { serviceTypes: 12, partNumbers: 999, capDocs: 20 },
+  free: { serviceTypes: 3, partNumbers: 5, capDocs: 0, mroLabel: "Free MRO" },
+  pro: { serviceTypes: 12, partNumbers: 50, capDocs: 10, mroLabel: "Verified MRO" },
+  enterprise: { serviceTypes: 12, partNumbers: 999, capDocs: 20, mroLabel: "Premium MRO" },
 };
 
 function TagInput({ label, value, onChange, suggestions, placeholder, limit, limitLabel }:
