@@ -6,6 +6,7 @@ import sellerRouter from "./seller";
 import adminRouter from "./admin";
 import subscriptionRouter from "./subscription";
 import rfqsRouter from "./rfqs";
+import mroRouter from "./mro";
 
 const router: IRouter = Router();
 
@@ -16,5 +17,6 @@ router.use(sellerRouter);
 router.use(adminRouter);
 router.use(subscriptionRouter);
 router.use(rfqsRouter);
+router.use(mroRouter);
 
 export default router;

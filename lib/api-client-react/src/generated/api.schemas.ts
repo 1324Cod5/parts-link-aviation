@@ -422,6 +422,160 @@ export interface SellerRfqStats {
   myResponses: number;
 }
 
+export type MroProfileStatus = typeof MroProfileStatus[keyof typeof MroProfileStatus];
+
+
+export const MroProfileStatus = {
+  pending: 'pending',
+  active: 'active',
+  suspended: 'suspended',
+} as const;
+
+export interface MroProfile {
+  id: number;
+  /** @nullable */
+  userId?: number | null;
+  companyName: string;
+  /** @nullable */
+  description?: string | null;
+  /** @nullable */
+  website?: string | null;
+  country: string;
+  /** @nullable */
+  city?: string | null;
+  contactName: string;
+  contactEmail: string;
+  /** @nullable */
+  contactPhone?: string | null;
+  aircraftTypes: string[];
+  partNumbersServiced: string[];
+  serviceTypes: string[];
+  certifications: string[];
+  /** @nullable */
+  turnaroundTime?: string | null;
+  /** @nullable */
+  warranty?: string | null;
+  capabilityDocuments: string[];
+  status: MroProfileStatus;
+  featured?: boolean;
+  createdAt: string;
+}
+
+export interface MroProfileDetail {
+  profile: MroProfile;
+  quoteRequestCount: number;
+}
+
+export interface MroProfileInput {
+  companyName: string;
+  /** @nullable */
+  description?: string | null;
+  /** @nullable */
+  website?: string | null;
+  country: string;
+  /** @nullable */
+  city?: string | null;
+  contactName: string;
+  contactEmail: string;
+  /** @nullable */
+  contactPhone?: string | null;
+  aircraftTypes: string[];
+  partNumbersServiced?: string[];
+  serviceTypes: string[];
+  certifications: string[];
+  /** @nullable */
+  turnaroundTime?: string | null;
+  /** @nullable */
+  warranty?: string | null;
+  capabilityDocuments?: string[];
+}
+
+export interface MroProfilesPage {
+  profiles: MroProfile[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
+export type ServiceQuoteRequestUrgency = typeof ServiceQuoteRequestUrgency[keyof typeof ServiceQuoteRequestUrgency];
+
+
+export const ServiceQuoteRequestUrgency = {
+  standard: 'standard',
+  urgent: 'urgent',
+  aog: 'aog',
+} as const;
+
+export type ServiceQuoteRequestStatus = typeof ServiceQuoteRequestStatus[keyof typeof ServiceQuoteRequestStatus];
+
+
+export const ServiceQuoteRequestStatus = {
+  open: 'open',
+  responded: 'responded',
+  closed: 'closed',
+} as const;
+
+export interface ServiceQuoteRequest {
+  id: number;
+  mroId: number;
+  requesterName: string;
+  requesterEmail: string;
+  /** @nullable */
+  requesterCompany?: string | null;
+  /** @nullable */
+  requesterPhone?: string | null;
+  partNumber: string;
+  description: string;
+  /** @nullable */
+  aircraftType?: string | null;
+  /** @nullable */
+  serviceType?: string | null;
+  quantity: number;
+  urgency: ServiceQuoteRequestUrgency;
+  status: ServiceQuoteRequestStatus;
+  createdAt: string;
+}
+
+export type ServiceQuoteRequestInputUrgency = typeof ServiceQuoteRequestInputUrgency[keyof typeof ServiceQuoteRequestInputUrgency];
+
+
+export const ServiceQuoteRequestInputUrgency = {
+  standard: 'standard',
+  urgent: 'urgent',
+  aog: 'aog',
+} as const;
+
+export interface ServiceQuoteRequestInput {
+  requesterName: string;
+  requesterEmail: string;
+  /** @nullable */
+  requesterCompany?: string | null;
+  /** @nullable */
+  requesterPhone?: string | null;
+  partNumber: string;
+  description: string;
+  /** @nullable */
+  aircraftType?: string | null;
+  /** @nullable */
+  serviceType?: string | null;
+  /** @minimum 1 */
+  quantity: number;
+  urgency: ServiceQuoteRequestInputUrgency;
+}
+
+export type MroStatusUpdateStatus = typeof MroStatusUpdateStatus[keyof typeof MroStatusUpdateStatus];
+
+
+export const MroStatusUpdateStatus = {
+  pending: 'pending',
+  active: 'active',
+  suspended: 'suspended',
+} as const;
+
+export interface MroStatusUpdate {
+  status: MroStatusUpdateStatus;
+}
+
 export type GetListingsParams = {
 q?: string;
 aircraft?: string;
@@ -514,4 +668,22 @@ export const GetRfqsStatus = {
   open: 'open',
   closed: 'closed',
 } as const;
+
+export type GetMroProfilesParams = {
+q?: string;
+aircraftType?: string;
+serviceType?: string;
+certification?: string;
+country?: string;
+partNumber?: string;
+/**
+ * @minimum 1
+ */
+page?: number;
+/**
+ * @minimum 1
+ * @maximum 50
+ */
+limit?: number;
+};
 

@@ -20,6 +20,9 @@ export function Navbar() {
             <Link href="/rfqs" className={`text-sm font-medium transition-colors hover:text-primary ${location.startsWith('/rfqs') ? 'text-primary' : 'text-muted-foreground'}`}>
               RFQ Board
             </Link>
+            <Link href="/mro" className={`text-sm font-medium transition-colors hover:text-primary ${location.startsWith('/mro') ? 'text-primary' : 'text-muted-foreground'}`}>
+              MRO Services
+            </Link>
             <Link href="/pricing" className={`text-sm font-medium transition-colors hover:text-primary ${location === '/pricing' ? 'text-primary' : 'text-muted-foreground'}`}>
               Pricing
             </Link>

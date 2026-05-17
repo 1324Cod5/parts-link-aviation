@@ -671,3 +671,276 @@ export const GetSellerRfqStatsResponse = zod.object({
 })
 
 
+/**
+ * @summary List MRO profiles with optional filters
+ */
+export const getMroProfilesQueryPageDefault = 1;
+
+export const getMroProfilesQueryLimitDefault = 20;
+export const getMroProfilesQueryLimitMax = 50;
+
+
+
+export const GetMroProfilesQueryParams = zod.object({
+  "q": zod.coerce.string().optional(),
+  "aircraftType": zod.coerce.string().optional(),
+  "serviceType": zod.coerce.string().optional(),
+  "certification": zod.coerce.string().optional(),
+  "country": zod.coerce.string().optional(),
+  "partNumber": zod.coerce.string().optional(),
+  "page": zod.coerce.number().min(1).default(getMroProfilesQueryPageDefault),
+  "limit": zod.coerce.number().min(1).max(getMroProfilesQueryLimitMax).default(getMroProfilesQueryLimitDefault)
+})
+
+export const GetMroProfilesResponse = zod.object({
+  "profiles": zod.array(zod.object({
+  "id": zod.number(),
+  "userId": zod.number().nullish(),
+  "companyName": zod.string(),
+  "description": zod.string().nullish(),
+  "website": zod.string().nullish(),
+  "country": zod.string(),
+  "city": zod.string().nullish(),
+  "contactName": zod.string(),
+  "contactEmail": zod.string(),
+  "contactPhone": zod.string().nullish(),
+  "aircraftTypes": zod.array(zod.string()),
+  "partNumbersServiced": zod.array(zod.string()),
+  "serviceTypes": zod.array(zod.string()),
+  "certifications": zod.array(zod.string()),
+  "turnaroundTime": zod.string().nullish(),
+  "warranty": zod.string().nullish(),
+  "capabilityDocuments": zod.array(zod.string()),
+  "status": zod.enum(['pending', 'active', 'suspended']),
+  "featured": zod.boolean().optional(),
+  "createdAt": zod.string()
+})),
+  "total": zod.number(),
+  "page": zod.number(),
+  "limit": zod.number()
+})
+
+
+/**
+ * @summary Register an MRO profile (seller auth required)
+ */
+export const CreateMroProfileBody = zod.object({
+  "companyName": zod.string(),
+  "description": zod.string().nullish(),
+  "website": zod.string().nullish(),
+  "country": zod.string(),
+  "city": zod.string().nullish(),
+  "contactName": zod.string(),
+  "contactEmail": zod.string(),
+  "contactPhone": zod.string().nullish(),
+  "aircraftTypes": zod.array(zod.string()),
+  "partNumbersServiced": zod.array(zod.string()).optional(),
+  "serviceTypes": zod.array(zod.string()),
+  "certifications": zod.array(zod.string()),
+  "turnaroundTime": zod.string().nullish(),
+  "warranty": zod.string().nullish(),
+  "capabilityDocuments": zod.array(zod.string()).optional()
+})
+
+
+/**
+ * @summary Get a single MRO profile
+ */
+export const GetMroProfileParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const GetMroProfileResponse = zod.object({
+  "profile": zod.object({
+  "id": zod.number(),
+  "userId": zod.number().nullish(),
+  "companyName": zod.string(),
+  "description": zod.string().nullish(),
+  "website": zod.string().nullish(),
+  "country": zod.string(),
+  "city": zod.string().nullish(),
+  "contactName": zod.string(),
+  "contactEmail": zod.string(),
+  "contactPhone": zod.string().nullish(),
+  "aircraftTypes": zod.array(zod.string()),
+  "partNumbersServiced": zod.array(zod.string()),
+  "serviceTypes": zod.array(zod.string()),
+  "certifications": zod.array(zod.string()),
+  "turnaroundTime": zod.string().nullish(),
+  "warranty": zod.string().nullish(),
+  "capabilityDocuments": zod.array(zod.string()),
+  "status": zod.enum(['pending', 'active', 'suspended']),
+  "featured": zod.boolean().optional(),
+  "createdAt": zod.string()
+}),
+  "quoteRequestCount": zod.number()
+})
+
+
+/**
+ * @summary Update MRO profile (owner only)
+ */
+export const UpdateMroProfileParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const UpdateMroProfileBody = zod.object({
+  "companyName": zod.string(),
+  "description": zod.string().nullish(),
+  "website": zod.string().nullish(),
+  "country": zod.string(),
+  "city": zod.string().nullish(),
+  "contactName": zod.string(),
+  "contactEmail": zod.string(),
+  "contactPhone": zod.string().nullish(),
+  "aircraftTypes": zod.array(zod.string()),
+  "partNumbersServiced": zod.array(zod.string()).optional(),
+  "serviceTypes": zod.array(zod.string()),
+  "certifications": zod.array(zod.string()),
+  "turnaroundTime": zod.string().nullish(),
+  "warranty": zod.string().nullish(),
+  "capabilityDocuments": zod.array(zod.string()).optional()
+})
+
+export const UpdateMroProfileResponse = zod.object({
+  "id": zod.number(),
+  "userId": zod.number().nullish(),
+  "companyName": zod.string(),
+  "description": zod.string().nullish(),
+  "website": zod.string().nullish(),
+  "country": zod.string(),
+  "city": zod.string().nullish(),
+  "contactName": zod.string(),
+  "contactEmail": zod.string(),
+  "contactPhone": zod.string().nullish(),
+  "aircraftTypes": zod.array(zod.string()),
+  "partNumbersServiced": zod.array(zod.string()),
+  "serviceTypes": zod.array(zod.string()),
+  "certifications": zod.array(zod.string()),
+  "turnaroundTime": zod.string().nullish(),
+  "warranty": zod.string().nullish(),
+  "capabilityDocuments": zod.array(zod.string()),
+  "status": zod.enum(['pending', 'active', 'suspended']),
+  "featured": zod.boolean().optional(),
+  "createdAt": zod.string()
+})
+
+
+/**
+ * @summary Submit a service quote request to an MRO
+ */
+export const CreateServiceQuoteRequestParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+
+
+
+export const CreateServiceQuoteRequestBody = zod.object({
+  "requesterName": zod.string(),
+  "requesterEmail": zod.string(),
+  "requesterCompany": zod.string().nullish(),
+  "requesterPhone": zod.string().nullish(),
+  "partNumber": zod.string(),
+  "description": zod.string(),
+  "aircraftType": zod.string().nullish(),
+  "serviceType": zod.string().nullish(),
+  "quantity": zod.number().min(1),
+  "urgency": zod.enum(['standard', 'urgent', 'aog'])
+})
+
+
+/**
+ * @summary Get my MRO profile
+ */
+export const GetMyMroProfileResponse = zod.object({
+  "id": zod.number(),
+  "userId": zod.number().nullish(),
+  "companyName": zod.string(),
+  "description": zod.string().nullish(),
+  "website": zod.string().nullish(),
+  "country": zod.string(),
+  "city": zod.string().nullish(),
+  "contactName": zod.string(),
+  "contactEmail": zod.string(),
+  "contactPhone": zod.string().nullish(),
+  "aircraftTypes": zod.array(zod.string()),
+  "partNumbersServiced": zod.array(zod.string()),
+  "serviceTypes": zod.array(zod.string()),
+  "certifications": zod.array(zod.string()),
+  "turnaroundTime": zod.string().nullish(),
+  "warranty": zod.string().nullish(),
+  "capabilityDocuments": zod.array(zod.string()),
+  "status": zod.enum(['pending', 'active', 'suspended']),
+  "featured": zod.boolean().optional(),
+  "createdAt": zod.string()
+})
+
+
+/**
+ * @summary Admin list all MRO profiles
+ */
+export const GetAdminMroProfilesResponse = zod.object({
+  "profiles": zod.array(zod.object({
+  "id": zod.number(),
+  "userId": zod.number().nullish(),
+  "companyName": zod.string(),
+  "description": zod.string().nullish(),
+  "website": zod.string().nullish(),
+  "country": zod.string(),
+  "city": zod.string().nullish(),
+  "contactName": zod.string(),
+  "contactEmail": zod.string(),
+  "contactPhone": zod.string().nullish(),
+  "aircraftTypes": zod.array(zod.string()),
+  "partNumbersServiced": zod.array(zod.string()),
+  "serviceTypes": zod.array(zod.string()),
+  "certifications": zod.array(zod.string()),
+  "turnaroundTime": zod.string().nullish(),
+  "warranty": zod.string().nullish(),
+  "capabilityDocuments": zod.array(zod.string()),
+  "status": zod.enum(['pending', 'active', 'suspended']),
+  "featured": zod.boolean().optional(),
+  "createdAt": zod.string()
+})),
+  "total": zod.number(),
+  "page": zod.number(),
+  "limit": zod.number()
+})
+
+
+/**
+ * @summary Admin approve or suspend an MRO
+ */
+export const AdminSetMroStatusParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const AdminSetMroStatusBody = zod.object({
+  "status": zod.enum(['pending', 'active', 'suspended'])
+})
+
+export const AdminSetMroStatusResponse = zod.object({
+  "id": zod.number(),
+  "userId": zod.number().nullish(),
+  "companyName": zod.string(),
+  "description": zod.string().nullish(),
+  "website": zod.string().nullish(),
+  "country": zod.string(),
+  "city": zod.string().nullish(),
+  "contactName": zod.string(),
+  "contactEmail": zod.string(),
+  "contactPhone": zod.string().nullish(),
+  "aircraftTypes": zod.array(zod.string()),
+  "partNumbersServiced": zod.array(zod.string()),
+  "serviceTypes": zod.array(zod.string()),
+  "certifications": zod.array(zod.string()),
+  "turnaroundTime": zod.string().nullish(),
+  "warranty": zod.string().nullish(),
+  "capabilityDocuments": zod.array(zod.string()),
+  "status": zod.enum(['pending', 'active', 'suspended']),
+  "featured": zod.boolean().optional(),
+  "createdAt": zod.string()
+})
+
+

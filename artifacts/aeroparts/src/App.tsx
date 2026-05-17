@@ -18,6 +18,9 @@ import SubscriptionManagement from "@/pages/seller/subscription";
 import RfqsPage from "@/pages/rfqs/index";
 import NewRfqPage from "@/pages/rfqs/new";
 import RfqDetailPage from "@/pages/rfqs/detail";
+import MroDirectoryPage from "@/pages/mro/index";
+import MroRegisterPage from "@/pages/mro/register";
+import MroDetailPage from "@/pages/mro/detail";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -45,6 +48,9 @@ function Router() {
       <Route path="/rfqs" component={RfqsPage} />
       <Route path="/rfqs/new" component={NewRfqPage} />
       <Route path="/rfqs/:id" component={RfqDetailPage} />
+      <Route path="/mro" component={MroDirectoryPage} />
+      <Route path="/mro/register" component={MroRegisterPage} />
+      <Route path="/mro/:id" component={MroDetailPage} />
       <Route component={NotFound} />
     </Switch>
   );

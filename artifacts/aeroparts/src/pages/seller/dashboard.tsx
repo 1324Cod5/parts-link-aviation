@@ -7,12 +7,13 @@ import {
   useGetSellerListings, getGetSellerListingsQueryKey,
   useGetSellerStats, getGetSellerStatsQueryKey,
   useGetSellerRfqStats,
+  useGetMyMroProfile,
   useDeleteListing
 } from "@workspace/api-client-react";
 import { useAuth } from "@/context/AuthContext";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Edit2, Trash2, Package, FileCheck2, MessageSquare, ShieldCheck, Zap, Building2, AlertTriangle, ClipboardList } from "lucide-react";
+import { Plus, Edit2, Trash2, Package, FileCheck2, MessageSquare, ShieldCheck, Zap, Building2, AlertTriangle, ClipboardList, Wrench } from "lucide-react";
 
 function formatPrice(price: number | null) {
   if (price == null) return "POA";
@@ -42,6 +43,9 @@ export default function SellerDashboard() {
     query: { queryKey: getGetSellerStatsQueryKey() },
   });
   const { data: rfqStats } = useGetSellerRfqStats();
+  const { data: mroProfile, isLoading: mroLoading } = useGetMyMroProfile({
+    query: { retry: false },
+  });
 
   const deleteMutation = useDeleteListing();
 
@@ -214,6 +218,47 @@ export default function SellerDashboard() {
               Browse RFQs
             </Button>
           </Link>
+        </div>
+
+        {/* MRO Services Card */}
+        <div className="bg-card border border-border rounded-md p-5 mb-6 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="h-9 w-9 rounded-md flex items-center justify-center bg-primary/10">
+              <Wrench className="h-4 w-4 text-primary" />
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground uppercase tracking-wider">MRO Services</p>
+              <p className="font-bold text-lg text-white">
+                {mroLoading ? "—" : mroProfile ? mroProfile.companyName : "Not listed"}
+                {mroProfile && (
+                  <span className={`ml-2 text-xs font-normal px-1.5 py-0.5 rounded ${mroProfile.status === "active" ? "text-emerald-400 bg-emerald-500/10" : "text-amber-400 bg-amber-500/10"}`}>
+                    {mroProfile.status}
+                  </span>
+                )}
+              </p>
+            </div>
+          </div>
+          {mroProfile ? (
+            <div className="flex gap-2">
+              <Link href={`/mro/${mroProfile.id}`}>
+                <Button variant="outline" size="sm" className="text-xs h-8 gap-1.5 border-border text-muted-foreground hover:text-white">
+                  View Profile
+                </Button>
+              </Link>
+              <Link href="/mro/register">
+                <Button variant="outline" size="sm" className="text-xs h-8 gap-1.5 border-border text-muted-foreground hover:text-white">
+                  Edit
+                </Button>
+              </Link>
+            </div>
+          ) : (
+            <Link href="/mro/register">
+              <Button size="sm" className="text-xs h-8 gap-1.5">
+                <Wrench className="h-3.5 w-3.5" />
+                List MRO Services
+              </Button>
+            </Link>
+          )}
         </div>
 
         {/* Listings Table */}

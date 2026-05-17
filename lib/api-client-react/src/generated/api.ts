@@ -25,6 +25,7 @@ import type {
   BadgeUpdate,
   GetAdminListingsParams,
   GetListingsParams,
+  GetMroProfilesParams,
   GetRfqsParams,
   HealthStatus,
   Inquiry,
@@ -36,6 +37,11 @@ import type {
   ListingsPage,
   LoginInput,
   MarketplaceStats,
+  MroProfile,
+  MroProfileDetail,
+  MroProfileInput,
+  MroProfilesPage,
+  MroStatusUpdate,
   OkResponse,
   RegisterInput,
   Rfq,
@@ -46,6 +52,8 @@ import type {
   RfqsPage,
   SellerRfqStats,
   SellerStats,
+  ServiceQuoteRequest,
+  ServiceQuoteRequestInput,
   SubscriptionInfo,
   UpgradePlanInput,
   User
@@ -2231,4 +2239,606 @@ export function useGetSellerRfqStats<TData = Awaited<ReturnType<typeof getSeller
 
 
 
+
+export const getGetMroProfilesUrl = (params?: GetMroProfilesParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/mro?${stringifiedParams}` : `/api/mro`
+}
+
+/**
+ * @summary List MRO profiles with optional filters
+ */
+export const getMroProfiles = async (params?: GetMroProfilesParams, options?: RequestInit): Promise<MroProfilesPage> => {
+
+  return customFetch<MroProfilesPage>(getGetMroProfilesUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetMroProfilesQueryKey = (params?: GetMroProfilesParams,) => {
+    return [
+    `/api/mro`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetMroProfilesQueryOptions = <TData = Awaited<ReturnType<typeof getMroProfiles>>, TError = ErrorType<unknown>>(params?: GetMroProfilesParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMroProfiles>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetMroProfilesQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getMroProfiles>>> = ({ signal }) => getMroProfiles(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getMroProfiles>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetMroProfilesQueryResult = NonNullable<Awaited<ReturnType<typeof getMroProfiles>>>
+export type GetMroProfilesQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List MRO profiles with optional filters
+ */
+
+export function useGetMroProfiles<TData = Awaited<ReturnType<typeof getMroProfiles>>, TError = ErrorType<unknown>>(
+ params?: GetMroProfilesParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMroProfiles>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetMroProfilesQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getCreateMroProfileUrl = () => {
+
+
+
+
+  return `/api/mro`
+}
+
+/**
+ * @summary Register an MRO profile (seller auth required)
+ */
+export const createMroProfile = async (mroProfileInput: MroProfileInput, options?: RequestInit): Promise<MroProfile> => {
+
+  return customFetch<MroProfile>(getCreateMroProfileUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      mroProfileInput,)
+  }
+);}
+
+
+
+
+export const getCreateMroProfileMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createMroProfile>>, TError,{data: BodyType<MroProfileInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createMroProfile>>, TError,{data: BodyType<MroProfileInput>}, TContext> => {
+
+const mutationKey = ['createMroProfile'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createMroProfile>>, {data: BodyType<MroProfileInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createMroProfile(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateMroProfileMutationResult = NonNullable<Awaited<ReturnType<typeof createMroProfile>>>
+    export type CreateMroProfileMutationBody = BodyType<MroProfileInput>
+    export type CreateMroProfileMutationError = ErrorType<void>
+
+    /**
+ * @summary Register an MRO profile (seller auth required)
+ */
+export const useCreateMroProfile = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createMroProfile>>, TError,{data: BodyType<MroProfileInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createMroProfile>>,
+        TError,
+        {data: BodyType<MroProfileInput>},
+        TContext
+      > => {
+      return useMutation(getCreateMroProfileMutationOptions(options));
+    }
+
+export const getGetMroProfileUrl = (id: number,) => {
+
+
+
+
+  return `/api/mro/${id}`
+}
+
+/**
+ * @summary Get a single MRO profile
+ */
+export const getMroProfile = async (id: number, options?: RequestInit): Promise<MroProfileDetail> => {
+
+  return customFetch<MroProfileDetail>(getGetMroProfileUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetMroProfileQueryKey = (id: number,) => {
+    return [
+    `/api/mro/${id}`
+    ] as const;
+    }
+
+
+export const getGetMroProfileQueryOptions = <TData = Awaited<ReturnType<typeof getMroProfile>>, TError = ErrorType<void>>(id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMroProfile>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetMroProfileQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getMroProfile>>> = ({ signal }) => getMroProfile(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getMroProfile>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetMroProfileQueryResult = NonNullable<Awaited<ReturnType<typeof getMroProfile>>>
+export type GetMroProfileQueryError = ErrorType<void>
+
+
+/**
+ * @summary Get a single MRO profile
+ */
+
+export function useGetMroProfile<TData = Awaited<ReturnType<typeof getMroProfile>>, TError = ErrorType<void>>(
+ id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMroProfile>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetMroProfileQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getUpdateMroProfileUrl = (id: number,) => {
+
+
+
+
+  return `/api/mro/${id}`
+}
+
+/**
+ * @summary Update MRO profile (owner only)
+ */
+export const updateMroProfile = async (id: number,
+    mroProfileInput: MroProfileInput, options?: RequestInit): Promise<MroProfile> => {
+
+  return customFetch<MroProfile>(getUpdateMroProfileUrl(id),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      mroProfileInput,)
+  }
+);}
+
+
+
+
+export const getUpdateMroProfileMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateMroProfile>>, TError,{id: number;data: BodyType<MroProfileInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateMroProfile>>, TError,{id: number;data: BodyType<MroProfileInput>}, TContext> => {
+
+const mutationKey = ['updateMroProfile'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateMroProfile>>, {id: number;data: BodyType<MroProfileInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  updateMroProfile(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateMroProfileMutationResult = NonNullable<Awaited<ReturnType<typeof updateMroProfile>>>
+    export type UpdateMroProfileMutationBody = BodyType<MroProfileInput>
+    export type UpdateMroProfileMutationError = ErrorType<void>
+
+    /**
+ * @summary Update MRO profile (owner only)
+ */
+export const useUpdateMroProfile = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateMroProfile>>, TError,{id: number;data: BodyType<MroProfileInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateMroProfile>>,
+        TError,
+        {id: number;data: BodyType<MroProfileInput>},
+        TContext
+      > => {
+      return useMutation(getUpdateMroProfileMutationOptions(options));
+    }
+
+export const getCreateServiceQuoteRequestUrl = (id: number,) => {
+
+
+
+
+  return `/api/mro/${id}/quote-requests`
+}
+
+/**
+ * @summary Submit a service quote request to an MRO
+ */
+export const createServiceQuoteRequest = async (id: number,
+    serviceQuoteRequestInput: ServiceQuoteRequestInput, options?: RequestInit): Promise<ServiceQuoteRequest> => {
+
+  return customFetch<ServiceQuoteRequest>(getCreateServiceQuoteRequestUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      serviceQuoteRequestInput,)
+  }
+);}
+
+
+
+
+export const getCreateServiceQuoteRequestMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createServiceQuoteRequest>>, TError,{id: number;data: BodyType<ServiceQuoteRequestInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createServiceQuoteRequest>>, TError,{id: number;data: BodyType<ServiceQuoteRequestInput>}, TContext> => {
+
+const mutationKey = ['createServiceQuoteRequest'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createServiceQuoteRequest>>, {id: number;data: BodyType<ServiceQuoteRequestInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  createServiceQuoteRequest(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateServiceQuoteRequestMutationResult = NonNullable<Awaited<ReturnType<typeof createServiceQuoteRequest>>>
+    export type CreateServiceQuoteRequestMutationBody = BodyType<ServiceQuoteRequestInput>
+    export type CreateServiceQuoteRequestMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Submit a service quote request to an MRO
+ */
+export const useCreateServiceQuoteRequest = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createServiceQuoteRequest>>, TError,{id: number;data: BodyType<ServiceQuoteRequestInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createServiceQuoteRequest>>,
+        TError,
+        {id: number;data: BodyType<ServiceQuoteRequestInput>},
+        TContext
+      > => {
+      return useMutation(getCreateServiceQuoteRequestMutationOptions(options));
+    }
+
+export const getGetMyMroProfileUrl = () => {
+
+
+
+
+  return `/api/seller/mro-profile`
+}
+
+/**
+ * @summary Get my MRO profile
+ */
+export const getMyMroProfile = async ( options?: RequestInit): Promise<MroProfile> => {
+
+  return customFetch<MroProfile>(getGetMyMroProfileUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetMyMroProfileQueryKey = () => {
+    return [
+    `/api/seller/mro-profile`
+    ] as const;
+    }
+
+
+export const getGetMyMroProfileQueryOptions = <TData = Awaited<ReturnType<typeof getMyMroProfile>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMyMroProfile>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetMyMroProfileQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getMyMroProfile>>> = ({ signal }) => getMyMroProfile({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getMyMroProfile>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetMyMroProfileQueryResult = NonNullable<Awaited<ReturnType<typeof getMyMroProfile>>>
+export type GetMyMroProfileQueryError = ErrorType<void>
+
+
+/**
+ * @summary Get my MRO profile
+ */
+
+export function useGetMyMroProfile<TData = Awaited<ReturnType<typeof getMyMroProfile>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMyMroProfile>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetMyMroProfileQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGetAdminMroProfilesUrl = () => {
+
+
+
+
+  return `/api/admin/mro`
+}
+
+/**
+ * @summary Admin list all MRO profiles
+ */
+export const getAdminMroProfiles = async ( options?: RequestInit): Promise<MroProfilesPage> => {
+
+  return customFetch<MroProfilesPage>(getGetAdminMroProfilesUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAdminMroProfilesQueryKey = () => {
+    return [
+    `/api/admin/mro`
+    ] as const;
+    }
+
+
+export const getGetAdminMroProfilesQueryOptions = <TData = Awaited<ReturnType<typeof getAdminMroProfiles>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminMroProfiles>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAdminMroProfilesQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAdminMroProfiles>>> = ({ signal }) => getAdminMroProfiles({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAdminMroProfiles>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetAdminMroProfilesQueryResult = NonNullable<Awaited<ReturnType<typeof getAdminMroProfiles>>>
+export type GetAdminMroProfilesQueryError = ErrorType<void>
+
+
+/**
+ * @summary Admin list all MRO profiles
+ */
+
+export function useGetAdminMroProfiles<TData = Awaited<ReturnType<typeof getAdminMroProfiles>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminMroProfiles>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetAdminMroProfilesQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getAdminSetMroStatusUrl = (id: number,) => {
+
+
+
+
+  return `/api/admin/mro/${id}/status`
+}
+
+/**
+ * @summary Admin approve or suspend an MRO
+ */
+export const adminSetMroStatus = async (id: number,
+    mroStatusUpdate: MroStatusUpdate, options?: RequestInit): Promise<MroProfile> => {
+
+  return customFetch<MroProfile>(getAdminSetMroStatusUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      mroStatusUpdate,)
+  }
+);}
+
+
+
+
+export const getAdminSetMroStatusMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof adminSetMroStatus>>, TError,{id: number;data: BodyType<MroStatusUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof adminSetMroStatus>>, TError,{id: number;data: BodyType<MroStatusUpdate>}, TContext> => {
+
+const mutationKey = ['adminSetMroStatus'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof adminSetMroStatus>>, {id: number;data: BodyType<MroStatusUpdate>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  adminSetMroStatus(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AdminSetMroStatusMutationResult = NonNullable<Awaited<ReturnType<typeof adminSetMroStatus>>>
+    export type AdminSetMroStatusMutationBody = BodyType<MroStatusUpdate>
+    export type AdminSetMroStatusMutationError = ErrorType<void>
+
+    /**
+ * @summary Admin approve or suspend an MRO
+ */
+export const useAdminSetMroStatus = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof adminSetMroStatus>>, TError,{id: number;data: BodyType<MroStatusUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof adminSetMroStatus>>,
+        TError,
+        {id: number;data: BodyType<MroStatusUpdate>},
+        TContext
+      > => {
+      return useMutation(getAdminSetMroStatusMutationOptions(options));
+    }
 
