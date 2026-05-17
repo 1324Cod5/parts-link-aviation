@@ -92,6 +92,7 @@ export * from './subscriptionProductsResponseProductsItemMetadata';
 export * from './subscriptionProductsResponseProductsItemPricesItem';
 export * from './subscriptionProductsResponseProductsItemPricesItemMetadata';
 export * from './user';
+export * from './userComputedRole';
 export * from './userPlan';
 export * from './userRole';
 export * from './userSubscriptionStatus';

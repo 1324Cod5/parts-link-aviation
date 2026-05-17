@@ -47,6 +47,22 @@ export const UserRole = {
   super_admin: 'super_admin',
 } as const;
 
+/**
+ * Combined role derived from role + effective plan + MRO profile presence. This is the authoritative role for UI routing and feature gating.
+ */
+export type UserComputedRole = typeof UserComputedRole[keyof typeof UserComputedRole];
+
+
+export const UserComputedRole = {
+  admin: 'admin',
+  seller_free: 'seller_free',
+  seller_pro: 'seller_pro',
+  seller_enterprise: 'seller_enterprise',
+  mro_free: 'mro_free',
+  mro_verified: 'mro_verified',
+  mro_premium: 'mro_premium',
+} as const;
+
 export type UserPlan = typeof UserPlan[keyof typeof UserPlan];
 
 
@@ -76,6 +92,8 @@ export interface User {
   id: number;
   email: string;
   role: UserRole;
+  /** Combined role derived from role + effective plan + MRO profile presence. This is the authoritative role for UI routing and feature gating. */
+  computedRole: UserComputedRole;
   companyName: string;
   contactName: string;
   /** @nullable */

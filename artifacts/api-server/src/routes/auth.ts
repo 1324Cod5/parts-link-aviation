@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import bcrypt from "bcrypt";
-import { db, usersTable } from "@workspace/db";
+import { db, usersTable, mroProfilesTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import {
   RegisterUserBody,
@@ -8,27 +8,78 @@ import {
   GetCurrentUserResponse,
   ChangePasswordBody,
 } from "@workspace/api-zod";
+import {
+  getEffectivePlan,
+  getComputedRole,
+  type ComputedRole,
+} from "../lib/planEnforcement";
 
 const router: IRouter = Router();
 
 const MAX_FAILED_ATTEMPTS = 5;
 const LOCKOUT_DURATION_MS = 15 * 60 * 1000; // 15 minutes
 
-function serializeUser(user: typeof usersTable.$inferSelect) {
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+/**
+ * Fetches the user + MRO profile presence from DB.
+ * Returns null if not found.
+ */
+async function fetchUserWithMro(userId: number) {
+  const rows = await db
+    .select({
+      user: usersTable,
+      mroProfileId: mroProfilesTable.id,
+    })
+    .from(usersTable)
+    .leftJoin(mroProfilesTable, eq(mroProfilesTable.userId, usersTable.id))
+    .where(eq(usersTable.id, userId));
+
+  if (!rows.length) return null;
+  return { user: rows[0].user, hasMroProfile: rows[0].mroProfileId != null };
+}
+
+/**
+ * Computes effectivePlan + computedRole for a user row.
+ * Returns null if the computed role is not a valid system role.
+ */
+function deriveRole(
+  user: typeof usersTable.$inferSelect,
+  hasMroProfile: boolean,
+): { effectivePlan: string; computedRole: ComputedRole } | null {
+  const effectivePlan = getEffectivePlan({
+    role: user.role,
+    plan: user.plan,
+    subscriptionStatus: user.subscriptionStatus,
+    gracePeriodEnd: user.gracePeriodEnd,
+  });
+  const computedRole = getComputedRole(user.role, effectivePlan, hasMroProfile);
+  if (!computedRole) return null;
+  return { effectivePlan, computedRole };
+}
+
+function serializeUser(
+  user: typeof usersTable.$inferSelect,
+  computedRole: ComputedRole,
+) {
   return GetCurrentUserResponse.parse({
     id: user.id,
     email: user.email,
     role: user.role,
+    computedRole,
     companyName: user.companyName,
     contactName: user.contactName,
     phone: user.phone,
     country: user.country,
     plan: user.plan,
     planExpiresAt: user.planExpiresAt ? user.planExpiresAt.toISOString() : null,
+    subscriptionStatus: user.subscriptionStatus ?? null,
     mustChangePassword: user.mustChangePassword,
     createdAt: user.createdAt.toISOString(),
   });
 }
+
+// ─── Routes ───────────────────────────────────────────────────────────────────
 
 router.post("/auth/register", async (req, res): Promise<void> => {
   const parsed = RegisterUserBody.safeParse(req.body);
@@ -56,8 +107,10 @@ router.post("/auth/register", async (req, res): Promise<void> => {
     country: country ?? null,
   }).returning();
 
+  // New registrations always start as seller_free — no MRO profile yet
+  const computedRole = getComputedRole("seller", "free", false)!;
   req.session!.userId = user.id;
-  res.status(201).json({ user: serializeUser(user) });
+  res.status(201).json({ user: serializeUser(user, computedRole) });
 });
 
 router.post("/auth/login", async (req, res): Promise<void> => {
@@ -69,20 +122,31 @@ router.post("/auth/login", async (req, res): Promise<void> => {
 
   const { email, password } = parsed.data;
 
-  const [user] = await db.select().from(usersTable).where(eq(usersTable.email, email));
-  if (!user) {
-    // Generic message to avoid user enumeration
+  // Fetch user + MRO profile in one query
+  const rows = await db
+    .select({
+      user: usersTable,
+      mroProfileId: mroProfilesTable.id,
+    })
+    .from(usersTable)
+    .leftJoin(mroProfilesTable, eq(mroProfilesTable.userId, usersTable.id))
+    .where(eq(usersTable.email, email));
+
+  if (!rows.length) {
     res.status(401).json({ error: "Invalid email or password." });
     return;
   }
 
-  // Check if account is suspended
+  const { user, mroProfileId } = rows[0];
+  const hasMroProfile = mroProfileId != null;
+
+  // Check suspension
   if (user.status === "suspended") {
     res.status(403).json({ error: "This account has been suspended. Contact support." });
     return;
   }
 
-  // Check if account is locked out
+  // Check lockout
   if (user.lockedUntil && user.lockedUntil > new Date()) {
     const remaining = Math.ceil((user.lockedUntil.getTime() - Date.now()) / 60000);
     res.status(429).json({
@@ -121,13 +185,22 @@ router.post("/auth/login", async (req, res): Promise<void> => {
     return;
   }
 
+  // Derive and validate the computed role — deny login if not a recognised role
+  const derived = deriveRole(user, hasMroProfile);
+  if (!derived) {
+    res.status(403).json({
+      error: "This account does not have a valid system role. Contact support.",
+    });
+    return;
+  }
+
   // Success — reset lockout counters
   await db.update(usersTable)
     .set({ failedLoginAttempts: 0, lockedUntil: null, updatedAt: new Date() })
     .where(eq(usersTable.id, user.id));
 
   req.session!.userId = user.id;
-  res.json({ user: serializeUser(user) });
+  res.json({ user: serializeUser(user, derived.computedRole) });
 });
 
 router.patch("/auth/change-password", async (req, res): Promise<void> => {
@@ -182,13 +255,22 @@ router.get("/auth/me", async (req, res): Promise<void> => {
     return;
   }
 
-  const [user] = await db.select().from(usersTable).where(eq(usersTable.id, userId));
-  if (!user) {
+  const result = await fetchUserWithMro(userId);
+  if (!result) {
     res.status(401).json({ error: "Not authenticated" });
     return;
   }
 
-  res.json(serializeUser(user));
+  const { user, hasMroProfile } = result;
+  const derived = deriveRole(user, hasMroProfile);
+  if (!derived) {
+    // Role became invalid (e.g. account type changed) — treat as unauthenticated
+    req.session!.destroy(() => {});
+    res.status(401).json({ error: "Not authenticated" });
+    return;
+  }
+
+  res.json(serializeUser(user, derived.computedRole));
 });
 
 export default router;

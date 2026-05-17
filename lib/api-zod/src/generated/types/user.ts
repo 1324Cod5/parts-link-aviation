@@ -5,6 +5,7 @@
  * AeroParts Marketplace API
  * OpenAPI spec version: 0.1.0
  */
+import type { UserComputedRole } from './userComputedRole';
 import type { UserPlan } from './userPlan';
 import type { UserRole } from './userRole';
 import type { UserSubscriptionStatus } from './userSubscriptionStatus';
@@ -13,6 +14,8 @@ export interface User {
   id: number;
   email: string;
   role: UserRole;
+  /** Combined role derived from role + effective plan + MRO profile presence. This is the authoritative role for UI routing and feature gating. */
+  computedRole: UserComputedRole;
   companyName: string;
   contactName: string;
   /** @nullable */

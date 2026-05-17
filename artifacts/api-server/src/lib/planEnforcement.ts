@@ -1,4 +1,4 @@
-import { db, usersTable } from "@workspace/db";
+import { db, usersTable, mroProfilesTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 
 // ─── Plan capability tables ────────────────────────────────────────────────────
@@ -27,11 +27,68 @@ export const FULL_ACCESS_PLANS = new Set(["pro", "enterprise", "mro_premium"]);
 /** Plans that get analytics access. */
 export const ANALYTICS_PLANS = new Set(["pro", "enterprise", "mro_premium"]);
 
+/** Plans that require an active Stripe subscription to be valid. */
+const PAID_PLANS = new Set(["pro", "enterprise", "mro_verified", "mro_premium"]);
+
+// ─── Computed role ─────────────────────────────────────────────────────────────
+
+/**
+ * The 7 valid combined roles in the system.
+ * Derived at runtime from role + effectivePlan + hasMroProfile.
+ */
+export const VALID_COMPUTED_ROLES = [
+  "admin",
+  "seller_free",
+  "seller_pro",
+  "seller_enterprise",
+  "mro_free",
+  "mro_verified",
+  "mro_premium",
+] as const;
+
+export type ComputedRole = (typeof VALID_COMPUTED_ROLES)[number];
+
+/**
+ * Derives the combined role from the user's DB role, effective plan, and
+ * whether they have an MRO profile.
+ *
+ * Returns null if the combination is not a recognised valid role
+ * (e.g. role = "buyer" which has no place in the system).
+ */
+export function getComputedRole(
+  role: string,
+  effectivePlan: string,
+  hasMroProfile: boolean,
+): ComputedRole | null {
+  if (role === "admin" || role === "super_admin") return "admin";
+
+  if (role === "seller") {
+    switch (effectivePlan) {
+      case "pro":
+        return "seller_pro";
+      case "enterprise":
+        return "seller_enterprise";
+      case "mro_verified":
+        return "mro_verified";
+      case "mro_premium":
+        return "mro_premium";
+      case "free":
+        return hasMroProfile ? "mro_free" : "seller_free";
+      default:
+        return null;
+    }
+  }
+
+  // "buyer" or any unrecognised role has no valid computed role
+  return null;
+}
+
 // ─── Effective plan resolution ────────────────────────────────────────────────
 
 type SubscriptionStatus = "active" | "trial" | "past_due" | "cancelled" | "suspended" | null;
 
 interface PlanUser {
+  role: string;
   plan: string;
   subscriptionStatus: SubscriptionStatus;
   gracePeriodEnd: Date | null;
@@ -41,15 +98,23 @@ interface PlanUser {
  * Returns the effective plan for a user given their subscription state.
  *
  * Rules:
- *  - active / trial                  → full paid plan
- *  - past_due within 7-day grace     → full paid plan (grace period)
- *  - past_due after grace expired    → free
- *  - cancelled / suspended / null    → free (no active subscription)
+ *  - admin / super_admin                  → bypass subscription check; return stored plan
+ *  - active / trial                       → full paid plan
+ *  - past_due within 7-day grace          → full paid plan (grace period)
+ *  - past_due after grace expired         → free
+ *  - cancelled / suspended                → free
+ *  - null status + paid plan              → free  ← prevents silent enterprise grants
+ *  - null status + free plan              → free
  */
 export function getEffectivePlan(user: PlanUser): string {
+  // Admins always get their stored plan — they are not subscription-gated.
+  if (user.role === "admin" || user.role === "super_admin") {
+    return user.plan;
+  }
+
   const status = user.subscriptionStatus;
 
-  if (!status || status === "active" || status === "trial") {
+  if (status === "active" || status === "trial") {
     return user.plan;
   }
 
@@ -60,7 +125,12 @@ export function getEffectivePlan(user: PlanUser): string {
     return "free";
   }
 
-  // cancelled or suspended
+  // null, cancelled, or suspended:
+  // A paid plan MUST have an active subscription — never grant it silently.
+  if (PAID_PLANS.has(user.plan)) {
+    return "free";
+  }
+
   return "free";
 }
 
@@ -71,6 +141,7 @@ export function getEffectivePlan(user: PlanUser): string {
 export async function resolveEffectivePlan(userId: number): Promise<string> {
   const [user] = await db
     .select({
+      role: usersTable.role,
       plan: usersTable.plan,
       subscriptionStatus: usersTable.subscriptionStatus,
       gracePeriodEnd: usersTable.gracePeriodEnd,
@@ -80,4 +151,43 @@ export async function resolveEffectivePlan(userId: number): Promise<string> {
 
   if (!user) return "free";
   return getEffectivePlan(user);
+}
+
+/**
+ * Fetches user + MRO profile presence from DB and returns
+ * the effective plan AND computed role in one call.
+ * Returns null if the user is not found or the computed role is invalid.
+ */
+export async function resolveUserContext(userId: number): Promise<{
+  effectivePlan: string;
+  computedRole: ComputedRole;
+  hasMroProfile: boolean;
+} | null> {
+  const rows = await db
+    .select({
+      role: usersTable.role,
+      plan: usersTable.plan,
+      subscriptionStatus: usersTable.subscriptionStatus,
+      gracePeriodEnd: usersTable.gracePeriodEnd,
+      mroProfileId: mroProfilesTable.id,
+    })
+    .from(usersTable)
+    .leftJoin(mroProfilesTable, eq(mroProfilesTable.userId, usersTable.id))
+    .where(eq(usersTable.id, userId));
+
+  if (!rows.length) return null;
+
+  const row = rows[0];
+  const hasMroProfile = row.mroProfileId != null;
+  const effectivePlan = getEffectivePlan({
+    role: row.role,
+    plan: row.plan,
+    subscriptionStatus: row.subscriptionStatus,
+    gracePeriodEnd: row.gracePeriodEnd,
+  });
+  const computedRole = getComputedRole(row.role, effectivePlan, hasMroProfile);
+
+  if (!computedRole) return null;
+
+  return { effectivePlan, computedRole, hasMroProfile };
 }

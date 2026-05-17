@@ -1041,7 +1041,7 @@ components:
 
     User:
       type: object
-      required: [id, email, role, companyName, contactName, plan, createdAt]
+      required: [id, email, role, companyName, contactName, plan, computedRole, createdAt]
       properties:
         id:
           type: integer
@@ -1050,6 +1050,10 @@ components:
         role:
           type: string
           enum: [buyer, seller, admin, super_admin]
+        computedRole:
+          type: string
+          enum: [admin, seller_free, seller_pro, seller_enterprise, mro_free, mro_verified, mro_premium]
+          description: Combined role derived from role + effective plan + MRO profile presence. This is the authoritative role for UI routing and feature gating.
         companyName:
           type: string
         contactName:
