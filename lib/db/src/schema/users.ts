@@ -1,4 +1,4 @@
-import { pgTable, serial, text, timestamp, boolean, pgEnum } from "drizzle-orm/pg-core";
+import { pgTable, serial, text, timestamp, boolean, integer, pgEnum } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
@@ -19,6 +19,9 @@ export const usersTable = pgTable("users", {
   planExpiresAt: timestamp("plan_expires_at"),
   status: userStatusEnum("status").notNull().default("active"),
   mustChangePassword: boolean("must_change_password").notNull().default(false),
+  // Login security: lockout tracking
+  failedLoginAttempts: integer("failed_login_attempts").notNull().default(0),
+  lockedUntil: timestamp("locked_until"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });

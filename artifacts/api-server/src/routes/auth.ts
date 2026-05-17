@@ -11,6 +11,9 @@ import {
 
 const router: IRouter = Router();
 
+const MAX_FAILED_ATTEMPTS = 5;
+const LOCKOUT_DURATION_MS = 15 * 60 * 1000; // 15 minutes
+
 function serializeUser(user: typeof usersTable.$inferSelect) {
   return GetCurrentUserResponse.parse({
     id: user.id,
@@ -68,20 +71,60 @@ router.post("/auth/login", async (req, res): Promise<void> => {
 
   const [user] = await db.select().from(usersTable).where(eq(usersTable.email, email));
   if (!user) {
-    res.status(401).json({ error: "Invalid credentials" });
+    // Generic message to avoid user enumeration
+    res.status(401).json({ error: "Invalid email or password." });
     return;
   }
 
+  // Check if account is suspended
   if (user.status === "suspended") {
-    res.status(403).json({ error: "Account suspended. Contact support." });
+    res.status(403).json({ error: "This account has been suspended. Contact support." });
     return;
   }
 
+  // Check if account is locked out
+  if (user.lockedUntil && user.lockedUntil > new Date()) {
+    const remaining = Math.ceil((user.lockedUntil.getTime() - Date.now()) / 60000);
+    res.status(429).json({
+      error: `Account locked after too many failed attempts. Try again in ${remaining} minute${remaining === 1 ? "" : "s"}.`,
+      lockedUntil: user.lockedUntil.toISOString(),
+    });
+    return;
+  }
+
+  // Validate password
   const valid = await bcrypt.compare(password, user.passwordHash);
   if (!valid) {
-    res.status(401).json({ error: "Invalid credentials" });
+    const newAttempts = user.failedLoginAttempts + 1;
+    const shouldLock = newAttempts >= MAX_FAILED_ATTEMPTS;
+    const lockedUntil = shouldLock ? new Date(Date.now() + LOCKOUT_DURATION_MS) : null;
+
+    await db.update(usersTable)
+      .set({
+        failedLoginAttempts: newAttempts,
+        lockedUntil: shouldLock ? lockedUntil : user.lockedUntil,
+        updatedAt: new Date(),
+      })
+      .where(eq(usersTable.id, user.id));
+
+    if (shouldLock) {
+      res.status(429).json({
+        error: `Account locked after ${MAX_FAILED_ATTEMPTS} failed attempts. Try again in 15 minutes.`,
+        lockedUntil: lockedUntil!.toISOString(),
+      });
+    } else {
+      const remaining = MAX_FAILED_ATTEMPTS - newAttempts;
+      res.status(401).json({
+        error: `Invalid email or password. ${remaining} attempt${remaining === 1 ? "" : "s"} remaining before lockout.`,
+      });
+    }
     return;
   }
+
+  // Success — reset lockout counters
+  await db.update(usersTable)
+    .set({ failedLoginAttempts: 0, lockedUntil: null, updatedAt: new Date() })
+    .where(eq(usersTable.id, user.id));
 
   req.session!.userId = user.id;
   res.json({ user: serializeUser(user) });

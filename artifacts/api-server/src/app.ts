@@ -5,6 +5,8 @@ import session from "express-session";
 import router from "./routes";
 import { logger } from "./lib/logger";
 
+const ADMIN_SESSION_TIMEOUT = 30 * 60 * 1000; // 30 minutes
+
 const app: Express = express();
 
 app.use(
@@ -35,10 +37,12 @@ app.use(
     secret: process.env.SESSION_SECRET ?? "aeroparts-dev-secret",
     resave: false,
     saveUninitialized: false,
+    rolling: true, // reset the timer on every request
     cookie: {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
-      maxAge: 7 * 24 * 60 * 60 * 1000,
+      sameSite: "lax",
+      maxAge: ADMIN_SESSION_TIMEOUT,
     },
   }),
 );

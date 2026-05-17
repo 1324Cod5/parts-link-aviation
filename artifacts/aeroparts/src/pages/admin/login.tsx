@@ -1,12 +1,46 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useLoginUser } from "@workspace/api-client-react";
+import { useLoginUser, getGetCurrentUserQueryKey } from "@workspace/api-client-react";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
-import { getGetCurrentUserQueryKey } from "@workspace/api-client-react";
-import { ShieldCheck, Eye, EyeOff, Lock, Mail } from "lucide-react";
+import {
+  ShieldCheck, Eye, EyeOff, Lock, Mail, AlertTriangle, Clock,
+} from "lucide-react";
+
+function LockoutBanner({ lockedUntil }: { lockedUntil: Date }) {
+  const [remaining, setRemaining] = useState(0);
+
+  useEffect(() => {
+    function tick() {
+      const secs = Math.max(0, Math.ceil((lockedUntil.getTime() - Date.now()) / 1000));
+      setRemaining(secs);
+    }
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, [lockedUntil]);
+
+  const mins = Math.floor(remaining / 60);
+  const secs = remaining % 60;
+  const display = remaining > 0
+    ? `${mins}:${String(secs).padStart(2, "0")}`
+    : "Unlocking…";
+
+  return (
+    <div className="bg-red-500/10 border border-red-500/25 rounded-lg px-4 py-3 flex items-start gap-3">
+      <Lock className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
+      <div>
+        <p className="text-sm font-semibold text-red-400 mb-0.5">Account Locked</p>
+        <p className="text-xs text-red-300/80">
+          Too many failed attempts. Try again in{" "}
+          <span className="font-mono font-bold text-red-300">{display}</span>
+        </p>
+      </div>
+    </div>
+  );
+}
 
 export default function AdminLogin() {
   const [, navigate] = useLocation();
@@ -14,11 +48,18 @@ export default function AdminLogin() {
   const queryClient = useQueryClient();
   const [form, setForm] = useState({ email: "admin@aeroparts.com", password: "" });
   const [showPassword, setShowPassword] = useState(false);
+  const [lockedUntil, setLockedUntil] = useState<Date | null>(null);
+  const [attemptsWarning, setAttemptsWarning] = useState<string | null>(null);
 
   const login = useLoginUser();
 
+  const isLocked = lockedUntil !== null && lockedUntil > new Date();
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (isLocked) return;
+
+    setAttemptsWarning(null);
     login.mutate(
       { data: form },
       {
@@ -32,6 +73,8 @@ export default function AdminLogin() {
             });
             return;
           }
+          setLockedUntil(null);
+          setAttemptsWarning(null);
           queryClient.invalidateQueries({ queryKey: getGetCurrentUserQueryKey() });
           if (user.mustChangePassword) {
             navigate("/admin/change-password");
@@ -40,8 +83,15 @@ export default function AdminLogin() {
           }
         },
         onError: (err: any) => {
-          const msg = err?.response?.data?.error ?? "Invalid email or password.";
-          toast({ title: "Sign in failed", description: msg, variant: "destructive" });
+          const data = err?.response?.data ?? {};
+          const msg: string = data.error ?? "Invalid email or password.";
+
+          if (data.lockedUntil) {
+            setLockedUntil(new Date(data.lockedUntil));
+            setAttemptsWarning(null);
+          } else if (msg.includes("attempt")) {
+            setAttemptsWarning(msg);
+          }
         },
       }
     );
@@ -49,7 +99,7 @@ export default function AdminLogin() {
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center px-4">
-      {/* Background grid pattern */}
+      {/* Subtle grid */}
       <div className="absolute inset-0 opacity-[0.03]" style={{
         backgroundImage: "linear-gradient(hsl(var(--primary)) 1px, transparent 1px), linear-gradient(90deg, hsl(var(--primary)) 1px, transparent 1px)",
         backgroundSize: "40px 40px",
@@ -64,6 +114,21 @@ export default function AdminLogin() {
           <h1 className="text-2xl font-bold text-white tracking-tight">Admin Portal</h1>
           <p className="text-sm text-muted-foreground mt-1">AeroParts Marketplace — Restricted Access</p>
         </div>
+
+        {/* Session notice */}
+        <div className="flex items-center gap-2 bg-secondary/30 border border-border rounded-lg px-3 py-2 mb-4">
+          <Clock className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
+          <p className="text-xs text-muted-foreground">
+            Sessions expire after <span className="text-white font-medium">30 minutes</span> of inactivity
+          </p>
+        </div>
+
+        {/* Lockout banner */}
+        {isLocked && lockedUntil && (
+          <div className="mb-4">
+            <LockoutBanner lockedUntil={lockedUntil} />
+          </div>
+        )}
 
         {/* Card */}
         <div className="bg-card border border-border rounded-xl p-8 shadow-xl shadow-black/40">
@@ -87,6 +152,7 @@ export default function AdminLogin() {
                   placeholder="admin@aeroparts.com"
                   required
                   autoComplete="email"
+                  disabled={isLocked}
                 />
               </div>
             </div>
@@ -105,25 +171,39 @@ export default function AdminLogin() {
                   placeholder="Your password"
                   required
                   autoComplete="current-password"
+                  disabled={isLocked}
                 />
                 <button
                   type="button"
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-white transition-colors"
                   onClick={() => setShowPassword(s => !s)}
                   tabIndex={-1}
+                  disabled={isLocked}
                 >
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
+
+              {/* Attempts warning inline */}
+              {attemptsWarning && !isLocked && (
+                <div className="flex items-center gap-1.5 mt-2">
+                  <AlertTriangle className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" />
+                  <p className="text-xs text-amber-400">{attemptsWarning}</p>
+                </div>
+              )}
             </div>
 
             <Button
               type="submit"
               className="w-full mt-2 gap-2"
-              disabled={login.isPending}
+              disabled={login.isPending || isLocked}
             >
-              <ShieldCheck className="w-4 h-4" />
-              {login.isPending ? "Authenticating…" : "Sign In to Admin Portal"}
+              {isLocked
+                ? <><Lock className="w-4 h-4" /> Account Locked</>
+                : login.isPending
+                  ? "Authenticating…"
+                  : <><ShieldCheck className="w-4 h-4" /> Sign In to Admin Portal</>
+              }
             </Button>
           </form>
 
@@ -136,6 +216,26 @@ export default function AdminLogin() {
                 <p className="font-mono text-xs text-white">password</p>
               </div>
               <p className="text-xs text-amber-400 mt-2">You will be prompted to set a new password on first login.</p>
+            </div>
+          </div>
+
+          {/* Security info */}
+          <div className="mt-4 grid grid-cols-2 gap-2">
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <Lock className="w-3 h-3 flex-shrink-0" />
+              <span>bcrypt password hashing</span>
+            </div>
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <AlertTriangle className="w-3 h-3 flex-shrink-0" />
+              <span>Locks after 5 failures</span>
+            </div>
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <Clock className="w-3 h-3 flex-shrink-0" />
+              <span>30 min session timeout</span>
+            </div>
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <ShieldCheck className="w-3 h-3 flex-shrink-0" />
+              <span>Force reset on first login</span>
             </div>
           </div>
         </div>
