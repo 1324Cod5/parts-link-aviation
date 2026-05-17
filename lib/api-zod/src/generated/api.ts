@@ -450,6 +450,26 @@ export const GetSellerStatsResponse = zod.object({
 
 
 /**
+ * @summary Get detailed analytics (Pro/Enterprise only)
+ */
+export const GetSellerAnalyticsResponse = zod.object({
+  "plan": zod.enum(['free', 'pro', 'enterprise']),
+  "inquiryTrend": zod.array(zod.object({
+  "date": zod.string(),
+  "count": zod.number()
+})).describe('Daily inquiry counts for the last 30 days'),
+  "topListings": zod.array(zod.object({
+  "listingId": zod.number(),
+  "partNumber": zod.string(),
+  "description": zod.string().optional(),
+  "inquiries": zod.number()
+})).describe('Top 5 listings by inquiry volume'),
+  "rfqResponses": zod.number().describe('Total RFQ responses submitted (Enterprise only — 0 for Pro)'),
+  "rfqResponseRate": zod.number().describe('Ratio of responded RFQs to total open RFQs (Enterprise only — 0 for Pro)')
+})
+
+
+/**
  * @summary Get all listings for admin review
  */
 export const GetAdminListingsQueryParams = zod.object({
@@ -575,15 +595,16 @@ export const GetRfqsResponse = zod.object({
   "rfqs": zod.array(zod.object({
   "id": zod.number(),
   "buyerName": zod.string(),
-  "buyerEmail": zod.string(),
-  "buyerCompany": zod.string().nullish(),
-  "buyerPhone": zod.string().nullish(),
+  "buyerEmail": zod.string().nullish().describe('Masked to null for free-plan sellers; full value for Pro\/Enterprise'),
+  "buyerCompany": zod.string().nullish().describe('Masked to null for free-plan sellers'),
+  "buyerPhone": zod.string().nullish().describe('Masked to null for free-plan sellers'),
   "partNumber": zod.string(),
   "description": zod.string(),
   "aircraftApplicability": zod.string().nullish(),
   "condition": zod.string().nullish(),
   "quantity": zod.number(),
   "status": zod.enum(['open', 'closed']),
+  "accessLevel": zod.enum(['full', 'limited']).describe('full = Pro\/Enterprise (complete buyer contact); limited = Free (contact info hidden)'),
   "createdAt": zod.string(),
   "updatedAt": zod.string().optional()
 })),
@@ -623,15 +644,16 @@ export const GetRfqResponse = zod.object({
   "rfq": zod.object({
   "id": zod.number(),
   "buyerName": zod.string(),
-  "buyerEmail": zod.string(),
-  "buyerCompany": zod.string().nullish(),
-  "buyerPhone": zod.string().nullish(),
+  "buyerEmail": zod.string().nullish().describe('Masked to null for free-plan sellers; full value for Pro\/Enterprise'),
+  "buyerCompany": zod.string().nullish().describe('Masked to null for free-plan sellers'),
+  "buyerPhone": zod.string().nullish().describe('Masked to null for free-plan sellers'),
   "partNumber": zod.string(),
   "description": zod.string(),
   "aircraftApplicability": zod.string().nullish(),
   "condition": zod.string().nullish(),
   "quantity": zod.number(),
   "status": zod.enum(['open', 'closed']),
+  "accessLevel": zod.enum(['full', 'limited']).describe('full = Pro\/Enterprise (complete buyer contact); limited = Free (contact info hidden)'),
   "createdAt": zod.string(),
   "updatedAt": zod.string().optional()
 }),
@@ -658,15 +680,16 @@ export const CloseRfqParams = zod.object({
 export const CloseRfqResponse = zod.object({
   "id": zod.number(),
   "buyerName": zod.string(),
-  "buyerEmail": zod.string(),
-  "buyerCompany": zod.string().nullish(),
-  "buyerPhone": zod.string().nullish(),
+  "buyerEmail": zod.string().nullish().describe('Masked to null for free-plan sellers; full value for Pro\/Enterprise'),
+  "buyerCompany": zod.string().nullish().describe('Masked to null for free-plan sellers'),
+  "buyerPhone": zod.string().nullish().describe('Masked to null for free-plan sellers'),
   "partNumber": zod.string(),
   "description": zod.string(),
   "aircraftApplicability": zod.string().nullish(),
   "condition": zod.string().nullish(),
   "quantity": zod.number(),
   "status": zod.enum(['open', 'closed']),
+  "accessLevel": zod.enum(['full', 'limited']).describe('full = Pro\/Enterprise (complete buyer contact); limited = Free (contact info hidden)'),
   "createdAt": zod.string(),
   "updatedAt": zod.string().optional()
 })

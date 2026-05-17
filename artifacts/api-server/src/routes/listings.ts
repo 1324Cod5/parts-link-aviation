@@ -17,6 +17,15 @@ import {
 
 const router: IRouter = Router();
 
+const PLAN_LIMITS: Record<string, number | null> = { free: 5, pro: 50, enterprise: null };
+
+// Plan priority for sorting: enterprise first (0), pro (1), free/unknown (2)
+const PLAN_ORDER_SQL = sql<number>`CASE ${usersTable.plan}
+  WHEN 'enterprise' THEN 0
+  WHEN 'pro' THEN 1
+  ELSE 2
+END`;
+
 function serializeListing(listing: any, seller: any) {
   return {
     id: listing.id,
@@ -41,6 +50,7 @@ function serializeListing(listing: any, seller: any) {
       email: seller.email,
       phone: seller.phone,
       country: seller.country,
+      plan: seller.plan,
     } : undefined,
     createdAt: listing.createdAt.toISOString(),
     updatedAt: listing.updatedAt.toISOString(),
@@ -125,12 +135,16 @@ router.get("/listings", async (req, res): Promise<void> => {
 
   const whereClause = and(...conditions);
 
-  const [totalResult] = await db.select({ count: count() }).from(listingsTable).where(whereClause);
+  const [totalResult] = await db.select({ count: count() }).from(listingsTable)
+    .leftJoin(usersTable, eq(listingsTable.sellerId, usersTable.id))
+    .where(whereClause);
+
   const rows = await db.select({ listing: listingsTable, seller: usersTable })
     .from(listingsTable)
     .leftJoin(usersTable, eq(listingsTable.sellerId, usersTable.id))
     .where(whereClause)
-    .orderBy(listingsTable.createdAt)
+    // Enterprise sellers first, then pro, then free — within each tier sort newest first
+    .orderBy(PLAN_ORDER_SQL, sql`${listingsTable.createdAt} DESC`)
     .limit(limit ?? 20)
     .offset(offset);
 
@@ -149,8 +163,6 @@ router.post("/listings", async (req, res): Promise<void> => {
     return;
   }
 
-  const PLAN_LIMITS: Record<string, number | null> = { free: 5, pro: 50, enterprise: null };
-
   const [seller] = await db.select().from(usersTable).where(eq(usersTable.id, userId));
   if (seller) {
     const limit = PLAN_LIMITS[seller.plan];
@@ -164,6 +176,7 @@ router.post("/listings", async (req, res): Promise<void> => {
           plan: seller.plan,
           activeListings,
           listingLimit: limit,
+          upgradeUrl: "/seller/subscription",
         });
         return;
       }

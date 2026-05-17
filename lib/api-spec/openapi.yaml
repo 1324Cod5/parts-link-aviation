@@ -411,6 +411,27 @@ paths:
               schema:
                 $ref: "#/components/schemas/SellerStats"
 
+  /seller/analytics:
+    get:
+      operationId: getSellerAnalytics
+      tags: [seller]
+      summary: Get detailed analytics (Pro/Enterprise only)
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SellerAnalytics"
+        "402":
+          description: Upgrade required — Pro or Enterprise plan needed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LimitReachedError"
+        "401":
+          description: Unauthorized
+
   /admin/listings:
     get:
       operationId: getAdminListings
@@ -1367,18 +1388,21 @@ components:
 
     Rfq:
       type: object
-      required: [id, buyerName, buyerEmail, partNumber, description, quantity, status, createdAt]
+      required: [id, buyerName, partNumber, description, quantity, status, createdAt, accessLevel]
       properties:
         id:
           type: integer
         buyerName:
           type: string
         buyerEmail:
-          type: string
+          type: ["string", "null"]
+          description: Masked to null for free-plan sellers; full value for Pro/Enterprise
         buyerCompany:
           type: ["string", "null"]
+          description: Masked to null for free-plan sellers
         buyerPhone:
           type: ["string", "null"]
+          description: Masked to null for free-plan sellers
         partNumber:
           type: string
         description:
@@ -1392,6 +1416,10 @@ components:
         status:
           type: string
           enum: [open, closed]
+        accessLevel:
+          type: string
+          enum: [full, limited]
+          description: "full = Pro/Enterprise (complete buyer contact); limited = Free (contact info hidden)"
         createdAt:
           type: string
         updatedAt:
@@ -1485,6 +1513,46 @@ components:
           type: integer
         myResponses:
           type: integer
+
+    SellerAnalytics:
+      type: object
+      required: [plan, inquiryTrend, topListings, rfqResponses, rfqResponseRate]
+      properties:
+        plan:
+          type: string
+          enum: [free, pro, enterprise]
+        inquiryTrend:
+          type: array
+          description: Daily inquiry counts for the last 30 days
+          items:
+            type: object
+            required: [date, count]
+            properties:
+              date:
+                type: string
+              count:
+                type: integer
+        topListings:
+          type: array
+          description: Top 5 listings by inquiry volume
+          items:
+            type: object
+            required: [listingId, partNumber, inquiries]
+            properties:
+              listingId:
+                type: integer
+              partNumber:
+                type: string
+              description:
+                type: string
+              inquiries:
+                type: integer
+        rfqResponses:
+          type: integer
+          description: Total RFQ responses submitted (Enterprise only — 0 for Pro)
+        rfqResponseRate:
+          type: number
+          description: Ratio of responded RFQs to total open RFQs (Enterprise only — 0 for Pro)
 
     MroProfile:
       type: object

@@ -5,15 +5,26 @@
  * AeroParts Marketplace API
  * OpenAPI spec version: 0.1.0
  */
+import type { RfqAccessLevel } from './rfqAccessLevel';
 import type { RfqStatus } from './rfqStatus';
 
 export interface Rfq {
   id: number;
   buyerName: string;
-  buyerEmail: string;
-  /** @nullable */
+  /**
+     * Masked to null for free-plan sellers; full value for Pro/Enterprise
+     * @nullable
+     */
+  buyerEmail?: string | null;
+  /**
+     * Masked to null for free-plan sellers
+     * @nullable
+     */
   buyerCompany?: string | null;
-  /** @nullable */
+  /**
+     * Masked to null for free-plan sellers
+     * @nullable
+     */
   buyerPhone?: string | null;
   partNumber: string;
   description: string;
@@ -23,6 +34,8 @@ export interface Rfq {
   condition?: string | null;
   quantity: number;
   status: RfqStatus;
+  /** full = Pro/Enterprise (complete buyer contact); limited = Free (contact info hidden) */
+  accessLevel: RfqAccessLevel;
   createdAt: string;
   updatedAt?: string;
 }

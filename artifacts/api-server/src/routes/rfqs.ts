@@ -5,19 +5,29 @@ import { CreateRfqBody, CreateRfqResponseBody } from "@workspace/api-zod";
 
 const router: IRouter = Router();
 
-function serializeRfq(rfq: any) {
+/** Plans that get full buyer contact details and can post responses */
+const FULL_ACCESS_PLANS = new Set(["pro", "enterprise"]);
+
+async function callerPlan(userId: number | undefined): Promise<string> {
+  if (!userId) return "anonymous";
+  const [user] = await db.select({ plan: usersTable.plan }).from(usersTable).where(eq(usersTable.id, userId));
+  return user?.plan ?? "free";
+}
+
+function serializeRfq(rfq: any, accessLevel: "full" | "limited") {
   return {
     id: rfq.id,
     buyerName: rfq.buyerName,
-    buyerEmail: rfq.buyerEmail,
-    buyerCompany: rfq.buyerCompany ?? null,
-    buyerPhone: rfq.buyerPhone ?? null,
+    buyerEmail: accessLevel === "full" ? rfq.buyerEmail : null,
+    buyerCompany: accessLevel === "full" ? (rfq.buyerCompany ?? null) : null,
+    buyerPhone: accessLevel === "full" ? (rfq.buyerPhone ?? null) : null,
     partNumber: rfq.partNumber,
     description: rfq.description,
     aircraftApplicability: rfq.aircraftApplicability ?? null,
     condition: rfq.condition ?? null,
     quantity: rfq.quantity,
     status: rfq.status,
+    accessLevel,
     createdAt: rfq.createdAt?.toISOString?.() ?? rfq.createdAt,
     updatedAt: rfq.updatedAt?.toISOString?.() ?? rfq.updatedAt,
   };
@@ -55,15 +65,19 @@ router.get("/rfqs", async (req, res): Promise<void> => {
     db.select({ count: count() }).from(rfqsTable).where(where),
   ]);
 
+  const plan = await callerPlan(req.session?.userId);
+  const accessLevel: "full" | "limited" = FULL_ACCESS_PLANS.has(plan) ? "full" : "limited";
+
   res.json({
-    rfqs: rows.map(serializeRfq),
+    rfqs: rows.map(r => serializeRfq(r, accessLevel)),
     total: Number(countRow.count),
     page,
     limit,
+    accessLevel,
   });
 });
 
-// POST /rfqs
+// POST /rfqs — public, no auth required
 router.post("/rfqs", async (req, res): Promise<void> => {
   const parsed = CreateRfqBody.safeParse(req.body);
   if (!parsed.success) {
@@ -84,7 +98,8 @@ router.post("/rfqs", async (req, res): Promise<void> => {
     quantity: data.quantity,
   }).returning();
 
-  res.status(201).json(serializeRfq(rfq));
+  // Creator always gets full view of their own submission
+  res.status(201).json(serializeRfq(rfq, "full"));
 });
 
 // GET /rfqs/:id
@@ -94,6 +109,9 @@ router.get("/rfqs/:id", async (req, res): Promise<void> => {
 
   const [rfq] = await db.select().from(rfqsTable).where(eq(rfqsTable.id, id));
   if (!rfq) { res.status(404).json({ error: "RFQ not found" }); return; }
+
+  const plan = await callerPlan(req.session?.userId);
+  const accessLevel: "full" | "limited" = FULL_ACCESS_PLANS.has(plan) ? "full" : "limited";
 
   const rawResponses = await db
     .select({
@@ -123,7 +141,7 @@ router.get("/rfqs/:id", async (req, res): Promise<void> => {
     listingPartNumber: r.listingPartNumber ?? null,
   }));
 
-  res.json({ rfq: serializeRfq(rfq), responses });
+  res.json({ rfq: serializeRfq(rfq, accessLevel), responses });
 });
 
 // POST /rfqs/:id/close
@@ -137,13 +155,24 @@ router.post("/rfqs/:id/close", async (req, res): Promise<void> => {
     .returning();
 
   if (!rfq) { res.status(404).json({ error: "RFQ not found" }); return; }
-  res.json(serializeRfq(rfq));
+  res.json(serializeRfq(rfq, "full"));
 });
 
-// POST /rfqs/:id/responses
+// POST /rfqs/:id/responses — Pro/Enterprise only
 router.post("/rfqs/:id/responses", async (req, res): Promise<void> => {
   const userId = req.session?.userId;
   if (!userId) { res.status(401).json({ error: "Not authenticated" }); return; }
+
+  const plan = await callerPlan(userId);
+  if (!FULL_ACCESS_PLANS.has(plan)) {
+    res.status(402).json({
+      error: "Responding to RFQs requires a Pro or Enterprise plan. Upgrade to unlock full buyer contact details and the ability to respond.",
+      plan,
+      requiredPlan: "pro",
+      upgradeUrl: "/seller/subscription",
+    });
+    return;
+  }
 
   const id = parseInt(req.params.id);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }

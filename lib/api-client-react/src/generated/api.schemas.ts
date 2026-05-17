@@ -421,13 +421,34 @@ export const RfqStatus = {
   closed: 'closed',
 } as const;
 
+/**
+ * full = Pro/Enterprise (complete buyer contact); limited = Free (contact info hidden)
+ */
+export type RfqAccessLevel = typeof RfqAccessLevel[keyof typeof RfqAccessLevel];
+
+
+export const RfqAccessLevel = {
+  full: 'full',
+  limited: 'limited',
+} as const;
+
 export interface Rfq {
   id: number;
   buyerName: string;
-  buyerEmail: string;
-  /** @nullable */
+  /**
+     * Masked to null for free-plan sellers; full value for Pro/Enterprise
+     * @nullable
+     */
+  buyerEmail?: string | null;
+  /**
+     * Masked to null for free-plan sellers
+     * @nullable
+     */
   buyerCompany?: string | null;
-  /** @nullable */
+  /**
+     * Masked to null for free-plan sellers
+     * @nullable
+     */
   buyerPhone?: string | null;
   partNumber: string;
   description: string;
@@ -437,6 +458,8 @@ export interface Rfq {
   condition?: string | null;
   quantity: number;
   status: RfqStatus;
+  /** full = Pro/Enterprise (complete buyer contact); limited = Free (contact info hidden) */
+  accessLevel: RfqAccessLevel;
   createdAt: string;
   updatedAt?: string;
 }
@@ -492,6 +515,39 @@ export interface RfqsPage {
 export interface SellerRfqStats {
   openRfqs: number;
   myResponses: number;
+}
+
+export type SellerAnalyticsPlan = typeof SellerAnalyticsPlan[keyof typeof SellerAnalyticsPlan];
+
+
+export const SellerAnalyticsPlan = {
+  free: 'free',
+  pro: 'pro',
+  enterprise: 'enterprise',
+} as const;
+
+export type SellerAnalyticsInquiryTrendItem = {
+  date: string;
+  count: number;
+};
+
+export type SellerAnalyticsTopListingsItem = {
+  listingId: number;
+  partNumber: string;
+  description?: string;
+  inquiries: number;
+};
+
+export interface SellerAnalytics {
+  plan: SellerAnalyticsPlan;
+  /** Daily inquiry counts for the last 30 days */
+  inquiryTrend: SellerAnalyticsInquiryTrendItem[];
+  /** Top 5 listings by inquiry volume */
+  topListings: SellerAnalyticsTopListingsItem[];
+  /** Total RFQ responses submitted (Enterprise only — 0 for Pro) */
+  rfqResponses: number;
+  /** Ratio of responded RFQs to total open RFQs (Enterprise only — 0 for Pro) */
+  rfqResponseRate: number;
 }
 
 export type MroProfileStatus = typeof MroProfileStatus[keyof typeof MroProfileStatus];

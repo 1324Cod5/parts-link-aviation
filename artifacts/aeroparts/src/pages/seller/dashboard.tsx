@@ -7,7 +7,7 @@ import {
   useGetSellerListings, getGetSellerListingsQueryKey,
   useGetSellerStats, getGetSellerStatsQueryKey,
   useGetSellerRfqStats,
-  useGetMyMroProfile,
+  useGetMyMroProfile, getGetMyMroProfileQueryKey,
   useDeleteListing
 } from "@workspace/api-client-react";
 import { useAuth } from "@/context/AuthContext";
@@ -44,7 +44,7 @@ export default function SellerDashboard() {
   });
   const { data: rfqStats } = useGetSellerRfqStats();
   const { data: mroProfile, isLoading: mroLoading } = useGetMyMroProfile({
-    query: { retry: false },
+    query: { retry: false, queryKey: getGetMyMroProfileQueryKey() },
   });
 
   const deleteMutation = useDeleteListing();

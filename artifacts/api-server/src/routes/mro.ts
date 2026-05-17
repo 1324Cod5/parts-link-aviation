@@ -5,6 +5,13 @@ import { CreateMroProfileBody, UpdateMroProfileBody, CreateServiceQuoteRequestBo
 
 const router: IRouter = Router();
 
+/** Max number of service types per MRO tier */
+const MRO_SERVICE_LIMITS: Record<string, number | null> = {
+  free: 1,
+  pro: 15,
+  enterprise: null,
+};
+
 function serializeMro(m: any) {
   return {
     id: m.id,
@@ -97,9 +104,22 @@ router.post("/mro", async (req, res): Promise<void> => {
 
   const d = parsed.data;
 
-  // Check user plan for feature limits
   const [user] = await db.select({ plan: usersTable.plan }).from(usersTable).where(eq(usersTable.id, userId));
   const plan = user?.plan ?? "free";
+  const serviceLimit = MRO_SERVICE_LIMITS[plan];
+  const serviceTypes = d.serviceTypes ?? [];
+
+  if (serviceLimit !== null && serviceTypes.length > serviceLimit) {
+    res.status(402).json({
+      error: `Your ${plan} plan allows up to ${serviceLimit} service type${serviceLimit === 1 ? "" : "s"}. You submitted ${serviceTypes.length}. Upgrade to list more services.`,
+      plan,
+      serviceTypeLimit: serviceLimit,
+      submitted: serviceTypes.length,
+      upgradeUrl: "/seller/subscription",
+    });
+    return;
+  }
+
   const featured = plan === "enterprise";
 
   const [mro] = await db.insert(mroProfilesTable).values({
@@ -114,7 +134,7 @@ router.post("/mro", async (req, res): Promise<void> => {
     contactPhone: d.contactPhone ?? null,
     aircraftTypes: d.aircraftTypes ?? [],
     partNumbersServiced: d.partNumbersServiced ?? [],
-    serviceTypes: d.serviceTypes ?? [],
+    serviceTypes,
     certifications: d.certifications ?? [],
     turnaroundTime: d.turnaroundTime ?? null,
     warranty: d.warranty ?? null,
@@ -151,8 +171,11 @@ router.put("/mro/:id", async (req, res): Promise<void> => {
   const [mro] = await db.select().from(mroProfilesTable).where(eq(mroProfilesTable.id, id));
   if (!mro) { res.status(404).json({ error: "MRO not found" }); return; }
 
-  const [user] = await db.select({ role: usersTable.role }).from(usersTable).where(eq(usersTable.id, userId));
-  if (mro.userId !== userId && user?.role !== "admin") {
+  const [user] = await db.select({ role: usersTable.role, plan: usersTable.plan })
+    .from(usersTable).where(eq(usersTable.id, userId));
+
+  const isAdmin = user?.role === "admin" || user?.role === "super_admin";
+  if (mro.userId !== userId && !isAdmin) {
     res.status(403).json({ error: "Forbidden" }); return;
   }
 
@@ -160,6 +183,23 @@ router.put("/mro/:id", async (req, res): Promise<void> => {
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
 
   const d = parsed.data;
+
+  // Enforce service type limits when serviceTypes is being updated (skip for admins)
+  if (!isAdmin && d.serviceTypes !== undefined) {
+    const plan = user?.plan ?? "free";
+    const serviceLimit = MRO_SERVICE_LIMITS[plan];
+    if (serviceLimit !== null && d.serviceTypes.length > serviceLimit) {
+      res.status(402).json({
+        error: `Your ${plan} plan allows up to ${serviceLimit} service type${serviceLimit === 1 ? "" : "s"}. You submitted ${d.serviceTypes.length}. Upgrade to list more services.`,
+        plan,
+        serviceTypeLimit: serviceLimit,
+        submitted: d.serviceTypes.length,
+        upgradeUrl: "/seller/subscription",
+      });
+      return;
+    }
+  }
+
   const [updated] = await db.update(mroProfilesTable).set({
     companyName: d.companyName ?? mro.companyName,
     description: d.description !== undefined ? (d.description ?? null) : mro.description,
@@ -230,7 +270,16 @@ router.get("/seller/mro-profile", async (req, res): Promise<void> => {
     .where(eq(mroProfilesTable.userId, userId)).limit(1);
   if (!mro) { res.status(404).json({ error: "No MRO profile found" }); return; }
 
-  res.json(serializeMro(mro));
+  // Include plan limit info so the frontend can show upgrade prompts
+  const [user] = await db.select({ plan: usersTable.plan }).from(usersTable).where(eq(usersTable.id, userId));
+  const plan = user?.plan ?? "free";
+  const serviceTypeLimit = MRO_SERVICE_LIMITS[plan];
+
+  res.json({
+    ...serializeMro(mro),
+    serviceTypeLimit,
+    plan,
+  });
 });
 
 // GET /admin/mro
@@ -238,7 +287,9 @@ router.get("/admin/mro", async (req, res): Promise<void> => {
   const userId = req.session?.userId;
   if (!userId) { res.status(401).json({ error: "Not authenticated" }); return; }
   const [user] = await db.select({ role: usersTable.role }).from(usersTable).where(eq(usersTable.id, userId));
-  if (user?.role !== "admin") { res.status(403).json({ error: "Forbidden" }); return; }
+  if (user?.role !== "admin" && user?.role !== "super_admin") {
+    res.status(403).json({ error: "Forbidden" }); return;
+  }
 
   const page = Math.max(1, parseInt(String(req.query.page ?? "1")));
   const limit = 50;
@@ -257,7 +308,9 @@ router.post("/admin/mro/:id/status", async (req, res): Promise<void> => {
   const userId = req.session?.userId;
   if (!userId) { res.status(401).json({ error: "Not authenticated" }); return; }
   const [user] = await db.select({ role: usersTable.role }).from(usersTable).where(eq(usersTable.id, userId));
-  if (user?.role !== "admin") { res.status(403).json({ error: "Forbidden" }); return; }
+  if (user?.role !== "admin" && user?.role !== "super_admin") {
+    res.status(403).json({ error: "Forbidden" }); return;
+  }
 
   const id = parseInt(req.params.id);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }

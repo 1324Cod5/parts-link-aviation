@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
-import { useCreateMroProfile, useGetMyMroProfile, useUpdateMroProfile } from "@workspace/api-client-react";
+import { useCreateMroProfile, useGetMyMroProfile, useUpdateMroProfile, getGetMyMroProfileQueryKey } from "@workspace/api-client-react";
 import { useAuth } from "@/context/AuthContext";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
@@ -84,7 +84,7 @@ export default function MroRegisterPage() {
   const [savedId, setSavedId] = useState<number | null>(null);
 
   const { data: existingProfile, isLoading: profileLoading } = useGetMyMroProfile({
-    query: { enabled: !!user },
+    query: { enabled: !!user, queryKey: getGetMyMroProfileQueryKey() },
   });
 
   const plan = (user?.plan ?? "free") as keyof typeof PLAN_LIMITS;

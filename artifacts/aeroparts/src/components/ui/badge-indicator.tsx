@@ -1,5 +1,5 @@
 import { Badge } from "@/components/ui/badge";
-import { ListingBadge } from "@workspace/api-client-react/src/generated/api.schemas";
+import type { ListingBadge } from "@workspace/api-client-react";
 
 interface BadgeIndicatorProps {
   badge: ListingBadge;

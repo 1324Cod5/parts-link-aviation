@@ -1,7 +1,7 @@
 import { Link } from "wouter";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { BadgeIndicator } from "./badge-indicator";
-import type { Listing } from "@workspace/api-client-react/src/generated/api.schemas";
+import type { Listing } from "@workspace/api-client-react";
 
 interface ListingCardProps {
   listing: Listing;

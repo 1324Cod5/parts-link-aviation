@@ -55,6 +55,7 @@ import type {
   RfqResponseInput,
   RfqResponseItem,
   RfqsPage,
+  SellerAnalytics,
   SellerRfqStats,
   SellerStats,
   ServiceQuoteRequest,
@@ -1404,6 +1405,83 @@ export function useGetSellerStats<TData = Awaited<ReturnType<typeof getSellerSta
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getGetSellerStatsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGetSellerAnalyticsUrl = () => {
+
+
+
+
+  return `/api/seller/analytics`
+}
+
+/**
+ * @summary Get detailed analytics (Pro/Enterprise only)
+ */
+export const getSellerAnalytics = async ( options?: RequestInit): Promise<SellerAnalytics> => {
+
+  return customFetch<SellerAnalytics>(getGetSellerAnalyticsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetSellerAnalyticsQueryKey = () => {
+    return [
+    `/api/seller/analytics`
+    ] as const;
+    }
+
+
+export const getGetSellerAnalyticsQueryOptions = <TData = Awaited<ReturnType<typeof getSellerAnalytics>>, TError = ErrorType<void | LimitReachedError>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getSellerAnalytics>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetSellerAnalyticsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getSellerAnalytics>>> = ({ signal }) => getSellerAnalytics({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getSellerAnalytics>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetSellerAnalyticsQueryResult = NonNullable<Awaited<ReturnType<typeof getSellerAnalytics>>>
+export type GetSellerAnalyticsQueryError = ErrorType<void | LimitReachedError>
+
+
+/**
+ * @summary Get detailed analytics (Pro/Enterprise only)
+ */
+
+export function useGetSellerAnalytics<TData = Awaited<ReturnType<typeof getSellerAnalytics>>, TError = ErrorType<void | LimitReachedError>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getSellerAnalytics>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetSellerAnalyticsQueryOptions(options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

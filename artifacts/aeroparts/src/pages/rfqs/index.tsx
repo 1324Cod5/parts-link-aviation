@@ -172,19 +172,17 @@ export default function RfqsPage() {
                         </div>
                         <p className="text-sm text-foreground line-clamp-2 mb-2">{rfq.description}</p>
                         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
-                          {rfq.buyerCompany && (
-                            isFreeSeller ? (
-                              <span className="flex items-center gap-1 text-amber-500/60">
-                                <Lock className="w-3 h-3" />
-                                <span className="blur-[5px] select-none">Company Name</span>
-                              </span>
-                            ) : (
-                              <span className="flex items-center gap-1">
-                                <Building2 className="w-3 h-3" />
-                                {rfq.buyerCompany}
-                              </span>
-                            )
-                          )}
+                          {rfq.accessLevel === "limited" ? (
+                            <span className="flex items-center gap-1 text-amber-500/60">
+                              <Lock className="w-3 h-3" />
+                              <span className="blur-[5px] select-none">Buyer contact hidden</span>
+                            </span>
+                          ) : rfq.buyerCompany ? (
+                            <span className="flex items-center gap-1">
+                              <Building2 className="w-3 h-3" />
+                              {rfq.buyerCompany}
+                            </span>
+                          ) : null}
                           {rfq.aircraftApplicability && (
                             <span className="flex items-center gap-1">
                               <Plane className="w-3 h-3" />
