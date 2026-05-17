@@ -65,7 +65,7 @@ export default function AdminLogin() {
       {
         onSuccess: (data) => {
           const user = data.user;
-          if (user.role !== "admin" && user.role !== "super_admin") {
+          if (user.computedRole !== "admin") {
             toast({
               title: "Access denied",
               description: "This portal is for administrators only.",

@@ -19,16 +19,23 @@ export default function SellerLogin() {
       { data: form },
       {
         onSuccess: (data) => {
-          toast({ title: "Signed in", description: `Welcome back, ${data.user.contactName}` });
-          if (data.user.role === "admin") {
+          const { computedRole, contactName } = data.user;
+          if (computedRole === "admin") {
             navigate("/admin");
-          } else {
+          } else if (computedRole.startsWith("seller_")) {
             navigate("/seller/dashboard");
+          } else if (computedRole.startsWith("mro_")) {
+            navigate("/mro");
+          } else {
+            toast({ title: "Access denied", description: "Your account does not have a valid role.", variant: "destructive" });
+            return;
           }
+          toast({ title: "Signed in", description: `Welcome back, ${contactName}` });
           window.location.reload();
         },
-        onError: () => {
-          toast({ title: "Sign in failed", description: "Invalid email or password.", variant: "destructive" });
+        onError: (err: any) => {
+          const msg: string = err?.response?.data?.error ?? "Invalid email or password.";
+          toast({ title: "Sign in failed", description: msg, variant: "destructive" });
         },
       }
     );
