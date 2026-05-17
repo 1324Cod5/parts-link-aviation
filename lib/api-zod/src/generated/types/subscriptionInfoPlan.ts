@@ -6,6 +6,9 @@
  * OpenAPI spec version: 0.1.0
  */
 
+/**
+ * Subscribed plan (may differ from effectivePlan if payment is lapsed)
+ */
 export type SubscriptionInfoPlan = typeof SubscriptionInfoPlan[keyof typeof SubscriptionInfoPlan];
 
 
@@ -13,4 +16,6 @@ export const SubscriptionInfoPlan = {
   free: 'free',
   pro: 'pro',
   enterprise: 'enterprise',
+  mro_verified: 'mro_verified',
+  mro_premium: 'mro_premium',
 } as const;

@@ -6,10 +6,13 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export type AdminSellerPlan = typeof AdminSellerPlan[keyof typeof AdminSellerPlan];
+/**
+ * Actual enforced plan based on payment status and grace period
+ */
+export type SubscriptionInfoEffectivePlan = typeof SubscriptionInfoEffectivePlan[keyof typeof SubscriptionInfoEffectivePlan];
 
 
-export const AdminSellerPlan = {
+export const SubscriptionInfoEffectivePlan = {
   free: 'free',
   pro: 'pro',
   enterprise: 'enterprise',

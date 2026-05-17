@@ -505,39 +505,73 @@ paths:
         "401":
           description: Unauthorized
 
-  /subscription/upgrade:
-    post:
-      operationId: upgradePlan
+  /subscription/products:
+    get:
+      operationId: getSubscriptionProducts
       tags: [subscription]
-      summary: Upgrade to a paid plan (simulated)
+      summary: List available Stripe plans with price IDs
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SubscriptionProductsResponse"
+
+  /subscription/checkout:
+    post:
+      operationId: createCheckoutSession
+      tags: [subscription]
+      summary: Create a Stripe Checkout session for a given price
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/UpgradePlanInput"
+              $ref: "#/components/schemas/CheckoutSessionInput"
       responses:
         "200":
-          description: OK
+          description: OK — redirect the browser to the returned URL
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/SubscriptionInfo"
+                $ref: "#/components/schemas/CheckoutSessionResponse"
+        "400":
+          description: Missing or invalid priceId
         "401":
           description: Unauthorized
 
-  /subscription/downgrade:
+  /subscription/portal:
     post:
-      operationId: downgradePlan
+      operationId: createPortalSession
       tags: [subscription]
-      summary: Downgrade to free plan
+      summary: Create a Stripe Billing Portal session for subscription management
+      responses:
+        "200":
+          description: OK — redirect the browser to the returned URL
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PortalSessionResponse"
+        "400":
+          description: No billing account found
+        "401":
+          description: Unauthorized
+
+  /subscription/cancel:
+    post:
+      operationId: cancelSubscription
+      tags: [subscription]
+      summary: Cancel the active subscription at period end
       responses:
         "200":
           description: OK
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/SubscriptionInfo"
+                $ref: "#/components/schemas/OkResponse"
+        "400":
+          description: No active subscription
         "401":
           description: Unauthorized
 
@@ -1026,9 +1060,12 @@ components:
           type: ["string", "null"]
         plan:
           type: string
-          enum: [free, pro, enterprise]
+          enum: [free, pro, enterprise, mro_verified, mro_premium]
         planExpiresAt:
           type: ["string", "null"]
+        subscriptionStatus:
+          type: ["string", "null"]
+          enum: [active, trial, past_due, cancelled, suspended, null]
         mustChangePassword:
           type: boolean
         createdAt:
@@ -1053,11 +1090,29 @@ components:
 
     SubscriptionInfo:
       type: object
-      required: [plan, activeListings, listingLimit]
+      required: [plan, effectivePlan, activeListings, listingLimit, canAddListing]
       properties:
         plan:
           type: string
-          enum: [free, pro, enterprise]
+          enum: [free, pro, enterprise, mro_verified, mro_premium]
+          description: Subscribed plan (may differ from effectivePlan if payment is lapsed)
+        effectivePlan:
+          type: string
+          enum: [free, pro, enterprise, mro_verified, mro_premium]
+          description: Actual enforced plan based on payment status and grace period
+        subscriptionStatus:
+          type: ["string", "null"]
+          enum: [active, trial, past_due, cancelled, suspended, null]
+        currentPeriodEnd:
+          type: ["string", "null"]
+        gracePeriodEnd:
+          type: ["string", "null"]
+          description: "7 days after currentPeriodEnd when payment is past_due"
+        trialEndsAt:
+          type: ["string", "null"]
+        daysUntilGraceExpires:
+          type: ["integer", "null"]
+          description: Days remaining in grace period; null if not in grace period
         planExpiresAt:
           type: ["string", "null"]
         activeListings:
@@ -1066,14 +1121,75 @@ components:
           type: ["integer", "null"]
         canAddListing:
           type: boolean
+        hasFullRfqAccess:
+          type: boolean
+        mroServiceLimit:
+          type: ["integer", "null"]
 
-    UpgradePlanInput:
+    CheckoutSessionInput:
       type: object
-      required: [plan]
+      required: [priceId]
       properties:
-        plan:
+        priceId:
           type: string
-          enum: [pro, enterprise]
+          description: Stripe price ID (e.g. price_1ABC...)
+
+    CheckoutSessionResponse:
+      type: object
+      required: [url]
+      properties:
+        url:
+          type: string
+          description: Stripe Checkout URL — redirect the browser here
+
+    PortalSessionResponse:
+      type: object
+      required: [url]
+      properties:
+        url:
+          type: string
+          description: Stripe Billing Portal URL — redirect the browser here
+
+    SubscriptionProductsResponse:
+      type: object
+      required: [products]
+      properties:
+        publishableKey:
+          type: ["string", "null"]
+        products:
+          type: array
+          items:
+            type: object
+            required: [id, name, prices]
+            properties:
+              id:
+                type: string
+              name:
+                type: string
+              description:
+                type: ["string", "null"]
+              metadata:
+                type: object
+                additionalProperties:
+                  type: string
+              prices:
+                type: array
+                items:
+                  type: object
+                  required: [id, unitAmount, currency]
+                  properties:
+                    id:
+                      type: string
+                    unitAmount:
+                      type: integer
+                    currency:
+                      type: string
+                    interval:
+                      type: ["string", "null"]
+                    metadata:
+                      type: object
+                      additionalProperties:
+                        type: string
 
     Seller:
       type: object
@@ -1312,7 +1428,7 @@ components:
           type: integer
         plan:
           type: string
-          enum: [free, pro, enterprise]
+          enum: [free, pro, enterprise, mro_verified, mro_premium]
         listingLimit:
           type: ["integer", "null"]
         canAddListing:
@@ -1357,7 +1473,7 @@ components:
           type: ["string", "null"]
         plan:
           type: string
-          enum: [free, pro, enterprise]
+          enum: [free, pro, enterprise, mro_verified, mro_premium]
         planExpiresAt:
           type: ["string", "null"]
         status:
@@ -1384,7 +1500,7 @@ components:
       properties:
         plan:
           type: string
-          enum: [free, pro, enterprise]
+          enum: [free, pro, enterprise, mro_verified, mro_premium]
 
     Rfq:
       type: object
@@ -1520,7 +1636,7 @@ components:
       properties:
         plan:
           type: string
-          enum: [free, pro, enterprise]
+          enum: [free, pro, enterprise, mro_verified, mro_premium]
         inquiryTrend:
           type: array
           description: Daily inquiry counts for the last 30 days

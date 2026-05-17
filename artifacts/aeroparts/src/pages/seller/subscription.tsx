@@ -1,42 +1,79 @@
-import { Link, useLocation } from "wouter";
+import { useState } from "react";
+import { Link } from "wouter";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/context/AuthContext";
 import {
-  useGetSubscription, getGetSubscriptionQueryKey,
-  useDowngradePlan
+  useGetSubscription,
+  getGetSubscriptionQueryKey,
+  useCreatePortalSession,
+  useCancelSubscription,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Zap, Building2, Package, Check, AlertTriangle, Calendar } from "lucide-react";
+import {
+  ArrowLeft, Zap, Building2, Package, Check, AlertTriangle,
+  ShieldCheck, Star, CreditCard, ExternalLink, XCircle, Clock,
+} from "lucide-react";
 
-const PLAN_META = {
-  free:       { label: "Free",       color: "text-muted-foreground", bg: "bg-secondary/50",    limit: "5 listings" },
-  pro:        { label: "Pro",        color: "text-primary",          bg: "bg-primary/10",       limit: "50 listings" },
-  enterprise: { label: "Enterprise", color: "text-amber-400",        bg: "bg-amber-500/10",     limit: "Unlimited" },
+const PLAN_META: Record<string, { label: string; color: string; bg: string; limit: string; icon: React.ElementType }> = {
+  free:        { label: "Free",        color: "text-muted-foreground", bg: "bg-secondary/50",   limit: "5 listings",       icon: Package },
+  pro:         { label: "Pro",         color: "text-primary",          bg: "bg-primary/10",      limit: "50 listings",      icon: Zap },
+  enterprise:  { label: "Enterprise",  color: "text-amber-400",        bg: "bg-amber-500/10",    limit: "Unlimited",        icon: Building2 },
+  mro_verified:{ label: "Verified MRO",color: "text-blue-400",         bg: "bg-blue-500/10",     limit: "5 listings, 10 service types", icon: ShieldCheck },
+  mro_premium: { label: "Premium MRO", color: "text-purple-400",       bg: "bg-purple-500/10",   limit: "20 listings, unlimited services", icon: Star },
+};
+
+const STATUS_BADGE: Record<string, { label: string; class: string }> = {
+  active:    { label: "Active",    class: "bg-green-500/10 text-green-400 border-green-500/20" },
+  trial:     { label: "Trial",     class: "bg-blue-500/10 text-blue-400 border-blue-500/20" },
+  past_due:  { label: "Past Due",  class: "bg-amber-500/10 text-amber-400 border-amber-500/20" },
+  cancelled: { label: "Cancelled", class: "bg-red-500/10 text-red-400 border-red-500/20" },
+  suspended: { label: "Suspended", class: "bg-red-500/10 text-red-400 border-red-500/20" },
 };
 
 export default function SubscriptionManagement() {
   const { user, isLoading: authLoading } = useAuth();
-  const [, navigate] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const downgradeMutation = useDowngradePlan();
+  const [portalLoading, setPortalLoading] = useState(false);
+
+  const portalMutation = useCreatePortalSession();
+  const cancelMutation = useCancelSubscription();
 
   const { data: subscription, isLoading } = useGetSubscription({
-    query: {
-      enabled: !!user,
-      queryKey: getGetSubscriptionQueryKey(),
-    },
+    query: { enabled: !!user, queryKey: getGetSubscriptionQueryKey() },
   });
 
-  const handleDowngrade = () => {
-    if (!confirm("Downgrade to Free? Your listing limit will be reduced to 5.")) return;
-    downgradeMutation.mutate(undefined, {
+  const handleManageBilling = async () => {
+    setPortalLoading(true);
+    portalMutation.mutate(undefined, {
+      onSuccess: (data: any) => {
+        if (data?.url) {
+          window.location.href = data.url;
+        }
+      },
+      onError: (err: any) => {
+        toast({
+          title: "Could not open billing portal",
+          description: err?.response?.data?.error ?? "Please try again.",
+          variant: "destructive",
+        });
+        setPortalLoading(false);
+      },
+    });
+  };
+
+  const handleCancel = () => {
+    if (!confirm("Cancel your subscription? You'll keep access until the end of the current billing period.")) return;
+    cancelMutation.mutate(undefined, {
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: getGetSubscriptionQueryKey() });
-        toast({ title: "Downgraded to Free", description: "Your plan has been updated." });
+        toast({ title: "Subscription cancelled", description: "Access continues until the end of this billing period." });
+      },
+      onError: (err: any) => {
+        toast({ title: "Cancellation failed", description: err?.response?.data?.error ?? "Please try again.", variant: "destructive" });
       },
     });
   };
@@ -52,10 +89,21 @@ export default function SubscriptionManagement() {
     );
   }
 
-  const plan = subscription?.plan ?? "free";
-  const meta = PLAN_META[plan as keyof typeof PLAN_META] ?? PLAN_META.free;
-  const usedPct = subscription && subscription.listingLimit
-    ? Math.min(100, Math.round((subscription.activeListings / subscription.listingLimit) * 100))
+  const effectivePlan = (subscription as any)?.effectivePlan ?? subscription?.plan ?? "free";
+  const storedPlan = subscription?.plan ?? "free";
+  const meta = PLAN_META[effectivePlan] ?? PLAN_META.free;
+  const Icon = meta.icon;
+  const status = (subscription as any)?.subscriptionStatus as string | undefined;
+  const statusBadge = status ? STATUS_BADGE[status] : null;
+  const gracePeriodEnd = (subscription as any)?.gracePeriodEnd as string | undefined;
+  const currentPeriodEnd = (subscription as any)?.currentPeriodEnd as string | undefined;
+  const daysUntilGrace = (subscription as any)?.daysUntilGraceExpires as number | undefined;
+  const isPastDue = status === "past_due";
+  const hasActiveSub = status === "active" || status === "trial" || isPastDue;
+  const isPlanDowngraded = effectivePlan !== storedPlan; // grace period expired or cancelled
+
+  const usedPct = subscription?.listingLimit
+    ? Math.min(100, Math.round(((subscription.activeListings ?? 0) / subscription.listingLimit) * 100))
     : 0;
 
   return (
@@ -71,15 +119,47 @@ export default function SubscriptionManagement() {
 
         <h1 className="text-2xl font-bold text-white mb-6">Subscription Management</h1>
 
+        {/* Past-due grace period warning */}
+        {isPastDue && (
+          <div className="mb-5 flex items-start gap-3 bg-amber-500/10 border border-amber-500/30 rounded-md p-4">
+            <AlertTriangle className="h-5 w-5 text-amber-400 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="text-amber-300 font-medium text-sm">Payment failed — action required</p>
+              <p className="text-amber-200/70 text-xs mt-0.5">
+                {daysUntilGrace != null && daysUntilGrace > 0
+                  ? `Your plan access continues for ${daysUntilGrace} more day${daysUntilGrace === 1 ? "" : "s"} while we retry payment.`
+                  : "Your grace period has expired. Update your billing details to restore access."}
+              </p>
+              <Button size="sm" className="mt-2 h-7 text-xs bg-amber-500 hover:bg-amber-400 text-black" onClick={handleManageBilling} disabled={portalLoading}>
+                <CreditCard className="h-3 w-3 mr-1" /> Update Payment Method
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Downgraded notice */}
+        {isPlanDowngraded && !isPastDue && (
+          <div className="mb-5 flex items-start gap-3 bg-red-500/10 border border-red-500/30 rounded-md p-4">
+            <XCircle className="h-5 w-5 text-red-400 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="text-red-300 font-medium text-sm">Subscription lapsed — now on Free plan</p>
+              <p className="text-red-200/70 text-xs mt-0.5">
+                Your {PLAN_META[storedPlan]?.label ?? storedPlan} subscription has ended. Resubscribe to restore access.
+              </p>
+              <Link href="/pricing">
+                <Button size="sm" className="mt-2 h-7 text-xs">Resubscribe</Button>
+              </Link>
+            </div>
+          </div>
+        )}
+
         {/* Current Plan Card */}
         <div className="bg-card border border-border rounded-md p-6 mb-5">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Current Plan</h2>
-            {plan !== "free" && (
-              <span className="text-xs text-muted-foreground">
-                {subscription?.planExpiresAt
-                  ? `Renews ${new Date(subscription.planExpiresAt).toLocaleDateString()}`
-                  : "Active"}
+            {statusBadge && (
+              <span className={`text-xs font-medium px-2.5 py-0.5 rounded-full border ${statusBadge.class}`}>
+                {statusBadge.label}
               </span>
             )}
           </div>
@@ -89,17 +169,32 @@ export default function SubscriptionManagement() {
           ) : (
             <div className="flex items-center gap-4">
               <div className={`h-12 w-12 rounded-md flex items-center justify-center ${meta.bg}`}>
-                {plan === "enterprise" ? <Building2 className="h-6 w-6 text-amber-400" />
-                  : plan === "pro" ? <Zap className="h-6 w-6 text-primary" />
-                  : <Package className="h-6 w-6 text-muted-foreground" />}
+                <Icon className={`h-6 w-6 ${meta.color}`} />
               </div>
               <div>
                 <p className={`text-2xl font-bold ${meta.color}`}>{meta.label}</p>
                 <p className="text-sm text-muted-foreground">{meta.limit}</p>
               </div>
-              {plan !== "free" && (
-                <div className="ml-auto flex items-center gap-1.5 bg-green-500/10 text-green-400 text-xs px-2.5 py-1 rounded-full">
-                  <Check className="h-3 w-3" /> Active
+            </div>
+          )}
+
+          {/* Billing dates */}
+          {!isLoading && (currentPeriodEnd || gracePeriodEnd) && (
+            <div className="mt-4 pt-4 border-t border-border space-y-2">
+              {currentPeriodEnd && (
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <Clock className="h-3.5 w-3.5" />
+                  <span>
+                    {status === "cancelled"
+                      ? `Access ends: ${new Date(currentPeriodEnd).toLocaleDateString()}`
+                      : `Next billing: ${new Date(currentPeriodEnd).toLocaleDateString()}`}
+                  </span>
+                </div>
+              )}
+              {gracePeriodEnd && isPastDue && daysUntilGrace != null && daysUntilGrace > 0 && (
+                <div className="flex items-center gap-2 text-xs text-amber-400">
+                  <AlertTriangle className="h-3.5 w-3.5" />
+                  <span>Grace period ends: {new Date(gracePeriodEnd).toLocaleDateString()}</span>
                 </div>
               )}
             </div>
@@ -132,7 +227,9 @@ export default function SubscriptionManagement() {
                   {usedPct >= 80 && (
                     <div className="flex items-center gap-1.5 mt-3 text-amber-400 text-xs">
                       <AlertTriangle className="h-3.5 w-3.5" />
-                      {usedPct >= 100 ? "Limit reached — upgrade to add more listings." : `${usedPct}% used — consider upgrading soon.`}
+                      {usedPct >= 100
+                        ? "Limit reached — upgrade to add more listings."
+                        : `${usedPct}% used — consider upgrading soon.`}
                     </div>
                   )}
                 </>
@@ -141,61 +238,73 @@ export default function SubscriptionManagement() {
           )}
         </div>
 
-        {/* Plan Comparison */}
-        <div className="bg-card border border-border rounded-md p-6 mb-5">
-          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">Available Plans</h2>
-          <div className="space-y-3">
-            {[
-              { id: "free",       label: "Free",       price: "Free",    limit: "5 listings",        features: ["Standard visibility"] },
-              { id: "pro",        label: "Pro",         price: "$149/mo", limit: "50 listings",       features: ["Priority placement", "Verified badge", "Analytics"] },
-              { id: "enterprise", label: "Enterprise",  price: "$299/mo", limit: "Unlimited",          features: ["Premium placement", "Bulk upload", "Dedicated support"] },
-            ].map(tier => (
-              <div
-                key={tier.id}
-                className={`flex items-center justify-between p-4 rounded-md border transition-colors ${
-                  tier.id === plan ? "border-primary bg-primary/5" : "border-border"
-                }`}
+        {/* Billing Actions */}
+        <div className="bg-card border border-border rounded-md p-6 mb-5 space-y-3">
+          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">Billing</h2>
+
+          {hasActiveSub ? (
+            <>
+              <Button
+                className="w-full gap-2"
+                onClick={handleManageBilling}
+                disabled={portalLoading}
               >
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium text-white">{tier.label}</span>
-                    {tier.id === plan && (
-                      <span className="text-xs bg-primary/20 text-primary px-1.5 py-0.5 rounded">Current</span>
-                    )}
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-0.5">{tier.limit} · {tier.features.join(" · ")}</p>
-                </div>
-                <div className="flex items-center gap-3">
-                  <span className="font-mono text-white text-sm">{tier.price}</span>
-                  {tier.id !== plan && tier.id !== "free" && (
-                    <Link href="/pricing">
-                      <Button size="sm" variant={tier.id === "pro" ? "default" : "outline"} className="text-xs h-8">
-                        Upgrade
-                      </Button>
-                    </Link>
-                  )}
-                  {tier.id === "free" && plan !== "free" && (
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="text-xs h-8 text-destructive hover:text-destructive"
-                      onClick={handleDowngrade}
-                      disabled={downgradeMutation.isPending}
-                    >
-                      Downgrade
-                    </Button>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
+                <ExternalLink className="h-4 w-4" />
+                {portalLoading ? "Opening portal…" : "Manage Billing & Payment"}
+              </Button>
+              <p className="text-xs text-muted-foreground text-center">
+                Update payment method, download invoices, or change your plan via the Stripe billing portal.
+              </p>
+
+              {(status === "active" || status === "trial") && (
+                <Button
+                  variant="ghost"
+                  className="w-full text-muted-foreground hover:text-destructive text-xs h-8 mt-1"
+                  onClick={handleCancel}
+                  disabled={cancelMutation.isPending}
+                >
+                  <XCircle className="h-3.5 w-3.5 mr-1" />
+                  {cancelMutation.isPending ? "Cancelling…" : "Cancel Subscription"}
+                </Button>
+              )}
+            </>
+          ) : (
+            <div className="text-center">
+              <p className="text-sm text-muted-foreground mb-3">
+                {effectivePlan === "free" ? "Upgrade to unlock more listings, priority placement, and full RFQ access." : "No active subscription."}
+              </p>
+              <Link href="/pricing">
+                <Button className="w-full gap-2">
+                  <Zap className="h-4 w-4" /> View Plans & Upgrade
+                </Button>
+              </Link>
+            </div>
+          )}
         </div>
 
-        {/* Billing Note */}
-        <div className="text-center text-xs text-muted-foreground border border-border/50 rounded-md p-4 bg-secondary/20">
-          <p>This is a demonstration platform. No real payment is processed.</p>
-          <p className="mt-1">In production, billing would be managed via Stripe with automatic renewal.</p>
-        </div>
+        {/* Quick plan compare */}
+        {effectivePlan === "free" && (
+          <div className="bg-card border border-border rounded-md p-6">
+            <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">Upgrade to unlock</h2>
+            <div className="grid grid-cols-2 gap-3 text-sm">
+              {[
+                { icon: Zap, label: "Pro — $149/mo", detail: "50 listings, analytics, priority placement" },
+                { icon: Building2, label: "Enterprise — $299/mo", detail: "Unlimited listings, full RFQ access" },
+                { icon: ShieldCheck, label: "Verified MRO — $49/mo", detail: "MRO directory, 10 service types" },
+                { icon: Star, label: "Premium MRO — $149/mo", detail: "Featured listing, unlimited services" },
+              ].map(({ icon: I, label, detail }) => (
+                <div key={label} className="border border-border rounded-md p-3">
+                  <I className="h-4 w-4 text-primary mb-1.5" />
+                  <p className="text-white text-xs font-medium">{label}</p>
+                  <p className="text-muted-foreground text-xs mt-0.5">{detail}</p>
+                </div>
+              ))}
+            </div>
+            <Link href="/pricing">
+              <Button className="w-full mt-4" variant="outline">Compare All Plans</Button>
+            </Link>
+          </div>
+        )}
       </div>
     </MainLayout>
   );

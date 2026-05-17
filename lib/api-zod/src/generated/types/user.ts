@@ -7,6 +7,7 @@
  */
 import type { UserPlan } from './userPlan';
 import type { UserRole } from './userRole';
+import type { UserSubscriptionStatus } from './userSubscriptionStatus';
 
 export interface User {
   id: number;
@@ -21,6 +22,8 @@ export interface User {
   plan: UserPlan;
   /** @nullable */
   planExpiresAt?: string | null;
+  /** @nullable */
+  subscriptionStatus?: UserSubscriptionStatus;
   mustChangePassword?: boolean;
   createdAt: string;
 }

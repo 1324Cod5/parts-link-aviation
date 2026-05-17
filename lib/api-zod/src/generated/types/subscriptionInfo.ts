@@ -5,14 +5,38 @@
  * AeroParts Marketplace API
  * OpenAPI spec version: 0.1.0
  */
+import type { SubscriptionInfoEffectivePlan } from './subscriptionInfoEffectivePlan';
 import type { SubscriptionInfoPlan } from './subscriptionInfoPlan';
+import type { SubscriptionInfoSubscriptionStatus } from './subscriptionInfoSubscriptionStatus';
 
 export interface SubscriptionInfo {
+  /** Subscribed plan (may differ from effectivePlan if payment is lapsed) */
   plan: SubscriptionInfoPlan;
+  /** Actual enforced plan based on payment status and grace period */
+  effectivePlan: SubscriptionInfoEffectivePlan;
+  /** @nullable */
+  subscriptionStatus?: SubscriptionInfoSubscriptionStatus;
+  /** @nullable */
+  currentPeriodEnd?: string | null;
+  /**
+     * 7 days after currentPeriodEnd when payment is past_due
+     * @nullable
+     */
+  gracePeriodEnd?: string | null;
+  /** @nullable */
+  trialEndsAt?: string | null;
+  /**
+     * Days remaining in grace period; null if not in grace period
+     * @nullable
+     */
+  daysUntilGraceExpires?: number | null;
   /** @nullable */
   planExpiresAt?: string | null;
   activeListings: number;
   /** @nullable */
   listingLimit: number | null;
-  canAddListing?: boolean;
+  canAddListing: boolean;
+  hasFullRfqAccess?: boolean;
+  /** @nullable */
+  mroServiceLimit?: number | null;
 }

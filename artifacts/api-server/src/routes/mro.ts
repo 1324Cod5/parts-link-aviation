@@ -2,15 +2,9 @@ import { Router, type IRouter } from "express";
 import { db, mroProfilesTable, serviceQuoteRequestsTable, usersTable } from "@workspace/db";
 import { eq, desc, count, and, ilike, sql } from "drizzle-orm";
 import { CreateMroProfileBody, UpdateMroProfileBody, CreateServiceQuoteRequestBody, AdminSetMroStatusBody } from "@workspace/api-zod";
+import { resolveEffectivePlan, MRO_SERVICE_LIMITS } from "../lib/planEnforcement";
 
 const router: IRouter = Router();
-
-/** Max number of service types per MRO tier */
-const MRO_SERVICE_LIMITS: Record<string, number | null> = {
-  free: 1,
-  pro: 15,
-  enterprise: null,
-};
 
 function serializeMro(m: any) {
   return {
@@ -53,33 +47,21 @@ router.get("/mro", async (req, res): Promise<void> => {
 
   if (q) {
     conditions.push(
-      sql`(${mroProfilesTable.companyName} ILIKE ${'%' + q + '%'} OR ${mroProfilesTable.description} ILIKE ${'%' + q + '%'})`
+      sql`(${mroProfilesTable.companyName} ILIKE ${"%" + q + "%"} OR ${mroProfilesTable.description} ILIKE ${"%" + q + "%"})`,
     );
   }
-  if (aircraftType) {
-    conditions.push(sql`${mroProfilesTable.aircraftTypes} @> ARRAY[${aircraftType}]::text[]`);
-  }
-  if (serviceType) {
-    conditions.push(sql`${mroProfilesTable.serviceTypes} @> ARRAY[${serviceType}]::text[]`);
-  }
-  if (certification) {
-    conditions.push(sql`${mroProfilesTable.certifications} @> ARRAY[${certification}]::text[]`);
-  }
-  if (country) {
-    conditions.push(ilike(mroProfilesTable.country, `%${country}%`));
-  }
-  if (partNumber) {
-    conditions.push(sql`${mroProfilesTable.partNumbersServiced} @> ARRAY[${partNumber}]::text[]`);
-  }
+  if (aircraftType) conditions.push(sql`${mroProfilesTable.aircraftTypes} @> ARRAY[${aircraftType}]::text[]`);
+  if (serviceType) conditions.push(sql`${mroProfilesTable.serviceTypes} @> ARRAY[${serviceType}]::text[]`);
+  if (certification) conditions.push(sql`${mroProfilesTable.certifications} @> ARRAY[${certification}]::text[]`);
+  if (country) conditions.push(ilike(mroProfilesTable.country, `%${country}%`));
+  if (partNumber) conditions.push(sql`${mroProfilesTable.partNumbersServiced} @> ARRAY[${partNumber}]::text[]`);
 
   const where = conditions.length > 0 ? and(...conditions) : undefined;
 
   const [rows, [countRow]] = await Promise.all([
-    db.select().from(mroProfilesTable)
-      .where(where)
+    db.select().from(mroProfilesTable).where(where)
       .orderBy(desc(mroProfilesTable.featured), desc(mroProfilesTable.createdAt))
-      .limit(limit)
-      .offset(offset),
+      .limit(limit).offset(offset),
     db.select({ count: count() }).from(mroProfilesTable).where(where),
   ]);
 
@@ -91,7 +73,6 @@ router.post("/mro", async (req, res): Promise<void> => {
   const userId = req.session?.userId;
   if (!userId) { res.status(401).json({ error: "Not authenticated" }); return; }
 
-  // Check if user already has an MRO profile
   const existing = await db.select({ id: mroProfilesTable.id }).from(mroProfilesTable)
     .where(eq(mroProfilesTable.userId, userId)).limit(1);
   if (existing.length > 0) {
@@ -103,10 +84,8 @@ router.post("/mro", async (req, res): Promise<void> => {
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
 
   const d = parsed.data;
-
-  const [user] = await db.select({ plan: usersTable.plan }).from(usersTable).where(eq(usersTable.id, userId));
-  const plan = user?.plan ?? "free";
-  const serviceLimit = MRO_SERVICE_LIMITS[plan];
+  const plan = await resolveEffectivePlan(userId);
+  const serviceLimit = MRO_SERVICE_LIMITS[plan] ?? 1;
   const serviceTypes = d.serviceTypes ?? [];
 
   if (serviceLimit !== null && serviceTypes.length > serviceLimit) {
@@ -120,7 +99,8 @@ router.post("/mro", async (req, res): Promise<void> => {
     return;
   }
 
-  const featured = plan === "enterprise";
+  // Enterprise and Premium MRO accounts get featured placement
+  const featured = plan === "enterprise" || plan === "mro_premium";
 
   const [mro] = await db.insert(mroProfilesTable).values({
     userId,
@@ -171,7 +151,7 @@ router.put("/mro/:id", async (req, res): Promise<void> => {
   const [mro] = await db.select().from(mroProfilesTable).where(eq(mroProfilesTable.id, id));
   if (!mro) { res.status(404).json({ error: "MRO not found" }); return; }
 
-  const [user] = await db.select({ role: usersTable.role, plan: usersTable.plan })
+  const [user] = await db.select({ role: usersTable.role })
     .from(usersTable).where(eq(usersTable.id, userId));
 
   const isAdmin = user?.role === "admin" || user?.role === "super_admin";
@@ -184,10 +164,9 @@ router.put("/mro/:id", async (req, res): Promise<void> => {
 
   const d = parsed.data;
 
-  // Enforce service type limits when serviceTypes is being updated (skip for admins)
   if (!isAdmin && d.serviceTypes !== undefined) {
-    const plan = user?.plan ?? "free";
-    const serviceLimit = MRO_SERVICE_LIMITS[plan];
+    const plan = await resolveEffectivePlan(userId);
+    const serviceLimit = MRO_SERVICE_LIMITS[plan] ?? 1;
     if (serviceLimit !== null && d.serviceTypes.length > serviceLimit) {
       res.status(402).json({
         error: `Your ${plan} plan allows up to ${serviceLimit} service type${serviceLimit === 1 ? "" : "s"}. You submitted ${d.serviceTypes.length}. Upgrade to list more services.`,
@@ -270,16 +249,10 @@ router.get("/seller/mro-profile", async (req, res): Promise<void> => {
     .where(eq(mroProfilesTable.userId, userId)).limit(1);
   if (!mro) { res.status(404).json({ error: "No MRO profile found" }); return; }
 
-  // Include plan limit info so the frontend can show upgrade prompts
-  const [user] = await db.select({ plan: usersTable.plan }).from(usersTable).where(eq(usersTable.id, userId));
-  const plan = user?.plan ?? "free";
-  const serviceTypeLimit = MRO_SERVICE_LIMITS[plan];
+  const plan = await resolveEffectivePlan(userId);
+  const serviceTypeLimit = MRO_SERVICE_LIMITS[plan] ?? 1;
 
-  res.json({
-    ...serializeMro(mro),
-    serviceTypeLimit,
-    plan,
-  });
+  res.json({ ...serializeMro(mro), serviceTypeLimit, plan });
 });
 
 // GET /admin/mro

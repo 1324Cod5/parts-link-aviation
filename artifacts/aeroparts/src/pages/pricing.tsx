@@ -1,15 +1,22 @@
+import { useState } from "react";
 import { Link, useLocation } from "wouter";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
-import { useGetSubscription, getGetSubscriptionQueryKey, useUpgradePlan } from "@workspace/api-client-react";
-import { useQueryClient } from "@tanstack/react-query";
+import {
+  useGetSubscription,
+  getGetSubscriptionQueryKey,
+  useGetSubscriptionProducts,
+  useCreateCheckoutSession,
+} from "@workspace/api-client-react";
+
 import { useToast } from "@/hooks/use-toast";
-import { Check, Zap, Building2, Package, Wrench, ShieldCheck, Star, Rocket, Clock } from "lucide-react";
+import { Check, Zap, Building2, Package, Wrench, ShieldCheck, Star, Rocket, Clock, Loader2 } from "lucide-react";
 
 const PARTS_TIERS = [
   {
     id: "free" as const,
+    planKey: "free",
     name: "Free",
     price: null,
     priceLabel: "Free",
@@ -28,7 +35,8 @@ const PARTS_TIERS = [
   },
   {
     id: "pro" as const,
-    name: "Pro",
+    planKey: "pro",
+    name: "Parts Pro",
     price: 149,
     priceLabel: "$149/mo",
     icon: Zap,
@@ -37,7 +45,7 @@ const PARTS_TIERS = [
     features: [
       "Up to 50 active listings",
       "Priority placement in search results",
-      "Verified seller badge on your profile",
+      "Full buyer contact on all RFQs",
       "Seller analytics dashboard",
       "Early access to buyer RFQs",
       "Priority email support",
@@ -47,6 +55,7 @@ const PARTS_TIERS = [
   },
   {
     id: "enterprise" as const,
+    planKey: "enterprise",
     name: "Enterprise",
     price: 299,
     priceLabel: "$299/mo",
@@ -56,7 +65,7 @@ const PARTS_TIERS = [
     features: [
       "Unlimited active listings",
       "Premium homepage placement",
-      "Bulk CSV upload tools",
+      "Full RFQ access + response metrics",
       "Dedicated account manager",
       "API access for inventory sync",
       "Custom contract terms",
@@ -70,6 +79,7 @@ const PARTS_TIERS = [
 const MRO_TIERS = [
   {
     id: "mro_free",
+    planKey: null,
     name: "Free",
     price: null,
     priceLabel: "Free",
@@ -78,17 +88,16 @@ const MRO_TIERS = [
     features: [
       "1 MRO service listing",
       "Basic directory visibility",
-      "Up to 3 service categories",
-      "Up to 5 part numbers listed",
+      "Up to 1 service category",
       "Inbound quote request form",
     ],
     cta: "Create Free Listing",
     href: "/mro/register",
     highlight: false,
-    badge: null,
   },
   {
     id: "mro_verified",
+    planKey: "mro_verified",
     name: "Verified MRO",
     price: 49,
     priceLabel: "$49/mo",
@@ -96,8 +105,7 @@ const MRO_TIERS = [
     description: "For active MROs seeking qualified service leads.",
     features: [
       "Full MRO profile listing",
-      "Up to 12 service categories",
-      "Up to 50 part numbers listed",
+      "Up to 10 service categories",
       "Capability document references",
       "Priority directory placement",
       "Verified MRO badge",
@@ -106,10 +114,10 @@ const MRO_TIERS = [
     cta: "Get Verified MRO",
     href: "/mro/register",
     highlight: true,
-    badge: null,
   },
   {
     id: "mro_premium",
+    planKey: "mro_premium",
     name: "Premium MRO",
     price: 149,
     priceLabel: "$149/mo",
@@ -118,16 +126,14 @@ const MRO_TIERS = [
     features: [
       "Everything in Verified MRO",
       "Featured placement (homepage + search top)",
-      "Unlimited part numbers listed",
-      "Up to 20 capability documents",
-      "AOG priority listing indicator",
+      "Unlimited service categories",
+      "Full RFQ contact access",
       "Analytics & quote tracking",
       "Dedicated account support",
     ],
     cta: "Get Premium MRO",
     href: "/mro/register",
     highlight: false,
-    badge: null,
   },
 ];
 
@@ -135,40 +141,72 @@ export default function Pricing() {
   const { user } = useAuth();
   const [, navigate] = useLocation();
   const { toast } = useToast();
-  const queryClient = useQueryClient();
-  const upgradeMutation = useUpgradePlan();
+  const [checkingOutPlan, setCheckingOutPlan] = useState<string | null>(null);
+
+  const checkoutMutation = useCreateCheckoutSession();
 
   const { data: subscription } = useGetSubscription({
-    query: {
-      enabled: !!user && user.role === "seller",
-      queryKey: getGetSubscriptionQueryKey(),
-    },
+    query: { enabled: !!user && user.role === "seller", queryKey: getGetSubscriptionQueryKey() },
   });
 
-  const handleUpgrade = (plan: "pro" | "enterprise") => {
+  const { data: productsData } = useGetSubscriptionProducts();
+
+  const currentPlan = (subscription as any)?.effectivePlan ?? subscription?.plan ?? user?.plan ?? "free";
+
+  // Find Stripe price ID for a given plan key (monthly billing)
+  const getPriceId = (planKey: string): string | null => {
+    if (!productsData?.products) return null;
+    for (const product of productsData.products) {
+      const meta = product.metadata as Record<string, string> | undefined;
+      if (meta?.plan === planKey) {
+        const monthly = product.prices.find(
+          (p: any) => p.interval === "month",
+        );
+        return monthly?.id ?? null;
+      }
+    }
+    return null;
+  };
+
+  const handleCheckout = async (planKey: string) => {
     if (!user) {
       navigate("/seller/login");
       return;
     }
-    upgradeMutation.mutate(
-      { data: { plan } },
+
+    const priceId = getPriceId(planKey);
+    if (!priceId) {
+      toast({
+        title: "Plan not available",
+        description: "This plan isn't configured yet. Contact support or check back soon.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setCheckingOutPlan(planKey);
+    checkoutMutation.mutate(
+      { data: { priceId } },
       {
-        onSuccess: () => {
-          queryClient.invalidateQueries({ queryKey: getGetSubscriptionQueryKey() });
+        onSuccess: (data: any) => {
+          if (data?.url) {
+            window.location.href = data.url;
+          } else {
+            toast({ title: "Checkout error", description: "No redirect URL returned.", variant: "destructive" });
+            setCheckingOutPlan(null);
+          }
+        },
+        onError: (err: any) => {
           toast({
-            title: `Upgraded to ${plan.charAt(0).toUpperCase() + plan.slice(1)}`,
-            description: "Your plan has been updated. Your new limits are effective immediately.",
+            title: "Checkout failed",
+            description: err?.response?.data?.error ?? "Please try again.",
+            variant: "destructive",
           });
-          navigate("/seller/subscription");
+          setCheckingOutPlan(null);
         },
-        onError: () => {
-          toast({ title: "Upgrade failed", description: "Please try again.", variant: "destructive" });
-        },
-      }
+      },
     );
   };
-
-  const currentPlan = subscription?.plan ?? user?.plan ?? "free";
 
   return (
     <MainLayout>
@@ -194,6 +232,7 @@ export default function Pricing() {
               (currentPlan === "enterprise" && (tier.id === "pro" || tier.id === "free")) ||
               (currentPlan === "pro" && tier.id === "free")
             );
+            const isLoading = checkingOutPlan === tier.planKey;
 
             return (
               <div
@@ -222,6 +261,7 @@ export default function Pricing() {
                   <p className="text-muted-foreground text-sm mb-4">{tier.description}</p>
                   <div className="flex items-baseline gap-1">
                     <span className="text-4xl font-bold text-white font-mono">{tier.priceLabel}</span>
+                    {tier.price && <span className="text-muted-foreground text-sm">/month</span>}
                   </div>
                 </div>
 
@@ -254,12 +294,14 @@ export default function Pricing() {
                   )
                 ) : (
                   <Button
-                    className="w-full"
+                    className="w-full gap-2"
                     variant={tier.highlight ? "default" : "outline"}
-                    disabled={upgradeMutation.isPending || isDowngrade}
-                    onClick={() => handleUpgrade(tier.id as "pro" | "enterprise")}
+                    disabled={!!checkingOutPlan || isDowngrade}
+                    onClick={() => handleCheckout(tier.planKey)}
                   >
-                    {upgradeMutation.isPending ? "Processing..." : isDowngrade ? "Downgrade" : tier.cta}
+                    {isLoading ? (
+                      <><Loader2 className="h-4 w-4 animate-spin" /> Redirecting…</>
+                    ) : isDowngrade ? "Downgrade" : tier.cta}
                   </Button>
                 )}
               </div>
@@ -272,7 +314,6 @@ export default function Pricing() {
           {/* Launch Partner Promo Banner */}
           <div className="max-w-5xl mx-auto mb-10">
             <div className="relative overflow-hidden rounded-xl border border-amber-500/40 bg-gradient-to-br from-amber-500/10 via-amber-500/5 to-transparent p-6 md:p-8">
-              {/* Decorative glow */}
               <div className="absolute -top-10 -right-10 w-40 h-40 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
               <div className="relative flex flex-col md:flex-row md:items-center gap-6">
                 <div className="flex items-start gap-4 flex-1">
@@ -323,6 +364,8 @@ export default function Pricing() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
             {MRO_TIERS.map(tier => {
               const Icon = tier.icon;
+              const isCurrentPlan = currentPlan === tier.id;
+              const isLoading = tier.planKey && checkingOutPlan === tier.planKey;
               return (
                 <div
                   key={tier.id}
@@ -348,18 +391,9 @@ export default function Pricing() {
                     </div>
                     <h3 className="text-xl font-bold text-white mb-1">{tier.name}</h3>
                     <p className="text-muted-foreground text-sm mb-4">{tier.description}</p>
-                    <div className="space-y-1">
-                      <div className="flex items-baseline gap-1">
-                        <span className="text-4xl font-bold text-white font-mono">{tier.priceLabel}</span>
-                      </div>
-                      {tier.price && (
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-xs text-amber-400 font-medium line-through opacity-60">{tier.priceLabel}</span>
-                          <span className="text-xs bg-amber-500/20 border border-amber-500/30 text-amber-400 rounded-full px-2 py-0.5 font-medium flex items-center gap-1">
-                            <Rocket className="w-2.5 h-2.5" /> $20/mo for 3 months
-                          </span>
-                        </div>
-                      )}
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-4xl font-bold text-white font-mono">{tier.priceLabel}</span>
+                      {tier.price && <span className="text-muted-foreground text-sm">/month</span>}
                     </div>
                   </div>
 
@@ -372,14 +406,26 @@ export default function Pricing() {
                     ))}
                   </ul>
 
-                  <Link href={tier.href}>
+                  {isCurrentPlan ? (
+                    <div className="w-full py-2.5 px-4 rounded-md border border-border text-center text-sm text-muted-foreground font-medium">
+                      Current Plan
+                    </div>
+                  ) : tier.planKey ? (
                     <Button
-                      className="w-full"
+                      className="w-full gap-2"
                       variant={tier.highlight ? "default" : "outline"}
+                      disabled={!!checkingOutPlan}
+                      onClick={() => handleCheckout(tier.planKey!)}
                     >
-                      {tier.cta}
+                      {isLoading ? (
+                        <><Loader2 className="h-4 w-4 animate-spin" /> Redirecting…</>
+                      ) : tier.cta}
                     </Button>
-                  </Link>
+                  ) : (
+                    <Link href={tier.href}>
+                      <Button className="w-full" variant="outline">{tier.cta}</Button>
+                    </Link>
+                  )}
                 </div>
               );
             })}
@@ -392,24 +438,24 @@ export default function Pricing() {
           <div className="space-y-6">
             {[
               {
-                q: "Is this a live billing system?",
-                a: "This is a demonstration platform. Upgrades are simulated — no payment is charged. In a production deployment, this would integrate with Stripe for real billing.",
+                q: "How does billing work?",
+                a: "All plans are billed monthly through Stripe. You'll be redirected to a secure Stripe Checkout page to enter your payment details. You can manage, upgrade, or cancel at any time via the billing portal.",
               },
               {
                 q: "What happens when I hit my listing limit?",
                 a: "You'll be prompted to upgrade when you attempt to create a new listing beyond your plan's limit. Existing listings remain active.",
               },
               {
+                q: "What happens if my payment fails?",
+                a: "You get a 7-day grace period while Stripe retries your payment. During that time your plan stays active. If payment isn't resolved after 7 days, your account is downgraded to Free.",
+              },
+              {
                 q: "How does the Launch Partner promotion work?",
                 a: "Early MRO adopters who sign up during the launch period receive the first 3 months at $20/month on any paid MRO plan. After 3 months, the plan renews at the standard rate ($49/mo or $149/mo).",
               },
               {
-                q: "What is the difference between Parts listings and MRO listings?",
-                a: "Parts listings let you sell aircraft components to buyers. MRO listings let you advertise your repair, overhaul, and maintenance services and receive direct service quote requests from operators and airlines.",
-              },
-              {
-                q: "Can I downgrade at any time?",
-                a: "Yes. Downgrading to Free will reduce your active listing limit. Existing listings remain but may not be visible until you're within your plan's limits or upgrade again.",
+                q: "Can I cancel at any time?",
+                a: "Yes. Cancelling through the billing portal keeps your access active until the end of the current billing period, then downgrades to Free. No penalties.",
               },
             ].map(({ q, a }) => (
               <div key={q}>

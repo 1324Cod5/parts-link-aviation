@@ -13,4 +13,6 @@ export const SellerStatsPlan = {
   free: 'free',
   pro: 'pro',
   enterprise: 'enterprise',
+  mro_verified: 'mro_verified',
+  mro_premium: 'mro_premium',
 } as const;

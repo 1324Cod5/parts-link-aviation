@@ -54,6 +54,22 @@ export const UserPlan = {
   free: 'free',
   pro: 'pro',
   enterprise: 'enterprise',
+  mro_verified: 'mro_verified',
+  mro_premium: 'mro_premium',
+} as const;
+
+/**
+ * @nullable
+ */
+export type UserSubscriptionStatus = typeof UserSubscriptionStatus[keyof typeof UserSubscriptionStatus] | null;
+
+
+export const UserSubscriptionStatus = {
+  active: 'active',
+  trial: 'trial',
+  past_due: 'past_due',
+  cancelled: 'cancelled',
+  suspended: 'suspended',
 } as const;
 
 export interface User {
@@ -69,6 +85,8 @@ export interface User {
   plan: UserPlan;
   /** @nullable */
   planExpiresAt?: string | null;
+  /** @nullable */
+  subscriptionStatus?: UserSubscriptionStatus;
   mustChangePassword?: boolean;
   createdAt: string;
 }
@@ -83,6 +101,9 @@ export interface AuthResponse {
   user: User;
 }
 
+/**
+ * Subscribed plan (may differ from effectivePlan if payment is lapsed)
+ */
 export type SubscriptionInfoPlan = typeof SubscriptionInfoPlan[keyof typeof SubscriptionInfoPlan];
 
 
@@ -90,28 +111,111 @@ export const SubscriptionInfoPlan = {
   free: 'free',
   pro: 'pro',
   enterprise: 'enterprise',
+  mro_verified: 'mro_verified',
+  mro_premium: 'mro_premium',
+} as const;
+
+/**
+ * Actual enforced plan based on payment status and grace period
+ */
+export type SubscriptionInfoEffectivePlan = typeof SubscriptionInfoEffectivePlan[keyof typeof SubscriptionInfoEffectivePlan];
+
+
+export const SubscriptionInfoEffectivePlan = {
+  free: 'free',
+  pro: 'pro',
+  enterprise: 'enterprise',
+  mro_verified: 'mro_verified',
+  mro_premium: 'mro_premium',
+} as const;
+
+/**
+ * @nullable
+ */
+export type SubscriptionInfoSubscriptionStatus = typeof SubscriptionInfoSubscriptionStatus[keyof typeof SubscriptionInfoSubscriptionStatus] | null;
+
+
+export const SubscriptionInfoSubscriptionStatus = {
+  active: 'active',
+  trial: 'trial',
+  past_due: 'past_due',
+  cancelled: 'cancelled',
+  suspended: 'suspended',
 } as const;
 
 export interface SubscriptionInfo {
+  /** Subscribed plan (may differ from effectivePlan if payment is lapsed) */
   plan: SubscriptionInfoPlan;
+  /** Actual enforced plan based on payment status and grace period */
+  effectivePlan: SubscriptionInfoEffectivePlan;
+  /** @nullable */
+  subscriptionStatus?: SubscriptionInfoSubscriptionStatus;
+  /** @nullable */
+  currentPeriodEnd?: string | null;
+  /**
+     * 7 days after currentPeriodEnd when payment is past_due
+     * @nullable
+     */
+  gracePeriodEnd?: string | null;
+  /** @nullable */
+  trialEndsAt?: string | null;
+  /**
+     * Days remaining in grace period; null if not in grace period
+     * @nullable
+     */
+  daysUntilGraceExpires?: number | null;
   /** @nullable */
   planExpiresAt?: string | null;
   activeListings: number;
   /** @nullable */
   listingLimit: number | null;
-  canAddListing?: boolean;
+  canAddListing: boolean;
+  hasFullRfqAccess?: boolean;
+  /** @nullable */
+  mroServiceLimit?: number | null;
 }
 
-export type UpgradePlanInputPlan = typeof UpgradePlanInputPlan[keyof typeof UpgradePlanInputPlan];
+export interface CheckoutSessionInput {
+  /** Stripe price ID (e.g. price_1ABC...) */
+  priceId: string;
+}
 
+export interface CheckoutSessionResponse {
+  /** Stripe Checkout URL — redirect the browser here */
+  url: string;
+}
 
-export const UpgradePlanInputPlan = {
-  pro: 'pro',
-  enterprise: 'enterprise',
-} as const;
+export interface PortalSessionResponse {
+  /** Stripe Billing Portal URL — redirect the browser here */
+  url: string;
+}
 
-export interface UpgradePlanInput {
-  plan: UpgradePlanInputPlan;
+export type SubscriptionProductsResponseProductsItemMetadata = {[key: string]: string};
+
+export type SubscriptionProductsResponseProductsItemPricesItemMetadata = {[key: string]: string};
+
+export type SubscriptionProductsResponseProductsItemPricesItem = {
+  id: string;
+  unitAmount: number;
+  currency: string;
+  /** @nullable */
+  interval?: string | null;
+  metadata?: SubscriptionProductsResponseProductsItemPricesItemMetadata;
+};
+
+export type SubscriptionProductsResponseProductsItem = {
+  id: string;
+  name: string;
+  /** @nullable */
+  description?: string | null;
+  metadata?: SubscriptionProductsResponseProductsItemMetadata;
+  prices: SubscriptionProductsResponseProductsItemPricesItem[];
+};
+
+export interface SubscriptionProductsResponse {
+  /** @nullable */
+  publishableKey?: string | null;
+  products: SubscriptionProductsResponseProductsItem[];
 }
 
 export interface Seller {
@@ -329,6 +433,8 @@ export const SellerStatsPlan = {
   free: 'free',
   pro: 'pro',
   enterprise: 'enterprise',
+  mro_verified: 'mro_verified',
+  mro_premium: 'mro_premium',
 } as const;
 
 export interface SellerStats {
@@ -360,6 +466,8 @@ export const AdminSellerPlan = {
   free: 'free',
   pro: 'pro',
   enterprise: 'enterprise',
+  mro_verified: 'mro_verified',
+  mro_premium: 'mro_premium',
 } as const;
 
 export type AdminSellerStatus = typeof AdminSellerStatus[keyof typeof AdminSellerStatus];
@@ -407,6 +515,8 @@ export const AdminSellerPlanUpdatePlan = {
   free: 'free',
   pro: 'pro',
   enterprise: 'enterprise',
+  mro_verified: 'mro_verified',
+  mro_premium: 'mro_premium',
 } as const;
 
 export interface AdminSellerPlanUpdate {
@@ -524,6 +634,8 @@ export const SellerAnalyticsPlan = {
   free: 'free',
   pro: 'pro',
   enterprise: 'enterprise',
+  mro_verified: 'mro_verified',
+  mro_premium: 'mro_premium',
 } as const;
 
 export type SellerAnalyticsInquiryTrendItem = {

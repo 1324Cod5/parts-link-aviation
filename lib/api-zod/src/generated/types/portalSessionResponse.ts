@@ -5,8 +5,8 @@
  * AeroParts Marketplace API
  * OpenAPI spec version: 0.1.0
  */
-import type { UpgradePlanInputPlan } from './upgradePlanInputPlan';
 
-export interface UpgradePlanInput {
-  plan: UpgradePlanInputPlan;
+export interface PortalSessionResponse {
+  /** Stripe Billing Portal URL — redirect the browser here */
+  url: string;
 }

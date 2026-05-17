@@ -3,8 +3,11 @@ import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
 export const userRoleEnum = pgEnum("user_role", ["buyer", "seller", "admin", "super_admin"]);
-export const userPlanEnum = pgEnum("user_plan", ["free", "pro", "enterprise"]);
+export const userPlanEnum = pgEnum("user_plan", ["free", "pro", "enterprise", "mro_verified", "mro_premium"]);
 export const userStatusEnum = pgEnum("user_status", ["active", "suspended"]);
+export const subscriptionStatusEnum = pgEnum("subscription_status", [
+  "active", "trial", "past_due", "cancelled", "suspended",
+]);
 
 export const usersTable = pgTable("users", {
   id: serial("id").primaryKey(),
@@ -22,6 +25,13 @@ export const usersTable = pgTable("users", {
   // Login security: lockout tracking
   failedLoginAttempts: integer("failed_login_attempts").notNull().default(0),
   lockedUntil: timestamp("locked_until"),
+  // Stripe subscription tracking
+  stripeCustomerId: text("stripe_customer_id"),
+  stripeSubscriptionId: text("stripe_subscription_id"),
+  subscriptionStatus: subscriptionStatusEnum("subscription_status"),
+  currentPeriodEnd: timestamp("current_period_end"),
+  gracePeriodEnd: timestamp("grace_period_end"),
+  trialEndsAt: timestamp("trial_ends_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });

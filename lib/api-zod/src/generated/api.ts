@@ -50,8 +50,9 @@ export const LoginUserResponse = zod.object({
   "contactName": zod.string(),
   "phone": zod.string().nullish(),
   "country": zod.string().nullish(),
-  "plan": zod.enum(['free', 'pro', 'enterprise']),
+  "plan": zod.enum(['free', 'pro', 'enterprise', 'mro_verified', 'mro_premium']),
   "planExpiresAt": zod.string().nullish(),
+  "subscriptionStatus": zod.union([zod.literal('active'),zod.literal('trial'),zod.literal('past_due'),zod.literal('cancelled'),zod.literal('suspended'),zod.literal(null)]).nullish(),
   "mustChangePassword": zod.boolean().optional(),
   "createdAt": zod.string()
 })
@@ -94,8 +95,9 @@ export const GetCurrentUserResponse = zod.object({
   "contactName": zod.string(),
   "phone": zod.string().nullish(),
   "country": zod.string().nullish(),
-  "plan": zod.enum(['free', 'pro', 'enterprise']),
+  "plan": zod.enum(['free', 'pro', 'enterprise', 'mro_verified', 'mro_premium']),
   "planExpiresAt": zod.string().nullish(),
+  "subscriptionStatus": zod.union([zod.literal('active'),zod.literal('trial'),zod.literal('past_due'),zod.literal('cancelled'),zod.literal('suspended'),zod.literal(null)]).nullish(),
   "mustChangePassword": zod.boolean().optional(),
   "createdAt": zod.string()
 })
@@ -443,7 +445,7 @@ export const GetSellerStatsResponse = zod.object({
   "activeListings": zod.number(),
   "totalInquiries": zod.number(),
   "verifiedListings": zod.number(),
-  "plan": zod.enum(['free', 'pro', 'enterprise']),
+  "plan": zod.enum(['free', 'pro', 'enterprise', 'mro_verified', 'mro_premium']),
   "listingLimit": zod.number().nullable(),
   "canAddListing": zod.boolean()
 })
@@ -453,7 +455,7 @@ export const GetSellerStatsResponse = zod.object({
  * @summary Get detailed analytics (Pro/Enterprise only)
  */
 export const GetSellerAnalyticsResponse = zod.object({
-  "plan": zod.enum(['free', 'pro', 'enterprise']),
+  "plan": zod.enum(['free', 'pro', 'enterprise', 'mro_verified', 'mro_premium']),
   "inquiryTrend": zod.array(zod.object({
   "date": zod.string(),
   "count": zod.number()
@@ -538,39 +540,68 @@ export const GetAdminStatsResponse = zod.object({
  * @summary Get current seller's subscription info
  */
 export const GetSubscriptionResponse = zod.object({
-  "plan": zod.enum(['free', 'pro', 'enterprise']),
+  "plan": zod.enum(['free', 'pro', 'enterprise', 'mro_verified', 'mro_premium']).describe('Subscribed plan (may differ from effectivePlan if payment is lapsed)'),
+  "effectivePlan": zod.enum(['free', 'pro', 'enterprise', 'mro_verified', 'mro_premium']).describe('Actual enforced plan based on payment status and grace period'),
+  "subscriptionStatus": zod.union([zod.literal('active'),zod.literal('trial'),zod.literal('past_due'),zod.literal('cancelled'),zod.literal('suspended'),zod.literal(null)]).nullish(),
+  "currentPeriodEnd": zod.string().nullish(),
+  "gracePeriodEnd": zod.string().nullish().describe('7 days after currentPeriodEnd when payment is past_due'),
+  "trialEndsAt": zod.string().nullish(),
+  "daysUntilGraceExpires": zod.number().nullish().describe('Days remaining in grace period; null if not in grace period'),
   "planExpiresAt": zod.string().nullish(),
   "activeListings": zod.number(),
   "listingLimit": zod.number().nullable(),
-  "canAddListing": zod.boolean().optional()
+  "canAddListing": zod.boolean(),
+  "hasFullRfqAccess": zod.boolean().optional(),
+  "mroServiceLimit": zod.number().nullish()
 })
 
 
 /**
- * @summary Upgrade to a paid plan (simulated)
+ * @summary List available Stripe plans with price IDs
  */
-export const UpgradePlanBody = zod.object({
-  "plan": zod.enum(['pro', 'enterprise'])
-})
-
-export const UpgradePlanResponse = zod.object({
-  "plan": zod.enum(['free', 'pro', 'enterprise']),
-  "planExpiresAt": zod.string().nullish(),
-  "activeListings": zod.number(),
-  "listingLimit": zod.number().nullable(),
-  "canAddListing": zod.boolean().optional()
+export const GetSubscriptionProductsResponse = zod.object({
+  "publishableKey": zod.string().nullish(),
+  "products": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "description": zod.string().nullish(),
+  "metadata": zod.record(zod.string(), zod.string()).optional(),
+  "prices": zod.array(zod.object({
+  "id": zod.string(),
+  "unitAmount": zod.number(),
+  "currency": zod.string(),
+  "interval": zod.string().nullish(),
+  "metadata": zod.record(zod.string(), zod.string()).optional()
+}))
+}))
 })
 
 
 /**
- * @summary Downgrade to free plan
+ * @summary Create a Stripe Checkout session for a given price
  */
-export const DowngradePlanResponse = zod.object({
-  "plan": zod.enum(['free', 'pro', 'enterprise']),
-  "planExpiresAt": zod.string().nullish(),
-  "activeListings": zod.number(),
-  "listingLimit": zod.number().nullable(),
-  "canAddListing": zod.boolean().optional()
+export const CreateCheckoutSessionBody = zod.object({
+  "priceId": zod.string().describe('Stripe price ID (e.g. price_1ABC...)')
+})
+
+export const CreateCheckoutSessionResponse = zod.object({
+  "url": zod.string().describe('Stripe Checkout URL — redirect the browser here')
+})
+
+
+/**
+ * @summary Create a Stripe Billing Portal session for subscription management
+ */
+export const CreatePortalSessionResponse = zod.object({
+  "url": zod.string().describe('Stripe Billing Portal URL — redirect the browser here')
+})
+
+
+/**
+ * @summary Cancel the active subscription at period end
+ */
+export const CancelSubscriptionResponse = zod.object({
+  "ok": zod.boolean()
 })
 
 
@@ -933,7 +964,7 @@ export const GetAdminSellersResponseItem = zod.object({
   "contactName": zod.string(),
   "phone": zod.string().nullish(),
   "country": zod.string().nullish(),
-  "plan": zod.enum(['free', 'pro', 'enterprise']),
+  "plan": zod.enum(['free', 'pro', 'enterprise', 'mro_verified', 'mro_premium']),
   "planExpiresAt": zod.string().nullish(),
   "status": zod.enum(['active', 'suspended']),
   "createdAt": zod.string(),
@@ -961,7 +992,7 @@ export const AdminSetSellerStatusResponse = zod.object({
   "contactName": zod.string(),
   "phone": zod.string().nullish(),
   "country": zod.string().nullish(),
-  "plan": zod.enum(['free', 'pro', 'enterprise']),
+  "plan": zod.enum(['free', 'pro', 'enterprise', 'mro_verified', 'mro_premium']),
   "planExpiresAt": zod.string().nullish(),
   "status": zod.enum(['active', 'suspended']),
   "createdAt": zod.string(),
@@ -978,7 +1009,7 @@ export const AdminSetSellerPlanParams = zod.object({
 })
 
 export const AdminSetSellerPlanBody = zod.object({
-  "plan": zod.enum(['free', 'pro', 'enterprise'])
+  "plan": zod.enum(['free', 'pro', 'enterprise', 'mro_verified', 'mro_premium'])
 })
 
 export const AdminSetSellerPlanResponse = zod.object({
@@ -988,7 +1019,7 @@ export const AdminSetSellerPlanResponse = zod.object({
   "contactName": zod.string(),
   "phone": zod.string().nullish(),
   "country": zod.string().nullish(),
-  "plan": zod.enum(['free', 'pro', 'enterprise']),
+  "plan": zod.enum(['free', 'pro', 'enterprise', 'mro_verified', 'mro_premium']),
   "planExpiresAt": zod.string().nullish(),
   "status": zod.enum(['active', 'suspended']),
   "createdAt": zod.string(),

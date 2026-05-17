@@ -28,6 +28,8 @@ import type {
   BadgeUpdate,
   ChangePassword200,
   ChangePasswordInput,
+  CheckoutSessionInput,
+  CheckoutSessionResponse,
   GetAdminListingsParams,
   GetListingsParams,
   GetMroProfilesParams,
@@ -48,6 +50,7 @@ import type {
   MroProfilesPage,
   MroStatusUpdate,
   OkResponse,
+  PortalSessionResponse,
   RegisterInput,
   Rfq,
   RfqDetail,
@@ -61,7 +64,7 @@ import type {
   ServiceQuoteRequest,
   ServiceQuoteRequestInput,
   SubscriptionInfo,
-  UpgradePlanInput,
+  SubscriptionProductsResponse,
   User
 } from './api.schemas';
 
@@ -1802,37 +1805,114 @@ export function useGetSubscription<TData = Awaited<ReturnType<typeof getSubscrip
 
 
 
-export const getUpgradePlanUrl = () => {
+export const getGetSubscriptionProductsUrl = () => {
 
 
 
 
-  return `/api/subscription/upgrade`
+  return `/api/subscription/products`
 }
 
 /**
- * @summary Upgrade to a paid plan (simulated)
+ * @summary List available Stripe plans with price IDs
  */
-export const upgradePlan = async (upgradePlanInput: UpgradePlanInput, options?: RequestInit): Promise<SubscriptionInfo> => {
+export const getSubscriptionProducts = async ( options?: RequestInit): Promise<SubscriptionProductsResponse> => {
 
-  return customFetch<SubscriptionInfo>(getUpgradePlanUrl(),
+  return customFetch<SubscriptionProductsResponse>(getGetSubscriptionProductsUrl(),
   {
     ...options,
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(
-      upgradePlanInput,)
+    method: 'GET'
+
+
   }
 );}
 
 
 
 
-export const getUpgradePlanMutationOptions = <TError = ErrorType<void>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof upgradePlan>>, TError,{data: BodyType<UpgradePlanInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof upgradePlan>>, TError,{data: BodyType<UpgradePlanInput>}, TContext> => {
 
-const mutationKey = ['upgradePlan'];
+export const getGetSubscriptionProductsQueryKey = () => {
+    return [
+    `/api/subscription/products`
+    ] as const;
+    }
+
+
+export const getGetSubscriptionProductsQueryOptions = <TData = Awaited<ReturnType<typeof getSubscriptionProducts>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getSubscriptionProducts>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetSubscriptionProductsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getSubscriptionProducts>>> = ({ signal }) => getSubscriptionProducts({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getSubscriptionProducts>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetSubscriptionProductsQueryResult = NonNullable<Awaited<ReturnType<typeof getSubscriptionProducts>>>
+export type GetSubscriptionProductsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List available Stripe plans with price IDs
+ */
+
+export function useGetSubscriptionProducts<TData = Awaited<ReturnType<typeof getSubscriptionProducts>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getSubscriptionProducts>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetSubscriptionProductsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getCreateCheckoutSessionUrl = () => {
+
+
+
+
+  return `/api/subscription/checkout`
+}
+
+/**
+ * @summary Create a Stripe Checkout session for a given price
+ */
+export const createCheckoutSession = async (checkoutSessionInput: CheckoutSessionInput, options?: RequestInit): Promise<CheckoutSessionResponse> => {
+
+  return customFetch<CheckoutSessionResponse>(getCreateCheckoutSessionUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      checkoutSessionInput,)
+  }
+);}
+
+
+
+
+export const getCreateCheckoutSessionMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createCheckoutSession>>, TError,{data: BodyType<CheckoutSessionInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createCheckoutSession>>, TError,{data: BodyType<CheckoutSessionInput>}, TContext> => {
+
+const mutationKey = ['createCheckoutSession'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -1842,10 +1922,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof upgradePlan>>, {data: BodyType<UpgradePlanInput>}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createCheckoutSession>>, {data: BodyType<CheckoutSessionInput>}> = (props) => {
           const {data} = props ?? {};
 
-          return  upgradePlan(data,requestOptions)
+          return  createCheckoutSession(data,requestOptions)
         }
 
 
@@ -1855,38 +1935,38 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
   return  { mutationFn, ...mutationOptions }}
 
-    export type UpgradePlanMutationResult = NonNullable<Awaited<ReturnType<typeof upgradePlan>>>
-    export type UpgradePlanMutationBody = BodyType<UpgradePlanInput>
-    export type UpgradePlanMutationError = ErrorType<void>
+    export type CreateCheckoutSessionMutationResult = NonNullable<Awaited<ReturnType<typeof createCheckoutSession>>>
+    export type CreateCheckoutSessionMutationBody = BodyType<CheckoutSessionInput>
+    export type CreateCheckoutSessionMutationError = ErrorType<void>
 
     /**
- * @summary Upgrade to a paid plan (simulated)
+ * @summary Create a Stripe Checkout session for a given price
  */
-export const useUpgradePlan = <TError = ErrorType<void>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof upgradePlan>>, TError,{data: BodyType<UpgradePlanInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+export const useCreateCheckoutSession = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createCheckoutSession>>, TError,{data: BodyType<CheckoutSessionInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
-        Awaited<ReturnType<typeof upgradePlan>>,
+        Awaited<ReturnType<typeof createCheckoutSession>>,
         TError,
-        {data: BodyType<UpgradePlanInput>},
+        {data: BodyType<CheckoutSessionInput>},
         TContext
       > => {
-      return useMutation(getUpgradePlanMutationOptions(options));
+      return useMutation(getCreateCheckoutSessionMutationOptions(options));
     }
 
-export const getDowngradePlanUrl = () => {
+export const getCreatePortalSessionUrl = () => {
 
 
 
 
-  return `/api/subscription/downgrade`
+  return `/api/subscription/portal`
 }
 
 /**
- * @summary Downgrade to free plan
+ * @summary Create a Stripe Billing Portal session for subscription management
  */
-export const downgradePlan = async ( options?: RequestInit): Promise<SubscriptionInfo> => {
+export const createPortalSession = async ( options?: RequestInit): Promise<PortalSessionResponse> => {
 
-  return customFetch<SubscriptionInfo>(getDowngradePlanUrl(),
+  return customFetch<PortalSessionResponse>(getCreatePortalSessionUrl(),
   {
     ...options,
     method: 'POST'
@@ -1898,11 +1978,11 @@ export const downgradePlan = async ( options?: RequestInit): Promise<Subscriptio
 
 
 
-export const getDowngradePlanMutationOptions = <TError = ErrorType<void>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof downgradePlan>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof downgradePlan>>, TError,void, TContext> => {
+export const getCreatePortalSessionMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createPortalSession>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createPortalSession>>, TError,void, TContext> => {
 
-const mutationKey = ['downgradePlan'];
+const mutationKey = ['createPortalSession'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -1912,10 +1992,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof downgradePlan>>, void> = () => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createPortalSession>>, void> = () => {
 
 
-          return  downgradePlan(requestOptions)
+          return  createPortalSession(requestOptions)
         }
 
 
@@ -1925,22 +2005,92 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
   return  { mutationFn, ...mutationOptions }}
 
-    export type DowngradePlanMutationResult = NonNullable<Awaited<ReturnType<typeof downgradePlan>>>
+    export type CreatePortalSessionMutationResult = NonNullable<Awaited<ReturnType<typeof createPortalSession>>>
 
-    export type DowngradePlanMutationError = ErrorType<void>
+    export type CreatePortalSessionMutationError = ErrorType<void>
 
     /**
- * @summary Downgrade to free plan
+ * @summary Create a Stripe Billing Portal session for subscription management
  */
-export const useDowngradePlan = <TError = ErrorType<void>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof downgradePlan>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+export const useCreatePortalSession = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createPortalSession>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
-        Awaited<ReturnType<typeof downgradePlan>>,
+        Awaited<ReturnType<typeof createPortalSession>>,
         TError,
         void,
         TContext
       > => {
-      return useMutation(getDowngradePlanMutationOptions(options));
+      return useMutation(getCreatePortalSessionMutationOptions(options));
+    }
+
+export const getCancelSubscriptionUrl = () => {
+
+
+
+
+  return `/api/subscription/cancel`
+}
+
+/**
+ * @summary Cancel the active subscription at period end
+ */
+export const cancelSubscription = async ( options?: RequestInit): Promise<OkResponse> => {
+
+  return customFetch<OkResponse>(getCancelSubscriptionUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getCancelSubscriptionMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof cancelSubscription>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof cancelSubscription>>, TError,void, TContext> => {
+
+const mutationKey = ['cancelSubscription'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof cancelSubscription>>, void> = () => {
+
+
+          return  cancelSubscription(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CancelSubscriptionMutationResult = NonNullable<Awaited<ReturnType<typeof cancelSubscription>>>
+
+    export type CancelSubscriptionMutationError = ErrorType<void>
+
+    /**
+ * @summary Cancel the active subscription at period end
+ */
+export const useCancelSubscription = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof cancelSubscription>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof cancelSubscription>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getCancelSubscriptionMutationOptions(options));
     }
 
 export const getGetRfqsUrl = (params?: GetRfqsParams,) => {

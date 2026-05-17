@@ -2,16 +2,13 @@ import { Router, type IRouter } from "express";
 import { db, rfqsTable, rfqResponsesTable, usersTable, listingsTable } from "@workspace/db";
 import { eq, desc, like, or, count, and } from "drizzle-orm";
 import { CreateRfqBody, CreateRfqResponseBody } from "@workspace/api-zod";
+import { resolveEffectivePlan, FULL_ACCESS_PLANS } from "../lib/planEnforcement";
 
 const router: IRouter = Router();
 
-/** Plans that get full buyer contact details and can post responses */
-const FULL_ACCESS_PLANS = new Set(["pro", "enterprise"]);
-
-async function callerPlan(userId: number | undefined): Promise<string> {
+async function callerEffectivePlan(userId: number | undefined): Promise<string> {
   if (!userId) return "anonymous";
-  const [user] = await db.select({ plan: usersTable.plan }).from(usersTable).where(eq(usersTable.id, userId));
-  return user?.plan ?? "free";
+  return resolveEffectivePlan(userId);
 }
 
 function serializeRfq(rfq: any, accessLevel: "full" | "limited") {
@@ -42,34 +39,30 @@ router.get("/rfqs", async (req, res): Promise<void> => {
   const q = req.query.q as string | undefined;
 
   const conditions: any[] = [];
-  if (status === "open" || status === "closed") {
-    conditions.push(eq(rfqsTable.status, status));
-  }
+  if (status === "open" || status === "closed") conditions.push(eq(rfqsTable.status, status));
   if (q) {
     const term = `%${q}%`;
-    conditions.push(or(
-      like(rfqsTable.partNumber, term),
-      like(rfqsTable.description, term),
-      like(rfqsTable.aircraftApplicability, term),
-    ));
+    conditions.push(
+      or(
+        like(rfqsTable.partNumber, term),
+        like(rfqsTable.description, term),
+        like(rfqsTable.aircraftApplicability, term),
+      ),
+    );
   }
 
   const where = conditions.length > 0 ? and(...conditions) : undefined;
 
   const [rows, [countRow]] = await Promise.all([
-    db.select().from(rfqsTable)
-      .where(where)
-      .orderBy(desc(rfqsTable.createdAt))
-      .limit(limit)
-      .offset(offset),
+    db.select().from(rfqsTable).where(where).orderBy(desc(rfqsTable.createdAt)).limit(limit).offset(offset),
     db.select({ count: count() }).from(rfqsTable).where(where),
   ]);
 
-  const plan = await callerPlan(req.session?.userId);
+  const plan = await callerEffectivePlan(req.session?.userId);
   const accessLevel: "full" | "limited" = FULL_ACCESS_PLANS.has(plan) ? "full" : "limited";
 
   res.json({
-    rfqs: rows.map(r => serializeRfq(r, accessLevel)),
+    rfqs: rows.map((r) => serializeRfq(r, accessLevel)),
     total: Number(countRow.count),
     page,
     limit,
@@ -80,25 +73,24 @@ router.get("/rfqs", async (req, res): Promise<void> => {
 // POST /rfqs — public, no auth required
 router.post("/rfqs", async (req, res): Promise<void> => {
   const parsed = CreateRfqBody.safeParse(req.body);
-  if (!parsed.success) {
-    res.status(400).json({ error: parsed.error.message });
-    return;
-  }
+  if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
 
   const data = parsed.data;
-  const [rfq] = await db.insert(rfqsTable).values({
-    buyerName: data.buyerName,
-    buyerEmail: data.buyerEmail,
-    buyerCompany: data.buyerCompany ?? null,
-    buyerPhone: data.buyerPhone ?? null,
-    partNumber: data.partNumber,
-    description: data.description,
-    aircraftApplicability: data.aircraftApplicability ?? null,
-    condition: data.condition ?? null,
-    quantity: data.quantity,
-  }).returning();
+  const [rfq] = await db
+    .insert(rfqsTable)
+    .values({
+      buyerName: data.buyerName,
+      buyerEmail: data.buyerEmail,
+      buyerCompany: data.buyerCompany ?? null,
+      buyerPhone: data.buyerPhone ?? null,
+      partNumber: data.partNumber,
+      description: data.description,
+      aircraftApplicability: data.aircraftApplicability ?? null,
+      condition: data.condition ?? null,
+      quantity: data.quantity,
+    })
+    .returning();
 
-  // Creator always gets full view of their own submission
   res.status(201).json(serializeRfq(rfq, "full"));
 });
 
@@ -110,7 +102,7 @@ router.get("/rfqs/:id", async (req, res): Promise<void> => {
   const [rfq] = await db.select().from(rfqsTable).where(eq(rfqsTable.id, id));
   if (!rfq) { res.status(404).json({ error: "RFQ not found" }); return; }
 
-  const plan = await callerPlan(req.session?.userId);
+  const plan = await callerEffectivePlan(req.session?.userId);
   const accessLevel: "full" | "limited" = FULL_ACCESS_PLANS.has(plan) ? "full" : "limited";
 
   const rawResponses = await db
@@ -130,7 +122,7 @@ router.get("/rfqs/:id", async (req, res): Promise<void> => {
     .where(eq(rfqResponsesTable.rfqId, id))
     .orderBy(desc(rfqResponsesTable.createdAt));
 
-  const responses = rawResponses.map(r => ({
+  const responses = rawResponses.map((r) => ({
     id: r.id,
     rfqId: r.rfqId,
     sellerId: r.sellerId,
@@ -149,7 +141,8 @@ router.post("/rfqs/:id/close", async (req, res): Promise<void> => {
   const id = parseInt(req.params.id);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
 
-  const [rfq] = await db.update(rfqsTable)
+  const [rfq] = await db
+    .update(rfqsTable)
     .set({ status: "closed", updatedAt: new Date() })
     .where(eq(rfqsTable.id, id))
     .returning();
@@ -158,15 +151,15 @@ router.post("/rfqs/:id/close", async (req, res): Promise<void> => {
   res.json(serializeRfq(rfq, "full"));
 });
 
-// POST /rfqs/:id/responses — Pro/Enterprise only
+// POST /rfqs/:id/responses — Pro/Enterprise/Premium MRO only
 router.post("/rfqs/:id/responses", async (req, res): Promise<void> => {
   const userId = req.session?.userId;
   if (!userId) { res.status(401).json({ error: "Not authenticated" }); return; }
 
-  const plan = await callerPlan(userId);
+  const plan = await callerEffectivePlan(userId);
   if (!FULL_ACCESS_PLANS.has(plan)) {
     res.status(402).json({
-      error: "Responding to RFQs requires a Pro or Enterprise plan. Upgrade to unlock full buyer contact details and the ability to respond.",
+      error: "Responding to RFQs requires a Pro, Enterprise, or Premium MRO plan. Upgrade to unlock full buyer contact details and the ability to respond.",
       plan,
       requiredPlan: "pro",
       upgradeUrl: "/seller/subscription",
@@ -184,20 +177,27 @@ router.post("/rfqs/:id/responses", async (req, res): Promise<void> => {
   const parsed = CreateRfqResponseBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
 
-  const [response] = await db.insert(rfqResponsesTable).values({
-    rfqId: id,
-    sellerId: userId,
-    message: parsed.data.message,
-    listingId: parsed.data.listingId ?? null,
-  }).returning();
+  const [response] = await db
+    .insert(rfqResponsesTable)
+    .values({
+      rfqId: id,
+      sellerId: userId,
+      message: parsed.data.message,
+      listingId: parsed.data.listingId ?? null,
+    })
+    .returning();
 
-  const [seller] = await db.select({ companyName: usersTable.companyName })
-    .from(usersTable).where(eq(usersTable.id, userId));
+  const [seller] = await db
+    .select({ companyName: usersTable.companyName })
+    .from(usersTable)
+    .where(eq(usersTable.id, userId));
 
   let listingPartNumber: string | null = null;
   if (parsed.data.listingId) {
-    const [listing] = await db.select({ partNumber: listingsTable.partNumber })
-      .from(listingsTable).where(eq(listingsTable.id, parsed.data.listingId));
+    const [listing] = await db
+      .select({ partNumber: listingsTable.partNumber })
+      .from(listingsTable)
+      .where(eq(listingsTable.id, parsed.data.listingId));
     listingPartNumber = listing?.partNumber ?? null;
   }
 
