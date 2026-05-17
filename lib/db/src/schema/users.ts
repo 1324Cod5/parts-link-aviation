@@ -4,6 +4,7 @@ import { z } from "zod/v4";
 
 export const userRoleEnum = pgEnum("user_role", ["buyer", "seller", "admin"]);
 export const userPlanEnum = pgEnum("user_plan", ["free", "pro", "enterprise"]);
+export const userStatusEnum = pgEnum("user_status", ["active", "suspended"]);
 
 export const usersTable = pgTable("users", {
   id: serial("id").primaryKey(),
@@ -16,6 +17,7 @@ export const usersTable = pgTable("users", {
   country: text("country"),
   plan: userPlanEnum("plan").notNull().default("free"),
   planExpiresAt: timestamp("plan_expires_at"),
+  status: userStatusEnum("status").notNull().default("active"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });

@@ -788,6 +788,77 @@ paths:
         "401":
           description: Unauthorized
 
+  /admin/sellers:
+    get:
+      operationId: getAdminSellers
+      tags: [admin]
+      summary: List all sellers with stats
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AdminSeller"
+        "401":
+          description: Unauthorized
+
+  /admin/sellers/{id}/status:
+    patch:
+      operationId: adminSetSellerStatus
+      tags: [admin]
+      summary: Activate or suspend a seller account
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminSellerStatusUpdate"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminSeller"
+        "401":
+          description: Unauthorized
+
+  /admin/sellers/{id}/plan:
+    patch:
+      operationId: adminSetSellerPlan
+      tags: [admin]
+      summary: Change a seller's subscription plan
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminSellerPlanUpdate"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminSeller"
+        "401":
+          description: Unauthorized
+
   /admin/mro:
     get:
       operationId: getAdminMroProfiles
@@ -1195,10 +1266,65 @@ components:
           type: integer
         totalSellers:
           type: integer
+        activeSellers:
+          type: integer
+        suspendedSellers:
+          type: integer
         pendingVerification:
           type: integer
         totalInquiries:
           type: integer
+        openRfqs:
+          type: integer
+        totalMro:
+          type: integer
+
+    AdminSeller:
+      type: object
+      required: [id, email, companyName, contactName, plan, status, createdAt, activeListings, totalInquiries]
+      properties:
+        id:
+          type: integer
+        email:
+          type: string
+        companyName:
+          type: string
+        contactName:
+          type: string
+        phone:
+          type: ["string", "null"]
+        country:
+          type: ["string", "null"]
+        plan:
+          type: string
+          enum: [free, pro, enterprise]
+        planExpiresAt:
+          type: ["string", "null"]
+        status:
+          type: string
+          enum: [active, suspended]
+        createdAt:
+          type: string
+        activeListings:
+          type: integer
+        totalInquiries:
+          type: integer
+
+    AdminSellerStatusUpdate:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [active, suspended]
+
+    AdminSellerPlanUpdate:
+      type: object
+      required: [plan]
+      properties:
+        plan:
+          type: string
+          enum: [free, pro, enterprise]
 
     Rfq:
       type: object

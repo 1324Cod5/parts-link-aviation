@@ -486,8 +486,12 @@ export const AdminRemoveListingResponse = zod.object({
 export const GetAdminStatsResponse = zod.object({
   "totalListings": zod.number(),
   "totalSellers": zod.number(),
+  "activeSellers": zod.number().optional(),
+  "suspendedSellers": zod.number().optional(),
   "pendingVerification": zod.number(),
-  "totalInquiries": zod.number()
+  "totalInquiries": zod.number(),
+  "openRfqs": zod.number().optional(),
+  "totalMro": zod.number().optional()
 })
 
 
@@ -874,6 +878,80 @@ export const GetMyMroProfileResponse = zod.object({
   "status": zod.enum(['pending', 'active', 'suspended']),
   "featured": zod.boolean().optional(),
   "createdAt": zod.string()
+})
+
+
+/**
+ * @summary List all sellers with stats
+ */
+export const GetAdminSellersResponseItem = zod.object({
+  "id": zod.number(),
+  "email": zod.string(),
+  "companyName": zod.string(),
+  "contactName": zod.string(),
+  "phone": zod.string().nullish(),
+  "country": zod.string().nullish(),
+  "plan": zod.enum(['free', 'pro', 'enterprise']),
+  "planExpiresAt": zod.string().nullish(),
+  "status": zod.enum(['active', 'suspended']),
+  "createdAt": zod.string(),
+  "activeListings": zod.number(),
+  "totalInquiries": zod.number()
+})
+export const GetAdminSellersResponse = zod.array(GetAdminSellersResponseItem)
+
+
+/**
+ * @summary Activate or suspend a seller account
+ */
+export const AdminSetSellerStatusParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const AdminSetSellerStatusBody = zod.object({
+  "status": zod.enum(['active', 'suspended'])
+})
+
+export const AdminSetSellerStatusResponse = zod.object({
+  "id": zod.number(),
+  "email": zod.string(),
+  "companyName": zod.string(),
+  "contactName": zod.string(),
+  "phone": zod.string().nullish(),
+  "country": zod.string().nullish(),
+  "plan": zod.enum(['free', 'pro', 'enterprise']),
+  "planExpiresAt": zod.string().nullish(),
+  "status": zod.enum(['active', 'suspended']),
+  "createdAt": zod.string(),
+  "activeListings": zod.number(),
+  "totalInquiries": zod.number()
+})
+
+
+/**
+ * @summary Change a seller's subscription plan
+ */
+export const AdminSetSellerPlanParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const AdminSetSellerPlanBody = zod.object({
+  "plan": zod.enum(['free', 'pro', 'enterprise'])
+})
+
+export const AdminSetSellerPlanResponse = zod.object({
+  "id": zod.number(),
+  "email": zod.string(),
+  "companyName": zod.string(),
+  "contactName": zod.string(),
+  "phone": zod.string().nullish(),
+  "country": zod.string().nullish(),
+  "plan": zod.enum(['free', 'pro', 'enterprise']),
+  "planExpiresAt": zod.string().nullish(),
+  "status": zod.enum(['active', 'suspended']),
+  "createdAt": zod.string(),
+  "activeListings": zod.number(),
+  "totalInquiries": zod.number()
 })
 
 

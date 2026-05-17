@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
-import { db, listingsTable, usersTable, inquiriesTable } from "@workspace/db";
-import { eq, and, count } from "drizzle-orm";
+import { db, listingsTable, usersTable, inquiriesTable, mroProfilesTable } from "@workspace/db";
+import { eq, and, count, sql } from "drizzle-orm";
 import { GetAdminListingsQueryParams, AdminRemoveListingParams } from "@workspace/api-zod";
 
 const router: IRouter = Router();
@@ -32,6 +32,23 @@ function serializeListing(listing: any, seller: any) {
     } : undefined,
     createdAt: listing.createdAt.toISOString(),
     updatedAt: listing.updatedAt.toISOString(),
+  };
+}
+
+function serializeSeller(seller: any, activeListings: number, totalInquiries: number) {
+  return {
+    id: seller.id,
+    email: seller.email,
+    companyName: seller.companyName,
+    contactName: seller.contactName,
+    phone: seller.phone ?? null,
+    country: seller.country ?? null,
+    plan: seller.plan,
+    planExpiresAt: seller.planExpiresAt ? seller.planExpiresAt.toISOString() : null,
+    status: seller.status ?? "active",
+    createdAt: seller.createdAt.toISOString(),
+    activeListings,
+    totalInquiries,
   };
 }
 
@@ -81,16 +98,103 @@ router.get("/admin/stats", async (_req, res): Promise<void> => {
   const [totalListings] = await db.select({ count: count() }).from(listingsTable);
   const [totalSellers] = await db.select({ count: count() }).from(usersTable)
     .where(eq(usersTable.role, "seller"));
+  const [activeSellers] = await db.select({ count: count() }).from(usersTable)
+    .where(and(eq(usersTable.role, "seller"), eq(usersTable.status, "active")));
+  const [suspendedSellers] = await db.select({ count: count() }).from(usersTable)
+    .where(and(eq(usersTable.role, "seller"), eq(usersTable.status, "suspended")));
   const [pendingVerification] = await db.select({ count: count() }).from(listingsTable)
     .where(eq(listingsTable.badge, "pending_verification"));
   const [totalInquiries] = await db.select({ count: count() }).from(inquiriesTable);
+  const [totalMroRow] = await db.select({ count: count() }).from(mroProfilesTable);
 
   res.json({
     totalListings: Number(totalListings.count),
     totalSellers: Number(totalSellers.count),
+    activeSellers: Number(activeSellers.count),
+    suspendedSellers: Number(suspendedSellers.count),
     pendingVerification: Number(pendingVerification.count),
     totalInquiries: Number(totalInquiries.count),
+    openRfqs: 0,
+    totalMro: Number(totalMroRow.count),
   });
+});
+
+router.get("/admin/sellers", async (_req, res): Promise<void> => {
+  const sellers = await db.select().from(usersTable).where(eq(usersTable.role, "seller"));
+
+  const result = await Promise.all(sellers.map(async (seller) => {
+    const [activeListingsRow] = await db.select({ count: count() })
+      .from(listingsTable)
+      .where(and(eq(listingsTable.sellerId, seller.id), eq(listingsTable.status, "active")));
+
+    const listingIds = await db.select({ id: listingsTable.id })
+      .from(listingsTable)
+      .where(eq(listingsTable.sellerId, seller.id));
+
+    let totalInquiriesCount = 0;
+    if (listingIds.length > 0) {
+      const [inquiriesRow] = await db.select({ count: count() })
+        .from(inquiriesTable)
+        .where(sql`${inquiriesTable.listingId} = ANY(${listingIds.map(l => l.id)})`);
+      totalInquiriesCount = Number(inquiriesRow?.count ?? 0);
+    }
+
+    return serializeSeller(seller, Number(activeListingsRow?.count ?? 0), totalInquiriesCount);
+  }));
+
+  res.json(result);
+});
+
+router.patch("/admin/sellers/:id/status", async (req, res): Promise<void> => {
+  const id = parseInt(req.params.id as string, 10);
+  const { status } = req.body as { status: string };
+
+  if (!["active", "suspended"].includes(status)) {
+    res.status(400).json({ error: "Invalid status" });
+    return;
+  }
+
+  const [updated] = await db.update(usersTable)
+    .set({ status: status as any, updatedAt: new Date() })
+    .where(and(eq(usersTable.id, id), eq(usersTable.role, "seller")))
+    .returning();
+
+  if (!updated) {
+    res.status(404).json({ error: "Seller not found" });
+    return;
+  }
+
+  const [activeListingsRow] = await db.select({ count: count() })
+    .from(listingsTable)
+    .where(and(eq(listingsTable.sellerId, updated.id), eq(listingsTable.status, "active")));
+
+  res.json(serializeSeller(updated, Number(activeListingsRow?.count ?? 0), 0));
+});
+
+router.patch("/admin/sellers/:id/plan", async (req, res): Promise<void> => {
+  const id = parseInt(req.params.id as string, 10);
+  const { plan } = req.body as { plan: string };
+
+  if (!["free", "pro", "enterprise"].includes(plan)) {
+    res.status(400).json({ error: "Invalid plan" });
+    return;
+  }
+
+  const [updated] = await db.update(usersTable)
+    .set({ plan: plan as any, updatedAt: new Date() })
+    .where(and(eq(usersTable.id, id), eq(usersTable.role, "seller")))
+    .returning();
+
+  if (!updated) {
+    res.status(404).json({ error: "Seller not found" });
+    return;
+  }
+
+  const [activeListingsRow] = await db.select({ count: count() })
+    .from(listingsTable)
+    .where(and(eq(listingsTable.sellerId, updated.id), eq(listingsTable.status, "active")));
+
+  res.json(serializeSeller(updated, Number(activeListingsRow?.count ?? 0), 0));
 });
 
 export default router;

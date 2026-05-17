@@ -337,8 +337,72 @@ export interface SellerStats {
 export interface AdminStats {
   totalListings: number;
   totalSellers: number;
+  activeSellers?: number;
+  suspendedSellers?: number;
   pendingVerification: number;
   totalInquiries: number;
+  openRfqs?: number;
+  totalMro?: number;
+}
+
+export type AdminSellerPlan = typeof AdminSellerPlan[keyof typeof AdminSellerPlan];
+
+
+export const AdminSellerPlan = {
+  free: 'free',
+  pro: 'pro',
+  enterprise: 'enterprise',
+} as const;
+
+export type AdminSellerStatus = typeof AdminSellerStatus[keyof typeof AdminSellerStatus];
+
+
+export const AdminSellerStatus = {
+  active: 'active',
+  suspended: 'suspended',
+} as const;
+
+export interface AdminSeller {
+  id: number;
+  email: string;
+  companyName: string;
+  contactName: string;
+  /** @nullable */
+  phone?: string | null;
+  /** @nullable */
+  country?: string | null;
+  plan: AdminSellerPlan;
+  /** @nullable */
+  planExpiresAt?: string | null;
+  status: AdminSellerStatus;
+  createdAt: string;
+  activeListings: number;
+  totalInquiries: number;
+}
+
+export type AdminSellerStatusUpdateStatus = typeof AdminSellerStatusUpdateStatus[keyof typeof AdminSellerStatusUpdateStatus];
+
+
+export const AdminSellerStatusUpdateStatus = {
+  active: 'active',
+  suspended: 'suspended',
+} as const;
+
+export interface AdminSellerStatusUpdate {
+  status: AdminSellerStatusUpdateStatus;
+}
+
+export type AdminSellerPlanUpdatePlan = typeof AdminSellerPlanUpdatePlan[keyof typeof AdminSellerPlanUpdatePlan];
+
+
+export const AdminSellerPlanUpdatePlan = {
+  free: 'free',
+  pro: 'pro',
+  enterprise: 'enterprise',
+} as const;
+
+export interface AdminSellerPlanUpdate {
+  plan: AdminSellerPlanUpdatePlan;
 }
 
 export type RfqStatus = typeof RfqStatus[keyof typeof RfqStatus];

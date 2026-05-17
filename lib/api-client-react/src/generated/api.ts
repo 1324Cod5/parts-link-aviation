@@ -20,6 +20,9 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  AdminSeller,
+  AdminSellerPlanUpdate,
+  AdminSellerStatusUpdate,
   AdminStats,
   AuthResponse,
   BadgeUpdate,
@@ -2692,6 +2695,227 @@ export function useGetMyMroProfile<TData = Awaited<ReturnType<typeof getMyMroPro
 
 
 
+
+export const getGetAdminSellersUrl = () => {
+
+
+
+
+  return `/api/admin/sellers`
+}
+
+/**
+ * @summary List all sellers with stats
+ */
+export const getAdminSellers = async ( options?: RequestInit): Promise<AdminSeller[]> => {
+
+  return customFetch<AdminSeller[]>(getGetAdminSellersUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAdminSellersQueryKey = () => {
+    return [
+    `/api/admin/sellers`
+    ] as const;
+    }
+
+
+export const getGetAdminSellersQueryOptions = <TData = Awaited<ReturnType<typeof getAdminSellers>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminSellers>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAdminSellersQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAdminSellers>>> = ({ signal }) => getAdminSellers({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAdminSellers>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetAdminSellersQueryResult = NonNullable<Awaited<ReturnType<typeof getAdminSellers>>>
+export type GetAdminSellersQueryError = ErrorType<void>
+
+
+/**
+ * @summary List all sellers with stats
+ */
+
+export function useGetAdminSellers<TData = Awaited<ReturnType<typeof getAdminSellers>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminSellers>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetAdminSellersQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getAdminSetSellerStatusUrl = (id: number,) => {
+
+
+
+
+  return `/api/admin/sellers/${id}/status`
+}
+
+/**
+ * @summary Activate or suspend a seller account
+ */
+export const adminSetSellerStatus = async (id: number,
+    adminSellerStatusUpdate: AdminSellerStatusUpdate, options?: RequestInit): Promise<AdminSeller> => {
+
+  return customFetch<AdminSeller>(getAdminSetSellerStatusUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      adminSellerStatusUpdate,)
+  }
+);}
+
+
+
+
+export const getAdminSetSellerStatusMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof adminSetSellerStatus>>, TError,{id: number;data: BodyType<AdminSellerStatusUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof adminSetSellerStatus>>, TError,{id: number;data: BodyType<AdminSellerStatusUpdate>}, TContext> => {
+
+const mutationKey = ['adminSetSellerStatus'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof adminSetSellerStatus>>, {id: number;data: BodyType<AdminSellerStatusUpdate>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  adminSetSellerStatus(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AdminSetSellerStatusMutationResult = NonNullable<Awaited<ReturnType<typeof adminSetSellerStatus>>>
+    export type AdminSetSellerStatusMutationBody = BodyType<AdminSellerStatusUpdate>
+    export type AdminSetSellerStatusMutationError = ErrorType<void>
+
+    /**
+ * @summary Activate or suspend a seller account
+ */
+export const useAdminSetSellerStatus = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof adminSetSellerStatus>>, TError,{id: number;data: BodyType<AdminSellerStatusUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof adminSetSellerStatus>>,
+        TError,
+        {id: number;data: BodyType<AdminSellerStatusUpdate>},
+        TContext
+      > => {
+      return useMutation(getAdminSetSellerStatusMutationOptions(options));
+    }
+
+export const getAdminSetSellerPlanUrl = (id: number,) => {
+
+
+
+
+  return `/api/admin/sellers/${id}/plan`
+}
+
+/**
+ * @summary Change a seller's subscription plan
+ */
+export const adminSetSellerPlan = async (id: number,
+    adminSellerPlanUpdate: AdminSellerPlanUpdate, options?: RequestInit): Promise<AdminSeller> => {
+
+  return customFetch<AdminSeller>(getAdminSetSellerPlanUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      adminSellerPlanUpdate,)
+  }
+);}
+
+
+
+
+export const getAdminSetSellerPlanMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof adminSetSellerPlan>>, TError,{id: number;data: BodyType<AdminSellerPlanUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof adminSetSellerPlan>>, TError,{id: number;data: BodyType<AdminSellerPlanUpdate>}, TContext> => {
+
+const mutationKey = ['adminSetSellerPlan'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof adminSetSellerPlan>>, {id: number;data: BodyType<AdminSellerPlanUpdate>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  adminSetSellerPlan(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AdminSetSellerPlanMutationResult = NonNullable<Awaited<ReturnType<typeof adminSetSellerPlan>>>
+    export type AdminSetSellerPlanMutationBody = BodyType<AdminSellerPlanUpdate>
+    export type AdminSetSellerPlanMutationError = ErrorType<void>
+
+    /**
+ * @summary Change a seller's subscription plan
+ */
+export const useAdminSetSellerPlan = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof adminSetSellerPlan>>, TError,{id: number;data: BodyType<AdminSellerPlanUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof adminSetSellerPlan>>,
+        TError,
+        {id: number;data: BodyType<AdminSellerPlanUpdate>},
+        TContext
+      > => {
+      return useMutation(getAdminSetSellerPlanMutationOptions(options));
+    }
 
 export const getGetAdminMroProfilesUrl = () => {
 

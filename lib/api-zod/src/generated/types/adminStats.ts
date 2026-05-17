@@ -9,6 +9,10 @@
 export interface AdminStats {
   totalListings: number;
   totalSellers: number;
+  activeSellers?: number;
+  suspendedSellers?: number;
   pendingVerification: number;
   totalInquiries: number;
+  openRfqs?: number;
+  totalMro?: number;
 }
