@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import {
   ArrowLeft, Clock, Package, Building2, Plane, Phone, Mail,
-  CheckCircle2, MessageSquare, Lock, Send, AlertCircle
+  CheckCircle2, MessageSquare, Lock, Send, AlertCircle, Rocket
 } from "lucide-react";
 
 function timeAgo(dateStr: string) {
@@ -38,8 +38,11 @@ export default function RfqDetailPage() {
   const { user } = useAuth();
   const { toast } = useToast();
 
+  const isFreeSeller = user?.role === "seller" && user?.plan === "free";
+  const isPaidSeller = user?.role === "seller" && (user?.plan === "pro" || user?.plan === "enterprise");
+
   const { data, isLoading, refetch } = useGetRfq(id);
-  const { data: sellerListings } = useGetSellerListings({ enabled: !!user && user.role === "seller" });
+  const { data: sellerListings } = useGetSellerListings({ query: { enabled: !!user && user.role === "seller" && !isFreeSeller, queryKey: ["seller-listings-rfq"] } });
 
   const [message, setMessage] = useState("");
   const [listingId, setListingId] = useState<string>("");
@@ -132,7 +135,22 @@ export default function RfqDetailPage() {
                     {rfq.status.toUpperCase()}
                   </Badge>
                 </div>
-                <p className="text-white text-base leading-relaxed">{rfq.description}</p>
+                {/* Description — gated for free sellers */}
+                {isFreeSeller ? (
+                  <div className="relative">
+                    <p className="text-white text-base leading-relaxed line-clamp-2 blur-[3px] select-none pointer-events-none">
+                      {rfq.description}
+                    </p>
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <span className="inline-flex items-center gap-1.5 text-xs text-amber-400 bg-background/90 border border-amber-500/30 rounded px-2.5 py-1">
+                        <Lock className="w-3 h-3" />
+                        Full notes visible on paid plans
+                      </span>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-white text-base leading-relaxed">{rfq.description}</p>
+                )}
               </div>
               {user?.role === "admin" && isOpen && (
                 <Button variant="outline" size="sm" onClick={() => closeRfq({ id })} disabled={isClosing}
@@ -159,7 +177,7 @@ export default function RfqDetailPage() {
                   <div className="border border-border rounded-lg p-8 bg-card/30 text-center">
                     <MessageSquare className="w-8 h-8 mx-auto mb-3 text-muted-foreground opacity-30" />
                     <p className="text-muted-foreground text-sm">No responses yet.</p>
-                    {user?.role === "seller" && isOpen && (
+                    {isPaidSeller && isOpen && (
                       <p className="text-sm text-muted-foreground mt-1">Be the first to respond with your inventory.</p>
                     )}
                   </div>
@@ -192,8 +210,8 @@ export default function RfqDetailPage() {
                 )}
               </div>
 
-              {/* Response form */}
-              {user?.role === "seller" && isOpen ? (
+              {/* Response form — gated by plan */}
+              {isPaidSeller && isOpen ? (
                 <div className="border border-border rounded-lg p-6 bg-card">
                   <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-widest mb-4 flex items-center gap-2">
                     <Send className="w-4 h-4" />
@@ -233,6 +251,46 @@ export default function RfqDetailPage() {
                       {isResponding ? "Submitting…" : "Submit Quote"}
                     </Button>
                   </form>
+                </div>
+              ) : isFreeSeller && isOpen ? (
+                /* Free seller upgrade prompt */
+                <div className="border border-amber-500/25 rounded-lg p-6 bg-amber-500/5">
+                  <div className="flex items-start gap-4">
+                    <div className="w-10 h-10 rounded-full bg-amber-500/15 flex items-center justify-center flex-shrink-0">
+                      <Lock className="w-5 h-5 text-amber-400" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-white mb-1">Upgrade to unlock full RFQ access</h3>
+                      <p className="text-sm text-muted-foreground mb-4 leading-relaxed">
+                        Free accounts can browse RFQs but cannot view buyer contact details, full notes, or submit quotes.
+                        Upgrade to Pro or Enterprise to respond directly to buyers.
+                      </p>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4 text-sm">
+                        <div className="border border-border rounded p-3 bg-card/50">
+                          <div className="font-medium text-white mb-1.5">Pro — $149/mo</div>
+                          <ul className="space-y-1 text-muted-foreground text-xs">
+                            <li className="flex items-center gap-1.5"><CheckCircle2 className="w-3 h-3 text-emerald-400" /> Full buyer details</li>
+                            <li className="flex items-center gap-1.5"><CheckCircle2 className="w-3 h-3 text-emerald-400" /> Respond to RFQs</li>
+                            <li className="flex items-center gap-1.5"><CheckCircle2 className="w-3 h-3 text-emerald-400" /> 50 active listings</li>
+                          </ul>
+                        </div>
+                        <div className="border border-primary/30 rounded p-3 bg-primary/5">
+                          <div className="font-medium text-white mb-1.5">Enterprise — $299/mo</div>
+                          <ul className="space-y-1 text-muted-foreground text-xs">
+                            <li className="flex items-center gap-1.5"><CheckCircle2 className="w-3 h-3 text-emerald-400" /> Everything in Pro</li>
+                            <li className="flex items-center gap-1.5"><CheckCircle2 className="w-3 h-3 text-emerald-400" /> Unlimited listings</li>
+                            <li className="flex items-center gap-1.5"><CheckCircle2 className="w-3 h-3 text-emerald-400" /> Dedicated support</li>
+                          </ul>
+                        </div>
+                      </div>
+                      <Link href="/pricing">
+                        <Button className="bg-primary hover:bg-primary/90 gap-2">
+                          <Rocket className="w-4 h-4" />
+                          View Upgrade Options
+                        </Button>
+                      </Link>
+                    </div>
+                  </div>
                 </div>
               ) : !user ? (
                 <div className="border border-border rounded-lg p-6 bg-card/30 text-center">
@@ -288,28 +346,58 @@ export default function RfqDetailPage() {
                 </dl>
               </div>
 
+              {/* Buyer info — gated for free sellers */}
               <div className="border border-border rounded-lg p-5 bg-card">
                 <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-4">Buyer</h3>
-                <dl className="space-y-3 text-sm">
-                  {rfq.buyerCompany && (
-                    <div className="flex items-center gap-2 text-white">
-                      <Building2 className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                      <span className="font-medium">{rfq.buyerCompany}</span>
+                {isFreeSeller ? (
+                  <div className="space-y-3">
+                    {/* Blurred placeholders */}
+                    <div className="flex items-center gap-2">
+                      <Building2 className="w-4 h-4 text-muted-foreground/40 flex-shrink-0" />
+                      <span className="text-sm text-white blur-[6px] select-none pointer-events-none">Company Name Ltd</span>
                     </div>
-                  )}
-                  <div className="flex items-center gap-2">
-                    <Mail className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                    <a href={`mailto:${rfq.buyerEmail}`} className="text-primary hover:underline truncate">
-                      {rfq.buyerEmail}
-                    </a>
+                    <div className="flex items-center gap-2">
+                      <Mail className="w-4 h-4 text-muted-foreground/40 flex-shrink-0" />
+                      <span className="text-sm text-primary blur-[6px] select-none pointer-events-none">buyer@company.com</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Phone className="w-4 h-4 text-muted-foreground/40 flex-shrink-0" />
+                      <span className="text-sm text-muted-foreground blur-[6px] select-none pointer-events-none">+1 555 000 0000</span>
+                    </div>
+                    <div className="pt-2 border-t border-border">
+                      <p className="text-xs text-amber-400/80 flex items-center gap-1.5 mb-2">
+                        <Lock className="w-3 h-3" />
+                        Buyer details locked on free plan
+                      </p>
+                      <Link href="/pricing">
+                        <Button size="sm" variant="outline" className="w-full text-xs border-amber-500/40 text-amber-400 hover:bg-amber-500/10 hover:text-amber-300">
+                          Upgrade to unlock
+                        </Button>
+                      </Link>
+                    </div>
                   </div>
-                  {rfq.buyerPhone && (
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                      <Phone className="w-4 h-4 flex-shrink-0" />
-                      <span>{rfq.buyerPhone}</span>
+                ) : (
+                  <dl className="space-y-3 text-sm">
+                    {rfq.buyerCompany && (
+                      <div className="flex items-center gap-2 text-white">
+                        <Building2 className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                        <span className="font-medium">{rfq.buyerCompany}</span>
+                      </div>
+                    )}
+                    <div className="flex items-center gap-2">
+                      <Mail className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                      <a href={`mailto:${rfq.buyerEmail}`} className="text-primary hover:underline truncate">
+                        {rfq.buyerEmail}
+                      </a>
                     </div>
-                  )}
-                </dl>
+                    {rfq.buyerPhone && (
+                      <div className="flex items-center gap-2 text-muted-foreground">
+                        <Phone className="w-4 h-4 flex-shrink-0" />
+                        <span>{rfq.buyerPhone}</span>
+                      </div>
+                    )}
+                  </dl>
+                )}
               </div>
             </div>
           </div>

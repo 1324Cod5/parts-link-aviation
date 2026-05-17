@@ -1,12 +1,13 @@
 import { useState } from "react";
 import { Link } from "wouter";
 import { useGetRfqs } from "@workspace/api-client-react";
+import { useAuth } from "@/context/AuthContext";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Search, Plus, Clock, Package, ChevronRight, Building2, Plane } from "lucide-react";
+import { Search, Plus, Clock, Package, ChevronRight, Building2, Plane, Lock } from "lucide-react";
 
 function timeAgo(dateStr: string) {
   const diff = Date.now() - new Date(dateStr).getTime();
@@ -23,6 +24,9 @@ export default function RfqsPage() {
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState<"open" | "closed" | undefined>("open");
+
+  const { user } = useAuth();
+  const isFreeSeller = user?.role === "seller" && user?.plan === "free";
 
   const { data, isLoading } = useGetRfqs({
     q: debouncedSearch || undefined,
@@ -70,6 +74,26 @@ export default function RfqsPage() {
             </div>
           </div>
         </div>
+
+        {/* Free seller access notice */}
+        {isFreeSeller && (
+          <div className="border-b border-amber-500/20 bg-amber-500/5">
+            <div className="container mx-auto px-4 py-3 flex items-center justify-between gap-4">
+              <div className="flex items-center gap-2 text-sm text-amber-400/90">
+                <Lock className="w-4 h-4 flex-shrink-0" />
+                <span>
+                  <span className="font-medium">Free plan:</span> Buyer contact details and full RFQ notes are hidden.
+                  Upgrade to Pro or Enterprise to unlock full access and respond to RFQs.
+                </span>
+              </div>
+              <Link href="/pricing">
+                <Button size="sm" variant="outline" className="border-amber-500/40 text-amber-400 hover:bg-amber-500/10 hover:text-amber-300 flex-shrink-0">
+                  Upgrade Plan
+                </Button>
+              </Link>
+            </div>
+          </div>
+        )}
 
         <div className="container mx-auto px-4 py-8">
           {/* Filters */}
@@ -149,10 +173,17 @@ export default function RfqsPage() {
                         <p className="text-sm text-foreground line-clamp-2 mb-2">{rfq.description}</p>
                         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
                           {rfq.buyerCompany && (
-                            <span className="flex items-center gap-1">
-                              <Building2 className="w-3 h-3" />
-                              {rfq.buyerCompany}
-                            </span>
+                            isFreeSeller ? (
+                              <span className="flex items-center gap-1 text-amber-500/60">
+                                <Lock className="w-3 h-3" />
+                                <span className="blur-[5px] select-none">Company Name</span>
+                              </span>
+                            ) : (
+                              <span className="flex items-center gap-1">
+                                <Building2 className="w-3 h-3" />
+                                {rfq.buyerCompany}
+                              </span>
+                            )
                           )}
                           {rfq.aircraftApplicability && (
                             <span className="flex items-center gap-1">
