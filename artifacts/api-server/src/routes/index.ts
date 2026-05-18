@@ -8,6 +8,7 @@ import adminRfqsRouter from "./admin-rfqs";
 import subscriptionRouter from "./subscription";
 import rfqsRouter from "./rfqs";
 import mroRouter from "./mro";
+import debugRouter from "./debug";
 
 const router: IRouter = Router();
 
@@ -20,5 +21,6 @@ router.use(adminRfqsRouter);
 router.use(subscriptionRouter);
 router.use(rfqsRouter);
 router.use(mroRouter);
+router.use(debugRouter);
 
 export default router;

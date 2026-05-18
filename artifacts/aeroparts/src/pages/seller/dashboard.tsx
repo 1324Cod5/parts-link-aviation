@@ -10,7 +10,7 @@ import {
   useGetMyMroProfile, getGetMyMroProfileQueryKey,
   useDeleteListing
 } from "@workspace/api-client-react";
-import { useAuth } from "@/context/useAuth";
+import { useAuth } from "@/context/AuthContext";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Edit2, Trash2, Package, FileCheck2, MessageSquare, ShieldCheck, Zap, Building2, AlertTriangle, ClipboardList, Wrench, Shield } from "lucide-react";

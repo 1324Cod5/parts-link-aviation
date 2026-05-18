@@ -23,7 +23,7 @@ import {
   useAdminSetRfqUrgency,
   useGetAdminRfqAudit, getGetAdminRfqAuditQueryKey,
 } from "@workspace/api-client-react";
-import { useAuth } from "@/context/useAuth";
+import { useAuth } from "@/context/AuthContext";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import {

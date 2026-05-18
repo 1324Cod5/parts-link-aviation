@@ -1,6 +1,6 @@
 import bcrypt from "bcrypt";
 import { db, usersTable, mroProfilesTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { logger } from "./logger";
 
 interface TestAccount {
@@ -153,22 +153,31 @@ const TEST_ACCOUNTS: TestAccount[] = [
   },
 ];
 
+const TEST_EMAILS = TEST_ACCOUNTS.map(a => a.email.trim().toLowerCase());
+
 export async function seedTestAccounts(): Promise<void> {
   try {
+    // ── 1. Delete all existing test accounts (and their MRO profiles via cascade) ──
+    const existing = await db
+      .select({ id: usersTable.id })
+      .from(usersTable)
+      .where(inArray(usersTable.email, TEST_EMAILS));
+
+    if (existing.length > 0) {
+      const ids = existing.map(r => r.id);
+      await db.delete(mroProfilesTable).where(inArray(mroProfilesTable.userId, ids));
+      await db.delete(usersTable).where(inArray(usersTable.id, ids));
+    }
+
+    // ── 2. Insert fresh records with bcrypt-hashed passwords ──
     for (const account of TEST_ACCOUNTS) {
       const email = account.email.trim().toLowerCase();
       const passwordHash = await bcrypt.hash(account.password, 10);
 
-      const [existing] = await db
-        .select({ id: usersTable.id })
-        .from(usersTable)
-        .where(eq(usersTable.email, email));
-
-      let userId: number;
-
-      if (existing) {
-        // Always refresh password hash, role, and plan so test creds stay in sync
-        await db.update(usersTable).set({
+      const [inserted] = await db
+        .insert(usersTable)
+        .values({
+          email,
           passwordHash,
           role: account.role,
           plan: account.plan,
@@ -176,56 +185,33 @@ export async function seedTestAccounts(): Promise<void> {
           contactName: account.contactName,
           subscriptionStatus: account.subscriptionStatus ?? null,
           currentPeriodEnd: account.currentPeriodEnd ?? null,
-          updatedAt: new Date(),
-        }).where(eq(usersTable.id, existing.id));
-        userId = existing.id;
-        logger.info({ email, plan: account.plan }, "Test account refreshed");
-      } else {
-        const [inserted] = await db
-          .insert(usersTable)
-          .values({
-            email,
-            passwordHash,
-            role: account.role,
-            plan: account.plan,
-            companyName: account.companyName,
-            contactName: account.contactName,
-            subscriptionStatus: account.subscriptionStatus ?? null,
-            currentPeriodEnd: account.currentPeriodEnd ?? null,
-          })
-          .returning({ id: usersTable.id });
-        userId = inserted.id;
-        logger.info({ email, plan: account.plan }, "Test account created");
-      }
+        })
+        .returning({ id: usersTable.id });
 
       if (account.mroProfile) {
-        const [existingMro] = await db
-          .select({ id: mroProfilesTable.id })
-          .from(mroProfilesTable)
-          .where(eq(mroProfilesTable.userId, userId));
-
-        if (!existingMro) {
-          await db.insert(mroProfilesTable).values({
-            userId,
-            companyName: account.mroProfile.companyName,
-            description: account.mroProfile.description,
-            country: account.mroProfile.country,
-            city: account.mroProfile.city,
-            contactName: account.mroProfile.contactName,
-            contactEmail: account.mroProfile.contactEmail,
-            contactPhone: account.mroProfile.contactPhone,
-            serviceTypes: account.mroProfile.serviceTypes,
-            aircraftTypes: account.mroProfile.aircraftTypes,
-            certifications: account.mroProfile.certifications,
-            turnaroundTime: account.mroProfile.turnaroundTime,
-            status: "active",
-            featured: account.plan === "mro_premium",
-          });
-          logger.info({ email }, "MRO profile created for test account");
-        }
+        await db.insert(mroProfilesTable).values({
+          userId: inserted.id,
+          companyName: account.mroProfile.companyName,
+          description: account.mroProfile.description,
+          country: account.mroProfile.country,
+          city: account.mroProfile.city,
+          contactName: account.mroProfile.contactName,
+          contactEmail: account.mroProfile.contactEmail,
+          contactPhone: account.mroProfile.contactPhone,
+          serviceTypes: account.mroProfile.serviceTypes,
+          aircraftTypes: account.mroProfile.aircraftTypes,
+          certifications: account.mroProfile.certifications,
+          turnaroundTime: account.mroProfile.turnaroundTime,
+          status: "active",
+          featured: account.plan === "mro_premium",
+        });
       }
     }
+
+    console.log("Seeded test accounts successfully");
+    logger.info({ count: TEST_ACCOUNTS.length }, "Test accounts seeded");
   } catch (err) {
     logger.error({ err }, "Failed to seed test accounts");
+    throw err;
   }
 }
