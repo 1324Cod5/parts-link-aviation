@@ -211,6 +211,17 @@ router.post("/auth/login", async (req, res): Promise<void> => {
     .where(eq(usersTable.id, user.id));
 
   req.session!.userId = user.id;
+  console.log(`LOGIN SUCCESS | email=${email} | userId=${user.id} | role=${derived.computedRole}`);
+
+  // Explicitly save the session before responding so the cookie is guaranteed
+  // to be committed to the store before the browser makes its next request.
+  await new Promise<void>((resolve, reject) =>
+    req.session!.save(err => (err ? reject(err) : resolve()))
+  );
+
+  const sessionId = req.session!.id;
+  console.log(`COOKIE SET | sessionId=${sessionId} | userId=${user.id}`);
+
   res.json({ user: serializeUser(user, derived.computedRole) });
 });
 
@@ -262,9 +273,11 @@ router.post("/auth/logout", async (req, res): Promise<void> => {
 router.get("/auth/me", async (req, res): Promise<void> => {
   const userId = req.session?.userId;
   if (!userId) {
+    console.log(`SESSION MISSING ON DASHBOARD LOAD | sessionId=${req.session?.id ?? "none"} | path=${req.path}`);
     res.status(401).json({ error: "Not authenticated" });
     return;
   }
+  console.log(`SESSION FOUND ON REQUEST | sessionId=${req.session!.id} | userId=${userId}`);
 
   const result = await fetchUserWithMro(userId);
   if (!result) {

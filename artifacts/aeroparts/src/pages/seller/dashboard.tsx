@@ -61,8 +61,18 @@ export default function SellerDashboard() {
     });
   };
 
+  // Wait until the auth check has fully resolved before deciding whether to
+  // show the dashboard or the "sign in" gate.  This prevents the brief flash
+  // where user===null while the /auth/me request is still in-flight.
   if (authLoading) {
-    return <MainLayout><div className="container mx-auto px-4 py-16 text-center text-muted-foreground">Loading...</div></MainLayout>;
+    return (
+      <MainLayout>
+        <div className="container mx-auto px-4 py-24 text-center text-muted-foreground">
+          <div className="inline-block w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin mb-3" />
+          <p className="text-sm">Verifying session…</p>
+        </div>
+      </MainLayout>
+    );
   }
 
   if (!user) {

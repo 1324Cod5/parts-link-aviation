@@ -25,7 +25,9 @@ export default function SellerLogin() {
         onSuccess: (data) => {
           const { computedRole, contactName } = data.user;
           toast({ title: "Signed in", description: `Welcome back, ${contactName}` });
-          queryClient.invalidateQueries({ queryKey: getGetCurrentUserQueryKey() });
+          // Write user directly into cache — prevents race condition where
+          // dashboard renders before the invalidated /auth/me refetch completes.
+          queryClient.setQueryData(getGetCurrentUserQueryKey(), data.user);
           if (computedRole === "admin") {
             navigate("/admin");
           } else if (computedRole.startsWith("seller_")) {

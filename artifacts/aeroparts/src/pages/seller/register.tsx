@@ -3,12 +3,14 @@ import { Link, useLocation } from "wouter";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { useRegisterUser } from "@workspace/api-client-react";
+import { useRegisterUser, getGetCurrentUserQueryKey } from "@workspace/api-client-react";
 import { useToast } from "@/hooks/use-toast";
+import { useQueryClient } from "@tanstack/react-query";
 
 export default function SellerRegister() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [form, setForm] = useState({
     companyName: "", contactName: "", email: "", password: "", phone: "", country: ""
   });
@@ -20,9 +22,11 @@ export default function SellerRegister() {
     register.mutate(
       { data: { ...form, phone: form.phone || null, country: form.country || null } },
       {
-        onSuccess: () => {
+        onSuccess: (data) => {
           toast({ title: "Account created", description: "Welcome to AeroParts. Redirecting to your dashboard..." });
-          setTimeout(() => navigate("/seller/dashboard"), 1000);
+          // Write user directly into cache so dashboard sees auth immediately.
+          queryClient.setQueryData(getGetCurrentUserQueryKey(), data.user);
+          navigate("/seller/dashboard");
         },
         onError: () => {
           toast({ title: "Registration failed", description: "That email may already be registered.", variant: "destructive" });

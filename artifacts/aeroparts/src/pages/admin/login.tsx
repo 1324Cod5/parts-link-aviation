@@ -75,7 +75,8 @@ export default function AdminLogin() {
           }
           setLockedUntil(null);
           setAttemptsWarning(null);
-          queryClient.invalidateQueries({ queryKey: getGetCurrentUserQueryKey() });
+          // Write user directly into cache to prevent race condition on navigate.
+          queryClient.setQueryData(getGetCurrentUserQueryKey(), data.user);
           if (user.mustChangePassword) {
             navigate("/admin/change-password");
           } else {
