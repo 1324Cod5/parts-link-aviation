@@ -328,4 +328,33 @@ router.get("/permissions/me", async (req, res): Promise<void> => {
   });
 });
 
+// ─── Debug bypass (development only) ─────────────────────────────────────────
+// Visit /api/debug/login-free-seller to instantly create an authenticated session
+// for the free seller test account without going through the login form.
+// This lets us verify dashboard routing/session independently of the login flow.
+if (process.env.NODE_ENV !== "production") {
+  router.get("/debug/login-free-seller", async (req, res): Promise<void> => {
+    const [user] = await db
+      .select()
+      .from(usersTable)
+      .where(eq(usersTable.email, "freeseller@test.com"))
+      .limit(1);
+
+    if (!user) {
+      res.status(404).json({ error: "Debug user freeseller@test.com not found. Run seed first." });
+      return;
+    }
+
+    req.session!.userId = user.id;
+
+    await new Promise<void>((resolve, reject) => {
+      req.session!.save((err) => { if (err) reject(err); else resolve(); });
+    });
+
+    console.log(`DEBUG LOGIN | userId=${user.id} | email=${user.email} | sessionId=${req.session!.id}`);
+
+    res.redirect("/seller/dashboard");
+  });
+}
+
 export default router;
