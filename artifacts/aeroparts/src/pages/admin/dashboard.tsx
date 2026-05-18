@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link, useLocation } from "wouter";
+import { Link, useLocation, useParams } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -24,7 +24,7 @@ import {
   MessageSquare, AlertTriangle, ChevronRight, LogOut, ShieldAlert,
   ExternalLink, CheckCircle2, XCircle, MapPin, Clock, TrendingUp,
   Building2, Mail, Phone, Globe, Star, AlertCircle, Search,
-  ArrowUpDown, Lock, Unlock, FileText
+  ArrowUpDown, Lock, Unlock, FileText, BarChart2, Trophy
 } from "lucide-react";
 
 // ─── helpers ────────────────────────────────────────────────────────────────
@@ -66,17 +66,19 @@ const BADGE_META: Record<string, { label: string; color: string }> = {
 
 // ─── navigation ─────────────────────────────────────────────────────────────
 
-type Section = "overview" | "sellers" | "listings" | "certifications" | "subscriptions" | "mro" | "rfqs" | "disputes";
+type Section = "overview" | "sellers" | "listings" | "certifications" | "billing" | "mro" | "rfqs" | "trust" | "analytics" | "disputes";
 
 const NAV: { id: Section; label: string; icon: React.ElementType }[] = [
-  { id: "overview",        label: "Overview",          icon: LayoutDashboard },
-  { id: "sellers",         label: "Seller Management", icon: Users },
-  { id: "listings",        label: "Listing Review",    icon: Package },
-  { id: "certifications",  label: "Certification Review", icon: ShieldCheck },
-  { id: "subscriptions",   label: "Subscriptions",     icon: CreditCard },
-  { id: "mro",             label: "MRO Management",    icon: Wrench },
-  { id: "rfqs",            label: "RFQ Monitoring",    icon: MessageSquare },
-  { id: "disputes",        label: "Dispute Resolution",icon: AlertTriangle },
+  { id: "overview",        label: "Overview",               icon: LayoutDashboard },
+  { id: "sellers",         label: "Seller Management",      icon: Users },
+  { id: "listings",        label: "Listing Review",         icon: Package },
+  { id: "certifications",  label: "Certification Review",   icon: ShieldCheck },
+  { id: "billing",         label: "Billing & Subscriptions",icon: CreditCard },
+  { id: "mro",             label: "MRO Management",         icon: Wrench },
+  { id: "rfqs",            label: "RFQ Monitoring",         icon: MessageSquare },
+  { id: "trust",           label: "Trust Scores",           icon: Trophy },
+  { id: "analytics",       label: "Platform Analytics",     icon: BarChart2 },
+  { id: "disputes",        label: "Dispute Resolution",     icon: AlertTriangle },
 ];
 
 // ─── stat card ──────────────────────────────────────────────────────────────
@@ -133,22 +135,27 @@ function OverviewSection() {
       {/* Quick actions */}
       <div className="border border-border rounded-lg p-6 bg-card">
         <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">Quick Actions</h3>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
           {[
-            { label: "Review Pending Listings", section: "listings" as Section, icon: Package, badge: stats?.pendingVerification },
-            { label: "Manage Sellers",          section: "sellers" as Section,  icon: Users },
-            { label: "Check Certifications",    section: "certifications" as Section, icon: ShieldCheck },
-            { label: "Monitor RFQs",            section: "rfqs" as Section, icon: MessageSquare },
-          ].map(({ label, icon: Icon, badge }) => (
-            <div key={label} className="relative border border-border rounded-md p-4 bg-card/50 hover:bg-card/80 transition-colors cursor-pointer">
-              <Icon className="w-5 h-5 text-primary mb-2" />
-              <p className="text-sm text-white font-medium leading-tight">{label}</p>
-              {badge ? (
-                <span className="absolute top-2 right-2 text-xs bg-amber-500 text-black rounded-full w-5 h-5 flex items-center justify-center font-bold">
-                  {badge > 9 ? "9+" : badge}
-                </span>
-              ) : null}
-            </div>
+            { label: "Review Certifications",      href: "/admin/certifications", icon: ShieldCheck, badge: stats?.pendingVerification },
+            { label: "Manage Sellers",             href: "/admin/sellers",        icon: Users },
+            { label: "Review RFQs",                href: "/admin/rfqs",           icon: MessageSquare },
+            { label: "Manage MRO Providers",       href: "/admin/mro",            icon: Wrench },
+            { label: "Billing & Subscriptions",    href: "/admin/billing",        icon: CreditCard },
+            { label: "Trust Scores / Leaderboard", href: "/admin/trust",          icon: Trophy },
+            { label: "Platform Analytics",         href: "/admin/analytics",      icon: BarChart2 },
+          ].map(({ label, icon: Icon, badge, href }) => (
+            <Link key={label} href={href}>
+              <div className="relative border border-border rounded-md p-4 bg-card/50 hover:bg-card/80 hover:border-primary/30 transition-colors cursor-pointer">
+                <Icon className="w-5 h-5 text-primary mb-2" />
+                <p className="text-sm text-white font-medium leading-tight">{label}</p>
+                {badge ? (
+                  <span className="absolute top-2 right-2 text-xs bg-amber-500 text-black rounded-full w-5 h-5 flex items-center justify-center font-bold">
+                    {badge > 9 ? "9+" : badge}
+                  </span>
+                ) : null}
+              </div>
+            </Link>
           ))}
         </div>
       </div>
@@ -962,19 +969,188 @@ function DisputesSection() {
   );
 }
 
+// ─── section: trust scores ───────────────────────────────────────────────────
+
+function TrustSection() {
+  const { data: sellers, isLoading } = useGetAdminSellers({ query: { queryKey: getGetAdminSellersQueryKey() } });
+
+  const ranked = (sellers ?? []).slice().sort((a, b) => (b.activeListings ?? 0) - (a.activeListings ?? 0));
+  const activeCount = (sellers ?? []).filter(s => s.status === "active").length;
+  const suspendedCount = (sellers ?? []).filter(s => s.status === "suspended").length;
+
+  const rankColors = ["text-amber-400", "text-slate-300", "text-amber-700"];
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-lg font-semibold text-white mb-1">Trust Scores &amp; Leaderboard</h2>
+        <p className="text-sm text-muted-foreground">Seller trust ranking based on verified listings, plan tier, and account standing.</p>
+      </div>
+
+      <div className="grid grid-cols-3 gap-4">
+        <div className="border border-emerald-500/20 rounded-lg p-4 bg-card">
+          <p className="text-xs text-muted-foreground uppercase tracking-wider mb-2">Active Sellers</p>
+          <p className="text-2xl font-bold font-mono text-emerald-400">{isLoading ? "—" : activeCount}</p>
+        </div>
+        <div className="border border-red-500/20 rounded-lg p-4 bg-card">
+          <p className="text-xs text-muted-foreground uppercase tracking-wider mb-2">Suspended</p>
+          <p className="text-2xl font-bold font-mono text-red-400">{isLoading ? "—" : suspendedCount}</p>
+        </div>
+        <div className="border border-border rounded-lg p-4 bg-card">
+          <p className="text-xs text-muted-foreground uppercase tracking-wider mb-2">Total Sellers</p>
+          <p className="text-2xl font-bold font-mono text-white">{isLoading ? "—" : (sellers ?? []).length}</p>
+        </div>
+      </div>
+
+      <div className="border border-border rounded-lg bg-card overflow-hidden">
+        <div className="p-4 border-b border-border flex items-center justify-between">
+          <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+            <Trophy className="w-4 h-4 text-amber-400" />
+            Seller Leaderboard
+          </h3>
+          <span className="text-xs text-muted-foreground">Ranked by active listings</span>
+        </div>
+        {isLoading ? (
+          <div className="p-6 space-y-3">{Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-14 w-full" />)}</div>
+        ) : ranked.length === 0 ? (
+          <div className="p-12 text-center text-muted-foreground"><Trophy className="w-8 h-8 mx-auto mb-3 opacity-30" /><p>No sellers yet.</p></div>
+        ) : (
+          <div className="divide-y divide-border/50">
+            {ranked.map((seller, idx) => {
+              const planMeta = PLAN_META[seller.plan] ?? PLAN_META.free;
+              const stMeta = STATUS_META[seller.status] ?? STATUS_META.active;
+              return (
+                <div key={seller.id} className="flex items-center gap-4 p-4 hover:bg-secondary/10 transition-colors">
+                  <div className={`w-8 text-center font-bold font-mono text-sm flex-shrink-0 ${rankColors[idx] ?? "text-muted-foreground"}`}>
+                    #{idx + 1}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="text-sm font-medium text-white truncate">{seller.companyName}</p>
+                      <span className={`text-xs px-1.5 py-0.5 rounded font-medium flex-shrink-0 ${planMeta.bg} ${planMeta.color}`}>{planMeta.label}</span>
+                      <span className={`text-xs px-1.5 py-0.5 rounded flex-shrink-0 ${stMeta.bg} ${stMeta.color}`}>{stMeta.label}</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-0.5">{seller.email}</p>
+                  </div>
+                  <div className="text-right flex-shrink-0">
+                    <p className="text-sm font-mono font-bold text-white">{seller.activeListings}</p>
+                    <p className="text-xs text-muted-foreground">active listings</p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── section: analytics ──────────────────────────────────────────────────────
+
+function AnalyticsSection() {
+  const { data: stats, isLoading } = useGetAdminStats({ query: { queryKey: getGetAdminStatsQueryKey() } });
+  const { data: sellers } = useGetAdminSellers({ query: { queryKey: getGetAdminSellersQueryKey() } });
+  const { data: rfqData } = useGetRfqs({ status: "open", limit: 1 });
+
+  const proCount = (sellers ?? []).filter(s => s.plan === "pro").length;
+  const enterpriseCount = (sellers ?? []).filter(s => s.plan === "enterprise").length;
+  const freeCount = (sellers ?? []).filter(s => s.plan === "free").length;
+  const estRevenue = proCount * 149 + enterpriseCount * 299;
+
+  const kpis = [
+    { label: "Total Listings",   value: stats?.totalListings,       color: "text-white"       as const, icon: Package },
+    { label: "Active Sellers",   value: stats?.activeSellers,       color: "text-emerald-400" as const, icon: Users },
+    { label: "Pending Review",   value: stats?.pendingVerification, color: "text-amber-400"   as const, icon: ShieldCheck },
+    { label: "Total Inquiries",  value: stats?.totalInquiries,      color: "text-primary"     as const, icon: MessageSquare },
+    { label: "MRO Providers",    value: stats?.totalMro,            color: "text-white"       as const, icon: Wrench },
+    { label: "Open RFQs",        value: rfqData?.total,             color: "text-white"       as const, icon: FileText },
+  ];
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-lg font-semibold text-white mb-1">Platform Analytics</h2>
+        <p className="text-sm text-muted-foreground">Real-time platform health metrics and revenue overview.</p>
+      </div>
+
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+        {kpis.map(k => (
+          <StatCard key={k.label} icon={k.icon} label={k.label} value={isLoading ? null : (k.value ?? null)} color={k.color} />
+        ))}
+      </div>
+
+      <div className="border border-border rounded-lg p-6 bg-card">
+        <h3 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
+          <BarChart2 className="w-4 h-4 text-primary" />
+          Revenue Estimates
+        </h3>
+        <div className="grid grid-cols-3 gap-4 mb-4">
+          {[
+            { label: "Free Tier",  count: freeCount,       revenue: "$0/mo",                                    color: "text-muted-foreground", bg: "border-border" },
+            { label: "Pro Tier",   count: proCount,        revenue: `$${(proCount * 149).toLocaleString()}/mo`,        color: "text-primary",    bg: "border-primary/30" },
+            { label: "Enterprise", count: enterpriseCount, revenue: `$${(enterpriseCount * 299).toLocaleString()}/mo`, color: "text-amber-400",  bg: "border-amber-500/30" },
+          ].map(p => (
+            <div key={p.label} className={`border rounded-lg p-4 bg-card/60 ${p.bg}`}>
+              <p className={`text-sm font-semibold mb-1 ${p.color}`}>{p.label}</p>
+              <p className="text-xl font-bold font-mono text-white">{p.count} sellers</p>
+              <p className="text-xs text-muted-foreground mt-1">{p.revenue}</p>
+            </div>
+          ))}
+        </div>
+        <div className="pt-4 border-t border-border flex items-center justify-between">
+          <span className="text-sm text-muted-foreground">Estimated Monthly Revenue</span>
+          <span className="text-lg font-bold font-mono text-emerald-400">${estRevenue.toLocaleString()}/mo</span>
+        </div>
+      </div>
+
+      <div className="border border-border rounded-lg p-6 bg-card">
+        <h3 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
+          <TrendingUp className="w-4 h-4 text-primary" />
+          Listing Verification Funnel
+        </h3>
+        <div className="grid grid-cols-3 gap-4 text-center">
+          {[
+            { label: "Pending Verification", value: stats?.pendingVerification ?? 0, color: "text-amber-400" },
+            { label: "Active Listings",      value: stats?.totalListings ?? 0,       color: "text-white" },
+            { label: "Total Inquiries",      value: stats?.totalInquiries ?? 0,      color: "text-primary" },
+          ].map(s => (
+            <div key={s.label} className="border border-border rounded-lg p-4 bg-card/60">
+              <p className={`text-2xl font-bold font-mono ${s.color}`}>{isLoading ? "—" : s.value}</p>
+              <p className="text-xs text-muted-foreground mt-1">{s.label}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── main admin shell ────────────────────────────────────────────────────────
 
 export default function AdminDashboard() {
   const { user, isLoading: authLoading, logout } = useAuth();
-  const [section, setSection] = useState<Section>("overview");
+  const { section: sectionParam } = useParams<{ section?: string }>();
+  const [, navigate] = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { data: stats } = useGetAdminStats({ query: { queryKey: getGetAdminStatsQueryKey() } });
 
-  const [, navigate] = useLocation();
+  const VALID_SECTIONS = new Set<string>(["overview", "sellers", "listings", "certifications", "billing", "mro", "rfqs", "trust", "analytics", "disputes"]);
+  const section: Section = (sectionParam && VALID_SECTIONS.has(sectionParam) ? sectionParam : "overview") as Section;
+
+  function navTo(id: Section) {
+    navigate(id === "overview" ? "/admin" : `/admin/${id}`);
+  }
 
   useEffect(() => {
-    if (!authLoading && user?.mustChangePassword) {
+    if (authLoading) return;
+    if (user?.mustChangePassword) {
       navigate("/admin/change-password");
+      return;
+    }
+    const isAdmin = user?.role === "admin" || user?.role === "super_admin";
+    if (!user || !isAdmin) {
+      navigate("/admin/login");
     }
   }, [authLoading, user, navigate]);
 
@@ -991,17 +1167,7 @@ export default function AdminDashboard() {
   if (!user || !isAdmin) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="max-w-sm w-full mx-auto px-4 text-center">
-          <div className="w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center mx-auto mb-6">
-            <ShieldAlert className="w-8 h-8 text-destructive/60" />
-          </div>
-          <h1 className="text-xl font-bold text-white mb-2">Admin Access Required</h1>
-          <p className="text-muted-foreground text-sm mb-6">This area is restricted to AeroParts administrators only.</p>
-          <Link href="/admin/login">
-            <Button className="w-full mb-3">Sign In to Admin Portal</Button>
-          </Link>
-          <p className="text-xs text-muted-foreground">Use <span className="font-mono">admin@aeroparts.com</span> / <span className="font-mono">password</span></p>
-        </div>
+        <div className="text-muted-foreground text-sm">Redirecting to login…</div>
       </div>
     );
   }
@@ -1029,7 +1195,7 @@ export default function AdminDashboard() {
             const badge = SECTION_BADGES[id];
             const active = section === id;
             return (
-              <button key={id} onClick={() => setSection(id)}
+              <button key={id} onClick={() => navTo(id)}
                 className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-all text-left ${
                   active ? "bg-primary/15 text-white border border-primary/20" : "text-muted-foreground hover:text-white hover:bg-secondary/40"
                 }`}>
@@ -1082,7 +1248,7 @@ export default function AdminDashboard() {
             <div className="lg:hidden flex gap-1 flex-wrap">
               {NAV.map(({ id, icon: Icon }) => (
                 <Button key={id} variant={section === id ? "default" : "ghost"} size="sm"
-                  className="h-7 w-7 p-0" onClick={() => setSection(id)}>
+                  className="h-7 w-7 p-0" onClick={() => navTo(id)}>
                   <Icon className="w-3.5 h-3.5" />
                 </Button>
               ))}
@@ -1096,9 +1262,11 @@ export default function AdminDashboard() {
           {section === "sellers"        && <SellersSection />}
           {section === "listings"       && <ListingsSection />}
           {section === "certifications" && <CertificationsSection />}
-          {section === "subscriptions"  && <SubscriptionsSection />}
+          {section === "billing"        && <SubscriptionsSection />}
           {section === "mro"            && <MroSection />}
           {section === "rfqs"           && <RfqsSection />}
+          {section === "trust"          && <TrustSection />}
+          {section === "analytics"      && <AnalyticsSection />}
           {section === "disputes"       && <DisputesSection />}
         </main>
       </div>

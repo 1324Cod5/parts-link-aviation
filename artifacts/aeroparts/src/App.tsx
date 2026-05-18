@@ -48,6 +48,7 @@ function Router() {
       <Route path="/admin/login" component={AdminLogin} />
       <Route path="/admin/change-password" component={AdminChangePassword} />
       <Route path="/admin/review-cert/:id" component={AdminCertReview} />
+      <Route path="/admin/:section" component={AdminDashboard} />
       <Route path="/admin" component={AdminDashboard} />
       <Route path="/pricing" component={Pricing} />
       <Route path="/seller/subscription" component={SubscriptionManagement} />
