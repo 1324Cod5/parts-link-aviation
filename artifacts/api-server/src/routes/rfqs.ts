@@ -2,14 +2,9 @@ import { Router, type IRouter } from "express";
 import { db, rfqsTable, rfqResponsesTable, usersTable, listingsTable } from "@workspace/db";
 import { eq, desc, like, or, count, and } from "drizzle-orm";
 import { CreateRfqBody, CreateRfqResponseBody } from "@workspace/api-zod";
-import { resolveEffectivePlan, FULL_ACCESS_PLANS } from "../lib/planEnforcement";
+import { FULL_ACCESS_PLANS } from "../lib/planEnforcement";
 
 const router: IRouter = Router();
-
-async function callerEffectivePlan(userId: number | undefined): Promise<string> {
-  if (!userId) return "anonymous";
-  return resolveEffectivePlan(userId);
-}
 
 function serializeRfq(rfq: any, accessLevel: "full" | "limited") {
   return {
@@ -63,7 +58,7 @@ router.get("/rfqs", async (req, res): Promise<void> => {
     db.select({ count: count() }).from(rfqsTable).where(where),
   ]);
 
-  const plan = await callerEffectivePlan(req.session?.userId);
+  const plan = req.session?.user?.subscriptionTier ?? "free";
   const accessLevel: "full" | "limited" = FULL_ACCESS_PLANS.has(plan) ? "full" : "limited";
 
   res.json({
@@ -124,7 +119,7 @@ router.get("/rfqs/:id", async (req, res): Promise<void> => {
   const [rfq] = await db.select().from(rfqsTable).where(eq(rfqsTable.id, id));
   if (!rfq) { res.status(404).json({ error: "RFQ not found" }); return; }
 
-  const plan = await callerEffectivePlan(req.session?.userId);
+  const plan = req.session?.user?.subscriptionTier ?? "free";
   const accessLevel: "full" | "limited" = FULL_ACCESS_PLANS.has(plan) ? "full" : "limited";
 
   const rawResponses = await db
@@ -178,7 +173,7 @@ router.post("/rfqs/:id/responses", async (req, res): Promise<void> => {
   const userId = req.session?.userId;
   if (!userId) { res.status(401).json({ error: "Not authenticated" }); return; }
 
-  const plan = await callerEffectivePlan(userId);
+  const plan = req.session?.user?.subscriptionTier ?? "free";
   if (!FULL_ACCESS_PLANS.has(plan)) {
     res.status(402).json({
       error: "Responding to RFQs requires a Pro, Enterprise, or Premium MRO plan. Upgrade to unlock full buyer contact details and the ability to respond.",

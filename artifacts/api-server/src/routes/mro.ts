@@ -2,7 +2,7 @@ import { Router, type IRouter } from "express";
 import { db, mroProfilesTable, serviceQuoteRequestsTable, usersTable } from "@workspace/db";
 import { eq, desc, count, and, ilike, sql } from "drizzle-orm";
 import { CreateMroProfileBody, UpdateMroProfileBody, CreateServiceQuoteRequestBody, AdminSetMroStatusBody } from "@workspace/api-zod";
-import { resolveEffectivePlan, MRO_SERVICE_LIMITS } from "../lib/planEnforcement";
+import { MRO_SERVICE_LIMITS } from "../lib/planEnforcement";
 
 const router: IRouter = Router();
 
@@ -84,7 +84,7 @@ router.post("/mro", async (req, res): Promise<void> => {
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
 
   const d = parsed.data;
-  const plan = await resolveEffectivePlan(userId);
+  const plan = req.session?.user?.subscriptionTier ?? "free";
   const serviceLimit = MRO_SERVICE_LIMITS[plan] ?? 1;
   const serviceTypes = d.serviceTypes ?? [];
 
@@ -165,7 +165,7 @@ router.put("/mro/:id", async (req, res): Promise<void> => {
   const d = parsed.data;
 
   if (!isAdmin && d.serviceTypes !== undefined) {
-    const plan = await resolveEffectivePlan(userId);
+    const plan = req.session?.user?.subscriptionTier ?? "free";
     const serviceLimit = MRO_SERVICE_LIMITS[plan] ?? 1;
     if (serviceLimit !== null && d.serviceTypes.length > serviceLimit) {
       res.status(402).json({
@@ -249,7 +249,7 @@ router.get("/seller/mro-profile", async (req, res): Promise<void> => {
     .where(eq(mroProfilesTable.userId, userId)).limit(1);
   if (!mro) { res.status(404).json({ error: "No MRO profile found" }); return; }
 
-  const plan = await resolveEffectivePlan(userId);
+  const plan = req.session?.user?.subscriptionTier ?? "free";
   const serviceTypeLimit = MRO_SERVICE_LIMITS[plan] ?? 1;
 
   res.json({ ...serializeMro(mro), serviceTypeLimit, plan });

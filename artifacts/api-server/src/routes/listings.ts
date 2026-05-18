@@ -14,7 +14,7 @@ import {
   CreateInquiryBody,
   CreateListingBody,
 } from "@workspace/api-zod";
-import { resolveEffectivePlan, PLAN_LISTING_LIMITS } from "../lib/planEnforcement";
+import { PLAN_LISTING_LIMITS } from "../lib/planEnforcement";
 import { recomputeAndSave } from "../lib/trustScore";
 
 const router: IRouter = Router();
@@ -186,7 +186,7 @@ router.post("/listings", async (req, res): Promise<void> => {
 
   const [seller] = await db.select().from(usersTable).where(eq(usersTable.id, userId));
   if (seller) {
-    const effectivePlan = resolveEffectivePlan ? await resolveEffectivePlan(userId) : seller.plan;
+    const effectivePlan = req.session?.user?.subscriptionTier ?? seller.plan ?? "free";
     const limit = PLAN_LISTING_LIMITS[effectivePlan] ?? 5;
     if (limit !== null) {
       const [activeRow] = await db

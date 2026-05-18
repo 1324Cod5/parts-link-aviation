@@ -1,7 +1,7 @@
 import { Router, type IRouter } from "express";
 import { db, listingsTable, inquiriesTable, usersTable, rfqsTable, rfqResponsesTable } from "@workspace/db";
 import { eq, and, count, inArray, gte, sql } from "drizzle-orm";
-import { resolveEffectivePlan, PLAN_LISTING_LIMITS, FULL_ACCESS_PLANS } from "../lib/planEnforcement";
+import { PLAN_LISTING_LIMITS, FULL_ACCESS_PLANS } from "../lib/planEnforcement";
 
 const router: IRouter = Router();
 
@@ -85,7 +85,7 @@ router.get("/seller/stats", async (req, res): Promise<void> => {
     totalInquiries = Number(inq.count);
   }
 
-  const effectivePlan = await resolveEffectivePlan(userId);
+  const effectivePlan = req.session?.user?.subscriptionTier ?? "free";
   const listingLimit = PLAN_LISTING_LIMITS[effectivePlan] ?? 5;
   const canAddListing = listingLimit === null || Number(activeListings.count) < listingLimit;
 
@@ -105,7 +105,7 @@ router.get("/seller/analytics", async (req, res): Promise<void> => {
   const userId = req.session?.userId;
   if (!userId) { res.status(401).json({ error: "Not authenticated" }); return; }
 
-  const effectivePlan = await resolveEffectivePlan(userId);
+  const effectivePlan = req.session?.user?.subscriptionTier ?? "free";
 
   if (!FULL_ACCESS_PLANS.has(effectivePlan)) {
     res.status(402).json({
