@@ -24,6 +24,7 @@ import RfqDetailPage from "@/pages/rfqs/detail";
 import MroDirectoryPage from "@/pages/mro/index";
 import MroRegisterPage from "@/pages/mro/register";
 import MroDetailPage from "@/pages/mro/detail";
+import MroDashboard from "@/pages/mro/dashboard";
 import DebugLoginFreeSeller from "@/pages/debug-login";
 import AuthTestPage from "@/pages/auth-test";
 
@@ -59,6 +60,7 @@ function Router() {
       <Route path="/rfqs/:id" component={RfqDetailPage} />
       <Route path="/mro" component={MroDirectoryPage} />
       <Route path="/mro/register" component={MroRegisterPage} />
+      <Route path="/mro/dashboard" component={MroDashboard} />
       <Route path="/mro/:id" component={MroDetailPage} />
       <Route path="/debug-login-free-seller" component={DebugLoginFreeSeller} />
       <Route path="/auth-test" component={AuthTestPage} />

@@ -89,7 +89,13 @@ router.post("/auth-test/login", async (req, res): Promise<void> => {
   const sid = (req as any).session.id;
   console.log(`[auth-test] SESSION CREATED: yes | id=${sid} | email=${email} | role=${record.role} | dbUserId=${dbUserId}`);
 
-  res.redirect(302, "/auth-test");
+  // Route to the correct dashboard by role
+  const role: string = record.role;
+  const dest =
+    role === "admin"  ? "/admin/dashboard" :
+    role === "mro"    ? "/mro/dashboard"   :
+                        "/seller/dashboard";
+  res.redirect(302, dest);
 });
 
 // GET /api/auth-test/me

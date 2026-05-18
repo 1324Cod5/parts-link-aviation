@@ -303,13 +303,21 @@ router.post("/auth/login-form", async (req, res): Promise<void> => {
     .set({ failedLoginAttempts: 0, lockedUntil: null, updatedAt: new Date() })
     .where(eq(usersTable.id, user.id));
 
+  // Derive base role: "admin" | "seller" | "mro"
+  const baseRole: string =
+    derived.computedRole === "admin"
+      ? "admin"
+      : derived.computedRole.startsWith("mro_")
+        ? "mro"
+        : "seller";
+
   // Set session with both formats for maximum compatibility
   const effectivePlan = getEffectivePlan(user);
   req.session!.userId = user.id;
   req.session!.user = {
     id: String(user.id),
     email: user.email,
-    role: derived.computedRole,
+    role: baseRole,
     subscriptionTier: effectivePlan,
     subscriptionStatus: "active",
     permissions: {
@@ -322,16 +330,15 @@ router.post("/auth/login-form", async (req, res): Promise<void> => {
     req.session!.save(err => (err ? reject(err) : resolve()))
   );
 
-  const sessionCreated = !!req.session?.userId;
-  console.log(`SESSION CREATED: ${sessionCreated ? "yes" : "no"} | sessionId=${req.session!.id} | userId=${user.id} | role=${derived.computedRole}`);
+  console.log(`SESSION CREATED: yes | sessionId=${req.session!.id} | userId=${user.id} | role=${baseRole}`);
 
-  // Redirect to the correct dashboard by role
-  if (derived.computedRole === "admin") {
-    res.redirect(302, user.mustChangePassword ? "/admin/change-password" : "/admin");
-  } else if (derived.computedRole.startsWith("seller_")) {
+  // Redirect to the correct dashboard by base role
+  if (baseRole === "admin") {
+    res.redirect(302, user.mustChangePassword ? "/admin/change-password" : "/admin/dashboard");
+  } else if (baseRole === "seller") {
     res.redirect(302, "/seller/dashboard");
-  } else if (derived.computedRole.startsWith("mro_")) {
-    res.redirect(302, "/mro");
+  } else if (baseRole === "mro") {
+    res.redirect(302, "/mro/dashboard");
   } else {
     return errorRedirect("Unrecognised account role. Contact support.");
   }
