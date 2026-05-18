@@ -22,14 +22,4 @@ router.get("/debug/users", async (_req, res): Promise<void> => {
   });
 });
 
-router.get("/debug/session", (req, res): void => {
-  console.log("DEBUG SESSION ROUTE HIT");
-  const user = (req as any).session?.user ?? null;
-  if (!user) {
-    res.json({ sessionExists: false });
-    return;
-  }
-  res.json({ sessionExists: true, user });
-});
-
 export default router;

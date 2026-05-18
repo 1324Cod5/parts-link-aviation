@@ -99,6 +99,19 @@ app.use(
   }),
 );
 
+// ─── Public debug routes (registered before all auth middleware & router) ─────
+// Must stay here — above the session bridge and the main /api router —
+// so no auth middleware or route guard can ever intercept them.
+app.get("/api/debug/session", (req, res) => {
+  console.log("DEBUG SESSION ROUTE HIT");
+  const user = (req as any).session?.user ?? null;
+  if (!user) {
+    res.json({ sessionExists: false });
+    return;
+  }
+  res.json({ sessionExists: true, user });
+});
+
 // ─── Session bridge middleware ────────────────────────────────────────────────
 // If a request carries a test-system session (req.session.user) but not the
 // numeric userId that all route guards expect, do a single DB lookup and
