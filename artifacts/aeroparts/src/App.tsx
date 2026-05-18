@@ -25,6 +25,7 @@ import MroDirectoryPage from "@/pages/mro/index";
 import MroRegisterPage from "@/pages/mro/register";
 import MroDetailPage from "@/pages/mro/detail";
 import DebugLoginFreeSeller from "@/pages/debug-login";
+import AuthTestPage from "@/pages/auth-test";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -60,6 +61,7 @@ function Router() {
       <Route path="/mro/register" component={MroRegisterPage} />
       <Route path="/mro/:id" component={MroDetailPage} />
       <Route path="/debug-login-free-seller" component={DebugLoginFreeSeller} />
+      <Route path="/auth-test" component={AuthTestPage} />
       <Route component={NotFound} />
     </Switch>
   );
