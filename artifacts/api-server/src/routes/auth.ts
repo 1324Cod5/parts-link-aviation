@@ -272,12 +272,14 @@ router.post("/auth/logout", async (req, res): Promise<void> => {
 
 router.get("/auth/me", async (req, res): Promise<void> => {
   const userId = req.session?.userId;
+  const cookieHeader = req.headers.cookie ?? "NONE";
+  const hasSid = cookieHeader.includes("connect.sid");
   if (!userId) {
-    console.log(`SESSION MISSING ON DASHBOARD LOAD | sessionId=${req.session?.id ?? "none"} | path=${req.path}`);
+    console.log(`SESSION MISSING | sessionId=${req.session?.id ?? "none"} | hasCookie=${hasSid} | cookie=${cookieHeader.slice(0, 120)}`);
     res.status(401).json({ error: "Not authenticated" });
     return;
   }
-  console.log(`SESSION FOUND ON REQUEST | sessionId=${req.session!.id} | userId=${userId}`);
+  console.log(`SESSION FOUND | sessionId=${req.session!.id} | userId=${userId}`);
 
   const result = await fetchUserWithMro(userId);
   if (!result) {

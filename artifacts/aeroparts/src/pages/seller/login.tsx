@@ -1,17 +1,14 @@
 import { useState } from "react";
-import { Link, useLocation } from "wouter";
+import { Link } from "wouter";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { useLoginUser, getGetCurrentUserQueryKey } from "@workspace/api-client-react";
+import { useLoginUser } from "@workspace/api-client-react";
 import { useToast } from "@/hooks/use-toast";
 import { Eye, EyeOff } from "lucide-react";
-import { useQueryClient } from "@tanstack/react-query";
 
 export default function SellerLogin() {
-  const [, navigate] = useLocation();
   const { toast } = useToast();
-  const queryClient = useQueryClient();
   const [form, setForm] = useState({ email: "", password: "" });
   const [showPassword, setShowPassword] = useState(false);
 
@@ -25,15 +22,14 @@ export default function SellerLogin() {
         onSuccess: (data) => {
           const { computedRole, contactName } = data.user;
           toast({ title: "Signed in", description: `Welcome back, ${contactName}` });
-          // Write user directly into cache — prevents race condition where
-          // dashboard renders before the invalidated /auth/me refetch completes.
-          queryClient.setQueryData(getGetCurrentUserQueryKey(), data.user);
+          // Full page navigation so the browser sends the newly-issued session
+          // cookie on every subsequent request — avoids all SPA cache race conditions.
           if (computedRole === "admin") {
-            navigate("/admin");
+            window.location.href = "/admin";
           } else if (computedRole.startsWith("seller_")) {
-            navigate("/seller/dashboard");
+            window.location.href = "/seller/dashboard";
           } else if (computedRole.startsWith("mro_")) {
-            navigate("/mro");
+            window.location.href = "/mro";
           } else {
             toast({ title: "Access denied", description: "Your account does not have a valid role.", variant: "destructive" });
           }

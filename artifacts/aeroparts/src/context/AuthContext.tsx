@@ -11,11 +11,16 @@ export interface AuthContextType {
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  // Always verify the session from the server on mount and on window focus.
+  // staleTime=0 ensures the cookie is checked on every page load/reload.
+  // retry=false prevents hammering the server on 401 (unauthenticated users).
   const { data: user, isLoading } = useGetCurrentUser({
     query: {
       queryKey: getGetCurrentUserQueryKey(),
       retry: false,
-      staleTime: 5 * 60 * 1000,
+      staleTime: 0,
+      refetchOnMount: true,
+      refetchOnWindowFocus: false,
     },
   });
 

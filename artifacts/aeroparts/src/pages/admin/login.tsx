@@ -1,10 +1,8 @@
 import { useState, useEffect } from "react";
-import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useLoginUser, getGetCurrentUserQueryKey } from "@workspace/api-client-react";
+import { useLoginUser } from "@workspace/api-client-react";
 import { useToast } from "@/hooks/use-toast";
-import { useQueryClient } from "@tanstack/react-query";
 import {
   ShieldCheck, Eye, EyeOff, Lock, Mail, AlertTriangle, Clock,
 } from "lucide-react";
@@ -43,9 +41,7 @@ function LockoutBanner({ lockedUntil }: { lockedUntil: Date }) {
 }
 
 export default function AdminLogin() {
-  const [, navigate] = useLocation();
   const { toast } = useToast();
-  const queryClient = useQueryClient();
   const [form, setForm] = useState({ email: "admin@aeroparts.com", password: "" });
   const [showPassword, setShowPassword] = useState(false);
   const [lockedUntil, setLockedUntil] = useState<Date | null>(null);
@@ -75,12 +71,11 @@ export default function AdminLogin() {
           }
           setLockedUntil(null);
           setAttemptsWarning(null);
-          // Write user directly into cache to prevent race condition on navigate.
-          queryClient.setQueryData(getGetCurrentUserQueryKey(), data.user);
+          // Full page navigation so the browser sends the session cookie on mount.
           if (user.mustChangePassword) {
-            navigate("/admin/change-password");
+            window.location.href = "/admin/change-password";
           } else {
-            navigate("/admin");
+            window.location.href = "/admin";
           }
         },
         onError: (err: any) => {
