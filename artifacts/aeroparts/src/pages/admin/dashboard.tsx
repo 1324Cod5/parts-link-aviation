@@ -24,7 +24,7 @@ import {
   MessageSquare, AlertTriangle, ChevronRight, LogOut, ShieldAlert,
   ExternalLink, CheckCircle2, XCircle, MapPin, Clock, TrendingUp,
   Building2, Mail, Phone, Globe, Star, AlertCircle, Search,
-  ArrowUpDown, Lock, Unlock, FileText, BarChart2, Trophy
+  ArrowUpDown, Lock, Unlock, FileText, BarChart2, Trophy, Loader2
 } from "lucide-react";
 
 // ─── helpers ────────────────────────────────────────────────────────────────
@@ -109,6 +109,14 @@ function StatCard({ icon: Icon, label, value, sub, color = "text-white" }: {
 function OverviewSection() {
   const { data: stats, isLoading } = useGetAdminStats({ query: { queryKey: getGetAdminStatsQueryKey() } });
   const { data: rfqData } = useGetRfqs({ status: "open", limit: 1 });
+  const [, navigate] = useLocation();
+  const [navigatingTo, setNavigatingTo] = useState<string | null>(null);
+
+  function handleQuickAction(href: string, label: string) {
+    if (navigatingTo) return;
+    setNavigatingTo(label);
+    navigate(href);
+  }
 
   const statCards = [
     { icon: Package,      label: "Total Listings",    value: isLoading ? null : stats?.totalListings,       sub: `${stats?.pendingVerification ?? 0} pending review` },
@@ -144,19 +152,40 @@ function OverviewSection() {
             { label: "Billing & Subscriptions",    href: "/admin/billing",        icon: CreditCard },
             { label: "Trust Scores / Leaderboard", href: "/admin/trust",          icon: Trophy },
             { label: "Platform Analytics",         href: "/admin/analytics",      icon: BarChart2 },
-          ].map(({ label, icon: Icon, badge, href }) => (
-            <Link key={label} href={href}>
-              <div className="relative border border-border rounded-md p-4 bg-card/50 hover:bg-card/80 hover:border-primary/30 transition-colors cursor-pointer">
-                <Icon className="w-5 h-5 text-primary mb-2" />
-                <p className="text-sm text-white font-medium leading-tight">{label}</p>
-                {badge ? (
+          ].map(({ label, icon: Icon, badge, href }) => {
+            const loading = navigatingTo === label;
+            const busy = navigatingTo !== null;
+            return (
+              <button
+                key={label}
+                onClick={() => handleQuickAction(href, label)}
+                disabled={busy}
+                className={[
+                  "group relative w-full text-left rounded-md p-4 border transition-all duration-150 select-none outline-none",
+                  "focus-visible:ring-2 focus-visible:ring-primary/50",
+                  loading
+                    ? "border-primary/50 bg-primary/10 scale-[0.97] cursor-wait"
+                    : busy
+                    ? "border-border bg-card/50 opacity-50 cursor-not-allowed"
+                    : "border-border bg-card/50 cursor-pointer hover:bg-card/90 hover:border-primary/40 hover:scale-[1.02] hover:shadow-md hover:shadow-primary/10 active:scale-[0.97] active:bg-card/60 active:border-primary/60",
+                ].join(" ")}
+              >
+                {loading ? (
+                  <Loader2 className="w-5 h-5 text-primary mb-2 animate-spin" />
+                ) : (
+                  <Icon className={`w-5 h-5 mb-2 transition-colors duration-150 ${busy ? "text-muted-foreground" : "text-primary group-hover:text-primary/80"}`} />
+                )}
+                <p className={`text-sm font-medium leading-tight transition-colors duration-150 ${loading ? "text-primary" : busy ? "text-muted-foreground" : "text-white"}`}>
+                  {label}
+                </p>
+                {badge && !loading ? (
                   <span className="absolute top-2 right-2 text-xs bg-amber-500 text-black rounded-full w-5 h-5 flex items-center justify-center font-bold">
                     {badge > 9 ? "9+" : badge}
                   </span>
                 ) : null}
-              </div>
-            </Link>
-          ))}
+              </button>
+            );
+          })}
         </div>
       </div>
 
