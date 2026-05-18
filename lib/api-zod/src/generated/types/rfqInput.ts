@@ -5,6 +5,7 @@
  * AeroParts Marketplace API
  * OpenAPI spec version: 0.1.0
  */
+import type { RfqUrgency } from './rfqUrgency';
 
 export interface RfqInput {
   buyerName: string;
@@ -21,4 +22,10 @@ export interface RfqInput {
   condition?: string | null;
   /** @minimum 1 */
   quantity: number;
+  urgency?: RfqUrgency;
+  /**
+     * Required when urgency is aog
+     * @nullable
+     */
+  urgencyReason?: string | null;
 }

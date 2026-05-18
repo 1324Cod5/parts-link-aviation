@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import {
   ArrowLeft, Clock, Package, Building2, Plane, Phone, Mail,
-  CheckCircle2, MessageSquare, Lock, Send, AlertCircle, Rocket
+  CheckCircle2, MessageSquare, Lock, Send, AlertCircle, Rocket, AlertTriangle
 } from "lucide-react";
 
 function timeAgo(dateStr: string) {
@@ -31,6 +31,36 @@ function formatDate(dateStr: string) {
     hour: "2-digit", minute: "2-digit",
   });
 }
+
+type UrgencyLevel = "aog" | "critical" | "high_priority" | "standard" | "planned";
+
+const URGENCY_META: Record<UrgencyLevel, { label: string; badgeClass: string; show: boolean }> = {
+  aog: {
+    label: "AOG",
+    badgeClass: "bg-red-500/20 text-red-400 border-red-500/40",
+    show: true,
+  },
+  critical: {
+    label: "CRITICAL",
+    badgeClass: "bg-orange-500/20 text-orange-400 border-orange-500/30",
+    show: true,
+  },
+  high_priority: {
+    label: "HIGH PRIORITY",
+    badgeClass: "bg-amber-500/20 text-amber-400 border-amber-500/30",
+    show: true,
+  },
+  standard: {
+    label: "STANDARD",
+    badgeClass: "bg-muted text-muted-foreground border-border",
+    show: false,
+  },
+  planned: {
+    label: "PLANNED",
+    badgeClass: "bg-sky-500/10 text-sky-400/80 border-sky-500/20",
+    show: true,
+  },
+};
 
 export default function RfqDetailPage() {
   const params = useParams<{ id: string }>();
@@ -113,12 +143,32 @@ export default function RfqDetailPage() {
   }
 
   const { rfq, responses } = data;
+  const urgency = ((rfq as any).urgency ?? "standard") as UrgencyLevel;
+  const urgencyReason = (rfq as any).urgencyReason as string | null;
+  const urgencyMeta = URGENCY_META[urgency];
+  const isAog = urgency === "aog";
   const isOpen = rfq.status === "open";
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <Navbar />
       <main className="flex-1">
+        {/* AOG Banner — shown above everything when AOG */}
+        {isAog && isOpen && (
+          <div className="bg-red-500/10 border-b border-red-500/30">
+            <div className="container mx-auto px-4 py-3 max-w-3xl flex items-center gap-3">
+              <AlertTriangle className="w-4 h-4 text-red-400 flex-shrink-0 animate-pulse" />
+              <div className="flex-1 min-w-0">
+                <span className="text-sm font-semibold text-red-400 mr-2">AIRCRAFT ON GROUND</span>
+                <span className="text-sm text-red-400/80">Immediate response required · Highest escalation priority</span>
+                {urgencyReason && (
+                  <p className="text-xs text-red-400/70 mt-0.5 truncate">{urgencyReason}</p>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="border-b border-border bg-card/30 py-8">
           <div className="container mx-auto px-4 max-w-3xl">
             <Link href="/rfqs" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-white mb-4">
@@ -127,8 +177,18 @@ export default function RfqDetailPage() {
             </Link>
             <div className="flex items-start justify-between gap-4">
               <div className="flex-1">
-                <div className="flex items-center gap-3 mb-2">
+                <div className="flex items-center gap-2 flex-wrap mb-2">
                   <span className="font-mono text-lg font-bold text-primary">{rfq.partNumber}</span>
+                  {/* Urgency badge */}
+                  {urgencyMeta.show && (
+                    <Badge
+                      variant="outline"
+                      className={`text-xs ${urgencyMeta.badgeClass} ${isAog ? "animate-pulse" : ""}`}
+                    >
+                      {isAog && <AlertTriangle className="w-3 h-3 mr-1 inline-block" />}
+                      {urgencyMeta.label}
+                    </Badge>
+                  )}
                   <Badge className={isOpen
                     ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30"
                     : "bg-muted text-muted-foreground"}>
@@ -224,7 +284,10 @@ export default function RfqDetailPage() {
                         id="message"
                         value={message}
                         onChange={e => setMessage(e.target.value)}
-                        placeholder="Describe your available inventory, pricing, condition, certification, lead time…"
+                        placeholder={isAog
+                          ? "AOG situation — include part availability, certification, and earliest ship time…"
+                          : "Describe your available inventory, pricing, condition, certification, lead time…"
+                        }
                         required
                         rows={5}
                         className="bg-background border-border resize-none"
@@ -246,9 +309,10 @@ export default function RfqDetailPage() {
                         </SelectContent>
                       </Select>
                     </div>
-                    <Button type="submit" disabled={isResponding || !message.trim()} className="bg-primary hover:bg-primary/90 gap-2">
+                    <Button type="submit" disabled={isResponding || !message.trim()}
+                      className={`gap-2 ${isAog ? "bg-red-600 hover:bg-red-700" : "bg-primary hover:bg-primary/90"}`}>
                       <Send className="w-4 h-4" />
-                      {isResponding ? "Submitting…" : "Submit Quote"}
+                      {isResponding ? "Submitting…" : isAog ? "Respond to AOG Request" : "Submit Quote"}
                     </Button>
                   </form>
                 </div>
@@ -310,6 +374,22 @@ export default function RfqDetailPage() {
 
             {/* Sidebar */}
             <div className="space-y-4">
+              {/* Urgency card — only shown for non-standard */}
+              {urgency !== "standard" && (
+                <div className={`border rounded-lg p-5 ${isAog ? "border-red-500/40 bg-red-500/5" : "border-border bg-card"}`}>
+                  <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-3">Request Urgency</h3>
+                  <div className={`inline-flex items-center gap-1.5 rounded px-2.5 py-1.5 text-sm font-semibold border ${urgencyMeta.badgeClass} ${isAog ? "animate-pulse" : ""}`}>
+                    {isAog && <AlertTriangle className="w-3.5 h-3.5" />}
+                    {urgencyMeta.label}
+                  </div>
+                  {urgencyReason && (
+                    <p className={`text-xs mt-2 leading-relaxed ${isAog ? "text-red-400/80" : "text-muted-foreground"}`}>
+                      {urgencyReason}
+                    </p>
+                  )}
+                </div>
+              )}
+
               <div className="border border-border rounded-lg p-5 bg-card">
                 <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-4">RFQ Details</h3>
                 <dl className="space-y-3 text-sm">

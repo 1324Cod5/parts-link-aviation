@@ -4,7 +4,8 @@ import { z } from "zod/v4";
 import { usersTable } from "./users";
 import { listingsTable } from "./listings";
 
-export const rfqStatusEnum = pgEnum("rfq_status", ["open", "closed", "archived", "suspended", "deleted"]);
+export const rfqStatusEnum  = pgEnum("rfq_status",  ["open", "closed", "archived", "suspended", "deleted"]);
+export const rfqUrgencyEnum = pgEnum("rfq_urgency", ["aog", "critical", "high_priority", "standard", "planned"]);
 
 export const rfqsTable = pgTable("rfqs", {
   id: serial("id").primaryKey(),
@@ -18,6 +19,8 @@ export const rfqsTable = pgTable("rfqs", {
   condition: text("condition"),
   quantity: integer("quantity").notNull().default(1),
   status: rfqStatusEnum("status").notNull().default("open"),
+  urgency: rfqUrgencyEnum("urgency").notNull().default("standard"),
+  urgencyReason: text("urgency_reason"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });

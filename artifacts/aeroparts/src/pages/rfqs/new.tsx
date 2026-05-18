@@ -8,14 +8,50 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { CheckCircle2, ArrowLeft, Package } from "lucide-react";
+import { CheckCircle2, ArrowLeft, Package, AlertTriangle, Zap } from "lucide-react";
 
 const CONDITIONS = ["New", "Overhauled", "Serviceable", "As Removed", "Repaired"] as const;
+
+const URGENCY_OPTIONS = [
+  {
+    value: "aog",
+    label: "AOG — Aircraft on Ground",
+    description: "Aircraft is grounded and cannot fly. Highest priority.",
+    color: "text-red-400",
+  },
+  {
+    value: "critical",
+    label: "Critical",
+    description: "Safety-critical part needed within 24–48 hours.",
+    color: "text-orange-400",
+  },
+  {
+    value: "high_priority",
+    label: "High Priority",
+    description: "Required within days — active operation affected.",
+    color: "text-amber-400",
+  },
+  {
+    value: "standard",
+    label: "Standard",
+    description: "Normal procurement timeline (1–2 weeks).",
+    color: "text-foreground",
+  },
+  {
+    value: "planned",
+    label: "Planned",
+    description: "Scheduled maintenance — flexible lead time.",
+    color: "text-sky-400",
+  },
+] as const;
+
+type UrgencyValue = typeof URGENCY_OPTIONS[number]["value"];
 
 export default function NewRfqPage() {
   const [, navigate] = useLocation();
   const [submitted, setSubmitted] = useState(false);
   const [rfqId, setRfqId] = useState<number | null>(null);
+  const [isAog, setIsAog] = useState(false);
 
   const [form, setForm] = useState({
     buyerName: "",
@@ -27,18 +63,23 @@ export default function NewRfqPage() {
     aircraftApplicability: "",
     condition: "",
     quantity: 1,
+    urgency: "standard" as UrgencyValue,
+    urgencyReason: "",
   });
 
   const { mutate: createRfq, isPending, error } = useCreateRfq({
     mutation: {
       onSuccess(data) {
+        const d = data as any;
         setRfqId(data.id);
         setSubmitted(true);
+        // AOG escalation flag — show elevated state on success screen
+        if (d._aogEscalation) setIsAog(true);
       },
     },
   });
 
-  function set(field: keyof typeof form, value: string | number) {
+  function set<K extends keyof typeof form>(field: K, value: typeof form[K]) {
     setForm(f => ({ ...f, [field]: value }));
   }
 
@@ -55,6 +96,8 @@ export default function NewRfqPage() {
         aircraftApplicability: form.aircraftApplicability || null,
         condition: (form.condition && form.condition !== "any") ? form.condition : null,
         quantity: form.quantity,
+        urgency: form.urgency,
+        urgencyReason: form.urgency === "aog" ? (form.urgencyReason || null) : null,
       },
     });
   }
@@ -65,16 +108,37 @@ export default function NewRfqPage() {
         <Navbar />
         <main className="flex-1 flex items-center justify-center py-20">
           <div className="max-w-md w-full mx-auto px-4 text-center">
-            <div className="w-16 h-16 rounded-full bg-emerald-500/20 flex items-center justify-center mx-auto mb-6">
-              <CheckCircle2 className="w-8 h-8 text-emerald-400" />
-            </div>
-            <h1 className="text-2xl font-bold text-white mb-2">RFQ Posted Successfully</h1>
-            <p className="text-muted-foreground mb-8">
-              Your request has been published to the AeroParts RFQ board. Qualified sellers will respond directly.
-            </p>
+            {isAog ? (
+              <>
+                <div className="w-16 h-16 rounded-full bg-red-500/20 flex items-center justify-center mx-auto mb-6 animate-pulse">
+                  <AlertTriangle className="w-8 h-8 text-red-400" />
+                </div>
+                <h1 className="text-2xl font-bold text-white mb-2">AOG Request Submitted</h1>
+                <div className="inline-flex items-center gap-2 bg-red-500/10 border border-red-500/30 rounded-lg px-4 py-2 mb-4">
+                  <Zap className="w-4 h-4 text-red-400" />
+                  <span className="text-sm text-red-400 font-medium">Escalated for immediate response</span>
+                </div>
+                <p className="text-muted-foreground mb-8">
+                  Your AOG request has been flagged with highest priority. Qualified sellers will be
+                  notified immediately and are expected to respond as fast as possible.
+                </p>
+              </>
+            ) : (
+              <>
+                <div className="w-16 h-16 rounded-full bg-emerald-500/20 flex items-center justify-center mx-auto mb-6">
+                  <CheckCircle2 className="w-8 h-8 text-emerald-400" />
+                </div>
+                <h1 className="text-2xl font-bold text-white mb-2">RFQ Posted Successfully</h1>
+                <p className="text-muted-foreground mb-8">
+                  Your request has been published to the AeroParts RFQ board. Qualified sellers will respond directly.
+                </p>
+              </>
+            )}
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <Link href={`/rfqs/${rfqId}`}>
-                <Button className="w-full sm:w-auto">View Your RFQ</Button>
+                <Button className={isAog ? "w-full sm:w-auto bg-red-600 hover:bg-red-700" : "w-full sm:w-auto"}>
+                  View Your RFQ
+                </Button>
               </Link>
               <Link href="/rfqs">
                 <Button variant="outline" className="w-full sm:w-auto border-border text-muted-foreground hover:text-white">
@@ -88,6 +152,9 @@ export default function NewRfqPage() {
       </div>
     );
   }
+
+  const selectedUrgency = URGENCY_OPTIONS.find(u => u.value === form.urgency)!;
+  const isAogSelected = form.urgency === "aog";
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -140,6 +207,58 @@ export default function NewRfqPage() {
               </div>
             </div>
 
+            {/* Urgency — placed before part details so buyers think critically about it */}
+            <div className={`border rounded-lg p-6 space-y-4 ${isAogSelected ? "border-red-500/40 bg-red-500/5" : "border-border bg-card"}`}>
+              <div className="flex items-center justify-between">
+                <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-widest">Request Urgency</h2>
+                {isAogSelected && (
+                  <div className="flex items-center gap-1.5 text-xs text-red-400 font-medium animate-pulse">
+                    <AlertTriangle className="w-3.5 h-3.5" />
+                    AOG — Highest Priority
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="urgency">Urgency Level <span className="text-destructive">*</span></Label>
+                <Select value={form.urgency} onValueChange={v => set("urgency", v as UrgencyValue)}>
+                  <SelectTrigger className={`bg-background border-border ${isAogSelected ? "border-red-500/50 text-red-400" : ""}`}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {URGENCY_OPTIONS.map(opt => (
+                      <SelectItem key={opt.value} value={opt.value}>
+                        <span className={opt.color}>{opt.label}</span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {selectedUrgency && (
+                  <p className="text-xs text-muted-foreground mt-1">{selectedUrgency.description}</p>
+                )}
+              </div>
+
+              {isAogSelected && (
+                <div className="space-y-1.5">
+                  <Label htmlFor="urgencyReason">
+                    AOG Reason <span className="text-destructive">*</span>
+                  </Label>
+                  <Textarea
+                    id="urgencyReason"
+                    value={form.urgencyReason}
+                    onChange={e => set("urgencyReason", e.target.value)}
+                    placeholder="Describe the grounding situation — aircraft tail number, flight disruption, estimated impact…"
+                    required={isAogSelected}
+                    rows={3}
+                    className="bg-background border-red-500/30 resize-none focus-visible:ring-red-500/30"
+                  />
+                  <p className="text-xs text-red-400/70">
+                    This information helps sellers prioritize AOG requests and respond immediately.
+                  </p>
+                </div>
+              )}
+            </div>
+
             {/* Part details */}
             <div className="border border-border rounded-lg p-6 bg-card space-y-4">
               <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-widest">Part Requirements</h2>
@@ -158,7 +277,7 @@ export default function NewRfqPage() {
                 <div className="sm:col-span-2 space-y-1.5">
                   <Label htmlFor="description">Description / Requirements <span className="text-destructive">*</span></Label>
                   <Textarea id="description" value={form.description} onChange={e => set("description", e.target.value)}
-                    placeholder="Describe the part, certification requirements, urgency, and any other specifications…"
+                    placeholder="Describe the part, certification requirements, and any other specifications…"
                     required rows={4} className="bg-background border-border resize-none" />
                 </div>
                 <div className="space-y-1.5">
@@ -191,8 +310,15 @@ export default function NewRfqPage() {
             )}
 
             <div className="flex items-center gap-3">
-              <Button type="submit" disabled={isPending} className="bg-primary hover:bg-primary/90 px-8">
-                {isPending ? "Submitting…" : "Post RFQ"}
+              <Button
+                type="submit"
+                disabled={isPending || (isAogSelected && !form.urgencyReason.trim())}
+                className={isAogSelected
+                  ? "bg-red-600 hover:bg-red-700 px-8"
+                  : "bg-primary hover:bg-primary/90 px-8"
+                }
+              >
+                {isPending ? "Submitting…" : isAogSelected ? "Submit AOG Request" : "Post RFQ"}
               </Button>
               <Link href="/rfqs">
                 <Button type="button" variant="ghost" className="text-muted-foreground hover:text-white">

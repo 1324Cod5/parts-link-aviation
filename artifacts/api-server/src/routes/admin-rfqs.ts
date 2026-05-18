@@ -29,6 +29,12 @@ const AdminActionBody = z.object({
   reason: z.string().min(1, "Reason is required"),
 });
 
+const AdminUrgencyBody = z.object({
+  urgency: z.enum(["aog", "critical", "high_priority", "standard", "planned"]),
+  urgencyReason: z.string().nullable().optional(),
+  reason: z.string().min(1, "Admin reason is required"),
+});
+
 const ACTION_STATUS_MAP = {
   close: "closed",
   archive: "archived",
@@ -52,9 +58,22 @@ function serializeRfq(rfq: any) {
     condition: rfq.condition ?? null,
     quantity: rfq.quantity,
     status: rfq.status,
+    urgency: rfq.urgency ?? "standard",
+    urgencyReason: rfq.urgencyReason ?? null,
     accessLevel: "full" as const,
     createdAt: rfq.createdAt?.toISOString?.() ?? rfq.createdAt,
     updatedAt: rfq.updatedAt?.toISOString?.() ?? rfq.updatedAt,
+  };
+}
+
+function serializeAuditEntry(e: any) {
+  return {
+    id: e.id,
+    rfqId: e.rfqId,
+    adminId: e.adminId,
+    action: e.action,
+    reason: e.reason,
+    createdAt: e.createdAt?.toISOString?.() ?? e.createdAt,
   };
 }
 
@@ -86,8 +105,11 @@ router.get("/admin/rfqs", async (req, res): Promise<void> => {
   }
 
   const where = conditions.length > 0 ? and(...conditions) : undefined;
+  // AOG items surface first in admin view
   const [rows, [countRow]] = await Promise.all([
-    db.select().from(rfqsTable).where(where).orderBy(desc(rfqsTable.createdAt)).limit(limit).offset(offset),
+    db.select().from(rfqsTable).where(where)
+      .orderBy(rfqsTable.urgency, desc(rfqsTable.createdAt))
+      .limit(limit).offset(offset),
     db.select({ count: count() }).from(rfqsTable).where(where),
   ]);
 
@@ -121,17 +143,50 @@ router.post("/admin/rfqs/:id/action", async (req, res): Promise<void> => {
     .values({ rfqId: id, adminId, action, reason })
     .returning();
 
-  res.json({
-    rfq: serializeRfq(rfq),
-    auditEntry: {
-      id: auditEntry.id,
-      rfqId: auditEntry.rfqId,
-      adminId: auditEntry.adminId,
-      action: auditEntry.action,
-      reason: auditEntry.reason,
-      createdAt: auditEntry.createdAt?.toISOString?.() ?? auditEntry.createdAt,
-    },
-  });
+  res.json({ rfq: serializeRfq(rfq), auditEntry: serializeAuditEntry(auditEntry) });
+});
+
+// PATCH /admin/rfqs/:id/urgency — admin: override urgency classification
+router.patch("/admin/rfqs/:id/urgency", async (req, res): Promise<void> => {
+  const adminId = await requireAdmin(req, res);
+  if (!adminId) return;
+
+  const id = parseInt(req.params.id);
+  if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+
+  const parsed = AdminUrgencyBody.safeParse(req.body);
+  if (!parsed.success) { res.status(400).json({ error: "urgency and reason are required" }); return; }
+
+  const { urgency, urgencyReason, reason } = parsed.data;
+
+  if (urgency === "aog" && !urgencyReason?.trim()) {
+    res.status(400).json({ error: "AOG urgency requires an urgency reason." });
+    return;
+  }
+
+  const [rfq] = await db
+    .update(rfqsTable)
+    .set({
+      urgency: urgency as any,
+      urgencyReason: urgency === "aog" ? (urgencyReason ?? null) : null,
+      updatedAt: new Date(),
+    })
+    .where(eq(rfqsTable.id, id))
+    .returning();
+
+  if (!rfq) { res.status(404).json({ error: "RFQ not found" }); return; }
+
+  const [auditEntry] = await db
+    .insert(rfqAdminActionsTable)
+    .values({
+      rfqId: id,
+      adminId,
+      action: "set_urgency",
+      reason: `Urgency set to ${urgency.toUpperCase()}. ${reason}`,
+    })
+    .returning();
+
+  res.json({ rfq: serializeRfq(rfq), auditEntry: serializeAuditEntry(auditEntry) });
 });
 
 // GET /admin/rfqs/:id/audit — admin: full audit trail for one RFQ
@@ -148,16 +203,7 @@ router.get("/admin/rfqs/:id/audit", async (req, res): Promise<void> => {
     .where(eq(rfqAdminActionsTable.rfqId, id))
     .orderBy(desc(rfqAdminActionsTable.createdAt));
 
-  res.json({
-    entries: entries.map((e) => ({
-      id: e.id,
-      rfqId: e.rfqId,
-      adminId: e.adminId,
-      action: e.action,
-      reason: e.reason,
-      createdAt: e.createdAt?.toISOString?.() ?? e.createdAt,
-    })),
-  });
+  res.json({ entries: entries.map(serializeAuditEntry) });
 });
 
 export default router;

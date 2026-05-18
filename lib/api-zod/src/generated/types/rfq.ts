@@ -7,6 +7,7 @@
  */
 import type { RfqAccessLevel } from './rfqAccessLevel';
 import type { RfqStatus } from './rfqStatus';
+import type { RfqUrgency } from './rfqUrgency';
 
 export interface Rfq {
   id: number;
@@ -34,6 +35,12 @@ export interface Rfq {
   condition?: string | null;
   quantity: number;
   status: RfqStatus;
+  urgency: RfqUrgency;
+  /**
+     * Required when urgency is AOG; describes the grounding situation
+     * @nullable
+     */
+  urgencyReason?: string | null;
   /** full = Pro/Enterprise (complete buyer contact); limited = Free (contact info hidden) */
   accessLevel: RfqAccessLevel;
   createdAt: string;

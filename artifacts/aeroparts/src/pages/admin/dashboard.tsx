@@ -20,6 +20,7 @@ import {
   useGetRfqs,
   useGetAdminRfqs, getGetAdminRfqsQueryKey,
   useAdminRfqAction,
+  useAdminSetRfqUrgency,
   useGetAdminRfqAudit, getGetAdminRfqAuditQueryKey,
 } from "@workspace/api-client-react";
 import { useAuth } from "@/context/useAuth";
@@ -960,6 +961,122 @@ function RfqActionDialog({
   );
 }
 
+// ─── Urgency helpers ──────────────────────────────────────────────────────────
+
+type RfqUrgency = "aog" | "critical" | "high_priority" | "standard" | "planned";
+
+const RFQ_URGENCY_META: Record<RfqUrgency, { label: string; className: string; show: boolean }> = {
+  aog:          { label: "AOG",          className: "bg-red-500/20 text-red-400 border-red-500/40",     show: true },
+  critical:     { label: "CRITICAL",     className: "bg-orange-500/20 text-orange-400 border-orange-500/30", show: true },
+  high_priority:{ label: "HIGH PRI",     className: "bg-amber-500/20 text-amber-400 border-amber-500/30",  show: true },
+  standard:     { label: "STANDARD",     className: "bg-muted text-muted-foreground border-border",     show: false },
+  planned:      { label: "PLANNED",      className: "bg-sky-500/10 text-sky-400/80 border-sky-500/20",  show: true },
+};
+
+const URGENCY_OPTIONS: { value: RfqUrgency; label: string }[] = [
+  { value: "aog",          label: "AOG — Aircraft on Ground" },
+  { value: "critical",     label: "Critical" },
+  { value: "high_priority",label: "High Priority" },
+  { value: "standard",     label: "Standard" },
+  { value: "planned",      label: "Planned" },
+];
+
+// ─── Urgency override dialog ──────────────────────────────────────────────────
+
+function RfqUrgencyDialog({
+  rfqId, partNumber, currentUrgency, onConfirm, onCancel, isPending,
+}: {
+  rfqId: number;
+  partNumber: string;
+  currentUrgency: RfqUrgency;
+  onConfirm: (urgency: RfqUrgency, urgencyReason: string | null, reason: string) => void;
+  onCancel: () => void;
+  isPending: boolean;
+}) {
+  const [urgency, setUrgency] = useState<RfqUrgency>(currentUrgency);
+  const [urgencyReason, setUrgencyReason] = useState("");
+  const [adminReason, setAdminReason] = useState("");
+
+  const isAog = urgency === "aog";
+  const canSubmit = adminReason.trim().length > 0 && (!isAog || urgencyReason.trim().length > 0);
+
+  return (
+    <Dialog open onOpenChange={v => { if (!v) onCancel(); }}>
+      <DialogContent className="bg-card border-border max-w-md">
+        <DialogHeader>
+          <DialogTitle className="text-white flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4 text-amber-400" />
+            Override Urgency
+          </DialogTitle>
+          <p className="text-sm text-muted-foreground pt-1">
+            RFQ <span className="font-mono text-primary">#{rfqId}</span> — {partNumber}
+          </p>
+        </DialogHeader>
+        <div className="space-y-4 py-1">
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              New Urgency Level <span className="text-red-400">*</span>
+            </label>
+            <Select value={urgency} onValueChange={v => setUrgency(v as RfqUrgency)}>
+              <SelectTrigger className={`bg-background border-border ${isAog ? "border-red-500/50 text-red-400" : ""}`}>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {URGENCY_OPTIONS.map(opt => (
+                  <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {isAog && (
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                AOG Reason <span className="text-red-400">*</span>
+              </label>
+              <Textarea
+                value={urgencyReason}
+                onChange={e => setUrgencyReason(e.target.value)}
+                placeholder="Describe the grounding situation for this AOG request…"
+                className="bg-card border-border text-white resize-none h-20 text-sm"
+              />
+            </div>
+          )}
+
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              Admin Reason <span className="text-red-400">*</span>
+            </label>
+            <Textarea
+              value={adminReason}
+              onChange={e => setAdminReason(e.target.value)}
+              placeholder="Why is this urgency being changed? This will be logged in the audit trail."
+              className="bg-card border-border text-white resize-none h-20 text-sm"
+              autoFocus
+            />
+          </div>
+        </div>
+        <DialogFooter className="gap-2">
+          <Button variant="outline" size="sm" onClick={onCancel} disabled={isPending}
+            className="border-border text-muted-foreground hover:text-white">
+            Cancel
+          </Button>
+          <Button
+            size="sm"
+            onClick={() => {
+              if (canSubmit) onConfirm(urgency, isAog ? urgencyReason.trim() : null, adminReason.trim());
+            }}
+            disabled={!canSubmit || isPending}
+            className={`min-w-[100px] ${isAog ? "bg-red-600 hover:bg-red-700" : ""}`}
+          >
+            {isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : "Apply"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 // ─── section: RFQ management ─────────────────────────────────────────────────
 
 type RfqStatusFilter = "open" | "closed" | "archived" | "suspended" | "deleted" | undefined;
@@ -969,6 +1086,7 @@ function RfqsSection() {
   const [search, setSearch]             = useState("");
   const [pendingAction, setPendingAction] = useState<{ rfqId: number; partNumber: string; action: string } | null>(null);
   const [auditTarget, setAuditTarget]     = useState<{ rfqId: number; partNumber: string } | null>(null);
+  const [urgencyTarget, setUrgencyTarget] = useState<{ rfqId: number; partNumber: string; currentUrgency: RfqUrgency } | null>(null);
 
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -991,9 +1109,28 @@ function RfqsSection() {
     },
   });
 
+  const { mutate: applyUrgency, isPending: isUrgencyPending } = useAdminSetRfqUrgency({
+    mutation: {
+      onSuccess: (result) => {
+        queryClient.invalidateQueries({ queryKey: getGetAdminRfqsQueryKey() });
+        const u = ((result.rfq as any).urgency as string).toUpperCase().replace("_", " ");
+        toast({ title: "Urgency updated", description: `RFQ #${result.rfq.id} urgency set to ${u}.` });
+        setUrgencyTarget(null);
+      },
+      onError: () => {
+        toast({ title: "Update failed", description: "Could not update urgency. Please try again.", variant: "destructive" });
+      },
+    },
+  });
+
   function confirmAction(reason: string) {
     if (!pendingAction) return;
     applyAction({ id: pendingAction.rfqId, data: { action: pendingAction.action as any, reason } });
+  }
+
+  function confirmUrgency(urgency: RfqUrgency, urgencyReason: string | null, reason: string) {
+    if (!urgencyTarget) return;
+    applyUrgency({ id: urgencyTarget.rfqId, data: { urgency, urgencyReason: urgencyReason ?? undefined, reason } });
   }
 
   const STATUS_TABS: Array<{ value: RfqStatusFilter; label: string }> = [
@@ -1071,6 +1208,7 @@ function RfqsSection() {
                   <th className="text-left p-3 hidden md:table-cell">Buyer</th>
                   <th className="text-left p-3 hidden lg:table-cell">Aircraft</th>
                   <th className="text-left p-3">Qty</th>
+                  <th className="text-left p-3">Urgency</th>
                   <th className="text-left p-3">Status</th>
                   <th className="text-left p-3 hidden md:table-cell">Posted</th>
                   <th className="text-right p-3 pr-4">Actions</th>
@@ -1078,17 +1216,35 @@ function RfqsSection() {
               </thead>
               <tbody>
                 {data.rfqs.map(rfq => {
-                  const statusMeta = RFQ_STATUS_META[rfq.status] ?? RFQ_STATUS_META.closed;
-                  const actions = RFQ_ACTIONS[rfq.status] ?? [];
+                  const statusMeta  = RFQ_STATUS_META[rfq.status] ?? RFQ_STATUS_META.closed;
+                  const actions     = RFQ_ACTIONS[rfq.status] ?? [];
+                  const urgency     = ((rfq as any).urgency ?? "standard") as RfqUrgency;
+                  const urgencyMeta = RFQ_URGENCY_META[urgency];
+                  const isAogRow    = urgency === "aog";
                   return (
-                    <tr key={rfq.id} className="border-b border-border/50 hover:bg-secondary/10 transition-colors">
+                    <tr key={rfq.id}
+                      className={`border-b border-border/50 hover:bg-secondary/10 transition-colors ${isAogRow ? "bg-red-500/5" : ""}`}>
                       <td className="p-3 pl-4 text-xs font-mono text-muted-foreground">#{rfq.id}</td>
-                      <td className="p-3 font-mono text-primary text-xs">{rfq.partNumber}</td>
+                      <td className="p-3 font-mono text-primary text-xs">
+                        <div className="flex items-center gap-1.5">
+                          {isAogRow && <AlertTriangle className="w-3 h-3 text-red-400 flex-shrink-0 animate-pulse" />}
+                          {rfq.partNumber}
+                        </div>
+                      </td>
                       <td className="p-3 hidden md:table-cell text-xs text-muted-foreground max-w-[120px] truncate">
                         {rfq.buyerCompany ?? rfq.buyerName}
                       </td>
                       <td className="p-3 hidden lg:table-cell text-xs text-muted-foreground">{rfq.aircraftApplicability ?? "—"}</td>
                       <td className="p-3 text-xs font-mono text-white">{rfq.quantity}</td>
+                      <td className="p-3">
+                        {urgencyMeta.show ? (
+                          <Badge className={`text-xs border ${urgencyMeta.className} ${isAogRow ? "animate-pulse" : ""}`}>
+                            {urgencyMeta.label}
+                          </Badge>
+                        ) : (
+                          <span className="text-xs text-muted-foreground/50">—</span>
+                        )}
+                      </td>
                       <td className="p-3">
                         <Badge className={`text-xs border ${statusMeta.className}`}>{statusMeta.label}</Badge>
                       </td>
@@ -1108,33 +1264,37 @@ function RfqsSection() {
                               <ExternalLink className="w-3.5 h-3.5" />
                             </Button>
                           </Link>
-                          {/* Admin actions dropdown */}
-                          {actions.length > 0 && (
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button size="sm" variant="outline"
-                                  className="h-7 px-2 text-xs border-border text-muted-foreground hover:text-white gap-1">
-                                  <MoreVertical className="w-3.5 h-3.5" />
-                                  <ChevronDown className="w-3 h-3" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end" className="bg-card border-border w-44">
-                                {actions.map((act, idx) => (
-                                  <span key={act.action}>
-                                    {act.danger && idx > 0 && <DropdownMenuSeparator className="bg-border/50" />}
-                                    <DropdownMenuItem
-                                      className={`text-xs cursor-pointer ${act.danger ? "text-red-400 focus:text-red-300 focus:bg-red-500/10" : "text-white focus:bg-secondary/40"}`}
-                                      onClick={() => setPendingAction({ rfqId: rfq.id, partNumber: rfq.partNumber, action: act.action })}>
-                                      {act.label}
-                                    </DropdownMenuItem>
-                                  </span>
-                                ))}
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          )}
-                          {actions.length === 0 && (
-                            <span className="text-xs text-muted-foreground italic px-1">—</span>
-                          )}
+                          {/* Admin actions dropdown — always shown (includes urgency override) */}
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button size="sm" variant="outline"
+                                className="h-7 px-2 text-xs border-border text-muted-foreground hover:text-white gap-1">
+                                <MoreVertical className="w-3.5 h-3.5" />
+                                <ChevronDown className="w-3 h-3" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="bg-card border-border w-48">
+                              {/* Urgency override — always available */}
+                              <DropdownMenuItem
+                                className="text-xs cursor-pointer text-amber-400 focus:text-amber-300 focus:bg-amber-500/10"
+                                onClick={() => setUrgencyTarget({ rfqId: rfq.id, partNumber: rfq.partNumber, currentUrgency: urgency })}>
+                                <AlertTriangle className="w-3 h-3 mr-1.5 inline-block" />
+                                Override Urgency
+                              </DropdownMenuItem>
+                              {/* Lifecycle actions */}
+                              {actions.length > 0 && <DropdownMenuSeparator className="bg-border/50" />}
+                              {actions.map((act, idx) => (
+                                <span key={act.action}>
+                                  {act.danger && idx > 0 && <DropdownMenuSeparator className="bg-border/50" />}
+                                  <DropdownMenuItem
+                                    className={`text-xs cursor-pointer ${act.danger ? "text-red-400 focus:text-red-300 focus:bg-red-500/10" : "text-white focus:bg-secondary/40"}`}
+                                    onClick={() => setPendingAction({ rfqId: rfq.id, partNumber: rfq.partNumber, action: act.action })}>
+                                    {act.label}
+                                  </DropdownMenuItem>
+                                </span>
+                              ))}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </div>
                       </td>
                     </tr>
@@ -1165,6 +1325,18 @@ function RfqsSection() {
           partNumber={auditTarget.partNumber}
           open={!!auditTarget}
           onClose={() => setAuditTarget(null)}
+        />
+      )}
+
+      {/* Urgency override dialog */}
+      {urgencyTarget && (
+        <RfqUrgencyDialog
+          rfqId={urgencyTarget.rfqId}
+          partNumber={urgencyTarget.partNumber}
+          currentUrgency={urgencyTarget.currentUrgency}
+          isPending={isUrgencyPending}
+          onConfirm={confirmUrgency}
+          onCancel={() => setUrgencyTarget(null)}
         />
       )}
     </div>

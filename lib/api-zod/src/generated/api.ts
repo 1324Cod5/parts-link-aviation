@@ -737,6 +737,8 @@ export const GetRfqsResponse = zod.object({
   "condition": zod.string().nullish(),
   "quantity": zod.number(),
   "status": zod.enum(['open', 'closed', 'archived', 'suspended', 'deleted']),
+  "urgency": zod.enum(['aog', 'critical', 'high_priority', 'standard', 'planned']).describe('Urgency classification for the RFQ. AOG (Aircraft on Ground) triggers the highest notification priority and fastest escalation.\n'),
+  "urgencyReason": zod.string().nullish().describe('Required when urgency is AOG; describes the grounding situation'),
   "accessLevel": zod.enum(['full', 'limited']).describe('full = Pro\/Enterprise (complete buyer contact); limited = Free (contact info hidden)'),
   "createdAt": zod.string(),
   "updatedAt": zod.string().optional()
@@ -762,7 +764,9 @@ export const CreateRfqBody = zod.object({
   "description": zod.string(),
   "aircraftApplicability": zod.string().nullish(),
   "condition": zod.string().nullish(),
-  "quantity": zod.number().min(1)
+  "quantity": zod.number().min(1),
+  "urgency": zod.enum(['aog', 'critical', 'high_priority', 'standard', 'planned']).optional().describe('Urgency classification for the RFQ. AOG (Aircraft on Ground) triggers the highest notification priority and fastest escalation.\n'),
+  "urgencyReason": zod.string().nullish().describe('Required when urgency is aog')
 })
 
 
@@ -786,6 +790,8 @@ export const GetRfqResponse = zod.object({
   "condition": zod.string().nullish(),
   "quantity": zod.number(),
   "status": zod.enum(['open', 'closed', 'archived', 'suspended', 'deleted']),
+  "urgency": zod.enum(['aog', 'critical', 'high_priority', 'standard', 'planned']).describe('Urgency classification for the RFQ. AOG (Aircraft on Ground) triggers the highest notification priority and fastest escalation.\n'),
+  "urgencyReason": zod.string().nullish().describe('Required when urgency is AOG; describes the grounding situation'),
   "accessLevel": zod.enum(['full', 'limited']).describe('full = Pro\/Enterprise (complete buyer contact); limited = Free (contact info hidden)'),
   "createdAt": zod.string(),
   "updatedAt": zod.string().optional()
@@ -822,6 +828,8 @@ export const CloseRfqResponse = zod.object({
   "condition": zod.string().nullish(),
   "quantity": zod.number(),
   "status": zod.enum(['open', 'closed', 'archived', 'suspended', 'deleted']),
+  "urgency": zod.enum(['aog', 'critical', 'high_priority', 'standard', 'planned']).describe('Urgency classification for the RFQ. AOG (Aircraft on Ground) triggers the highest notification priority and fastest escalation.\n'),
+  "urgencyReason": zod.string().nullish().describe('Required when urgency is AOG; describes the grounding situation'),
   "accessLevel": zod.enum(['full', 'limited']).describe('full = Pro\/Enterprise (complete buyer contact); limited = Free (contact info hidden)'),
   "createdAt": zod.string(),
   "updatedAt": zod.string().optional()
@@ -880,6 +888,8 @@ export const GetAdminRfqsResponse = zod.object({
   "condition": zod.string().nullish(),
   "quantity": zod.number(),
   "status": zod.enum(['open', 'closed', 'archived', 'suspended', 'deleted']),
+  "urgency": zod.enum(['aog', 'critical', 'high_priority', 'standard', 'planned']).describe('Urgency classification for the RFQ. AOG (Aircraft on Ground) triggers the highest notification priority and fastest escalation.\n'),
+  "urgencyReason": zod.string().nullish().describe('Required when urgency is AOG; describes the grounding situation'),
   "accessLevel": zod.enum(['full', 'limited']).describe('full = Pro\/Enterprise (complete buyer contact); limited = Free (contact info hidden)'),
   "createdAt": zod.string(),
   "updatedAt": zod.string().optional()
@@ -918,6 +928,51 @@ export const AdminRfqActionResponse = zod.object({
   "condition": zod.string().nullish(),
   "quantity": zod.number(),
   "status": zod.enum(['open', 'closed', 'archived', 'suspended', 'deleted']),
+  "urgency": zod.enum(['aog', 'critical', 'high_priority', 'standard', 'planned']).describe('Urgency classification for the RFQ. AOG (Aircraft on Ground) triggers the highest notification priority and fastest escalation.\n'),
+  "urgencyReason": zod.string().nullish().describe('Required when urgency is AOG; describes the grounding situation'),
+  "accessLevel": zod.enum(['full', 'limited']).describe('full = Pro\/Enterprise (complete buyer contact); limited = Free (contact info hidden)'),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string().optional()
+}),
+  "auditEntry": zod.object({
+  "id": zod.number(),
+  "rfqId": zod.number(),
+  "adminId": zod.number(),
+  "action": zod.string(),
+  "reason": zod.string(),
+  "createdAt": zod.string()
+})
+})
+
+
+/**
+ * @summary Admin — override urgency classification of an RFQ
+ */
+export const AdminSetRfqUrgencyParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const AdminSetRfqUrgencyBody = zod.object({
+  "urgency": zod.enum(['aog', 'critical', 'high_priority', 'standard', 'planned']).describe('Urgency classification for the RFQ. AOG (Aircraft on Ground) triggers the highest notification priority and fastest escalation.\n'),
+  "urgencyReason": zod.string().nullish().describe('Required when urgency is aog'),
+  "reason": zod.string().describe('Admin\'s reason for changing the urgency classification')
+})
+
+export const AdminSetRfqUrgencyResponse = zod.object({
+  "rfq": zod.object({
+  "id": zod.number(),
+  "buyerName": zod.string(),
+  "buyerEmail": zod.string().nullish().describe('Masked to null for free-plan sellers; full value for Pro\/Enterprise'),
+  "buyerCompany": zod.string().nullish().describe('Masked to null for free-plan sellers'),
+  "buyerPhone": zod.string().nullish().describe('Masked to null for free-plan sellers'),
+  "partNumber": zod.string(),
+  "description": zod.string(),
+  "aircraftApplicability": zod.string().nullish(),
+  "condition": zod.string().nullish(),
+  "quantity": zod.number(),
+  "status": zod.enum(['open', 'closed', 'archived', 'suspended', 'deleted']),
+  "urgency": zod.enum(['aog', 'critical', 'high_priority', 'standard', 'planned']).describe('Urgency classification for the RFQ. AOG (Aircraft on Ground) triggers the highest notification priority and fastest escalation.\n'),
+  "urgencyReason": zod.string().nullish().describe('Required when urgency is AOG; describes the grounding situation'),
   "accessLevel": zod.enum(['full', 'limited']).describe('full = Pro\/Enterprise (complete buyer contact); limited = Free (contact info hidden)'),
   "createdAt": zod.string(),
   "updatedAt": zod.string().optional()

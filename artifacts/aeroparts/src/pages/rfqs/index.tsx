@@ -7,7 +7,7 @@ import { Footer } from "@/components/layout/Footer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Search, Plus, Clock, Package, ChevronRight, Building2, Plane, Lock } from "lucide-react";
+import { Search, Plus, Clock, Package, ChevronRight, Building2, Plane, Lock, AlertTriangle } from "lucide-react";
 
 function timeAgo(dateStr: string) {
   const diff = Date.now() - new Date(dateStr).getTime();
@@ -17,6 +17,45 @@ function timeAgo(dateStr: string) {
   if (hours < 24) return `${hours}h ago`;
   const days = Math.floor(hours / 24);
   return `${days}d ago`;
+}
+
+type UrgencyLevel = "aog" | "critical" | "high_priority" | "standard" | "planned";
+
+function UrgencyBadge({ urgency }: { urgency: UrgencyLevel }) {
+  if (urgency === "standard") return null;
+
+  const config: Record<Exclude<UrgencyLevel, "standard">, { label: string; className: string; pulse?: boolean }> = {
+    aog: {
+      label: "AOG",
+      className: "bg-red-500/20 text-red-400 border-red-500/40 font-semibold",
+      pulse: true,
+    },
+    critical: {
+      label: "CRITICAL",
+      className: "bg-orange-500/20 text-orange-400 border-orange-500/30",
+    },
+    high_priority: {
+      label: "HIGH PRIORITY",
+      className: "bg-amber-500/20 text-amber-400 border-amber-500/30",
+    },
+    planned: {
+      label: "PLANNED",
+      className: "bg-sky-500/10 text-sky-400/80 border-sky-500/20",
+    },
+  };
+
+  const c = config[urgency as keyof typeof config];
+  if (!c) return null;
+
+  return (
+    <Badge
+      variant="outline"
+      className={`text-xs px-1.5 py-0 ${c.className} ${c.pulse ? "animate-pulse" : ""}`}
+    >
+      {urgency === "aog" && <AlertTriangle className="w-2.5 h-2.5 mr-1 inline-block" />}
+      {c.label}
+    </Badge>
+  );
 }
 
 export default function RfqsPage() {
@@ -148,62 +187,80 @@ export default function RfqsPage() {
             </div>
           ) : (
             <div className="space-y-3">
-              {data?.rfqs.map(rfq => (
-                <Link key={rfq.id} href={`/rfqs/${rfq.id}`}>
-                  <div className="group border border-border rounded-lg bg-card hover:border-primary/50 hover:bg-card/80 transition-all cursor-pointer p-5">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-3 mb-1.5">
-                          <span className="font-mono text-sm font-semibold text-primary tracking-wider">
-                            {rfq.partNumber}
-                          </span>
-                          <Badge variant={rfq.status === "open" ? "default" : "secondary"}
-                            className={rfq.status === "open"
-                              ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30 text-xs"
-                              : "bg-muted text-muted-foreground text-xs"
-                            }>
-                            {rfq.status.toUpperCase()}
-                          </Badge>
-                          {rfq.condition && (
-                            <span className="text-xs text-muted-foreground border border-border rounded px-1.5 py-0.5">
-                              {rfq.condition}
-                            </span>
+              {data?.rfqs.map(rfq => {
+                const urgency = (rfq as any).urgency as UrgencyLevel;
+                const isAog = urgency === "aog";
+                return (
+                  <Link key={rfq.id} href={`/rfqs/${rfq.id}`}>
+                    <div className={`group border rounded-lg bg-card hover:bg-card/80 transition-all cursor-pointer p-5 ${
+                      isAog
+                        ? "border-red-500/40 hover:border-red-500/60"
+                        : "border-border hover:border-primary/50"
+                    }`}>
+                      {isAog && (
+                        <div className="flex items-center gap-2 text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded px-3 py-1.5 mb-3">
+                          <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0 animate-pulse" />
+                          <span className="font-medium">Aircraft on Ground — Immediate response required</span>
+                          {(rfq as any).urgencyReason && (
+                            <span className="text-red-400/70 truncate">· {(rfq as any).urgencyReason}</span>
                           )}
                         </div>
-                        <p className="text-sm text-foreground line-clamp-2 mb-2">{rfq.description}</p>
-                        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
-                          {rfq.accessLevel === "limited" ? (
-                            <span className="flex items-center gap-1 text-amber-500/60">
-                              <Lock className="w-3 h-3" />
-                              <span className="blur-[5px] select-none">Buyer contact hidden</span>
+                      )}
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap mb-1.5">
+                            <span className="font-mono text-sm font-semibold text-primary tracking-wider">
+                              {rfq.partNumber}
                             </span>
-                          ) : rfq.buyerCompany ? (
+                            <UrgencyBadge urgency={urgency} />
+                            <Badge variant={rfq.status === "open" ? "default" : "secondary"}
+                              className={rfq.status === "open"
+                                ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30 text-xs"
+                                : "bg-muted text-muted-foreground text-xs"
+                              }>
+                              {rfq.status.toUpperCase()}
+                            </Badge>
+                            {rfq.condition && (
+                              <span className="text-xs text-muted-foreground border border-border rounded px-1.5 py-0.5">
+                                {rfq.condition}
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-sm text-foreground line-clamp-2 mb-2">{rfq.description}</p>
+                          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                            {rfq.accessLevel === "limited" ? (
+                              <span className="flex items-center gap-1 text-amber-500/60">
+                                <Lock className="w-3 h-3" />
+                                <span className="blur-[5px] select-none">Buyer contact hidden</span>
+                              </span>
+                            ) : rfq.buyerCompany ? (
+                              <span className="flex items-center gap-1">
+                                <Building2 className="w-3 h-3" />
+                                {rfq.buyerCompany}
+                              </span>
+                            ) : null}
+                            {rfq.aircraftApplicability && (
+                              <span className="flex items-center gap-1">
+                                <Plane className="w-3 h-3" />
+                                {rfq.aircraftApplicability}
+                              </span>
+                            )}
                             <span className="flex items-center gap-1">
-                              <Building2 className="w-3 h-3" />
-                              {rfq.buyerCompany}
+                              <Package className="w-3 h-3" />
+                              Qty: {rfq.quantity}
                             </span>
-                          ) : null}
-                          {rfq.aircraftApplicability && (
                             <span className="flex items-center gap-1">
-                              <Plane className="w-3 h-3" />
-                              {rfq.aircraftApplicability}
+                              <Clock className="w-3 h-3" />
+                              {timeAgo(rfq.createdAt)}
                             </span>
-                          )}
-                          <span className="flex items-center gap-1">
-                            <Package className="w-3 h-3" />
-                            Qty: {rfq.quantity}
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <Clock className="w-3 h-3" />
-                            {timeAgo(rfq.createdAt)}
-                          </span>
+                          </div>
                         </div>
+                        <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors flex-shrink-0 mt-1" />
                       </div>
-                      <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors flex-shrink-0 mt-1" />
                     </div>
-                  </div>
-                </Link>
-              ))}
+                  </Link>
+                );
+              })}
             </div>
           )}
 

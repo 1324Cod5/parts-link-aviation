@@ -22,10 +22,12 @@ import type {
 import type {
   AdminRfqAction200,
   AdminRfqActionInput,
+  AdminRfqUrgencyInput,
   AdminRfqsPage,
   AdminSeller,
   AdminSellerPlanUpdate,
   AdminSellerStatusUpdate,
+  AdminSetRfqUrgency200,
   AdminStats,
   AuthResponse,
   BadgeUpdate,
@@ -2858,6 +2860,78 @@ export const useAdminRfqAction = <TError = ErrorType<void>,
         TContext
       > => {
       return useMutation(getAdminRfqActionMutationOptions(options));
+    }
+
+export const getAdminSetRfqUrgencyUrl = (id: number,) => {
+
+
+
+
+  return `/api/admin/rfqs/${id}/urgency`
+}
+
+/**
+ * @summary Admin — override urgency classification of an RFQ
+ */
+export const adminSetRfqUrgency = async (id: number,
+    adminRfqUrgencyInput: AdminRfqUrgencyInput, options?: RequestInit): Promise<AdminSetRfqUrgency200> => {
+
+  return customFetch<AdminSetRfqUrgency200>(getAdminSetRfqUrgencyUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      adminRfqUrgencyInput,)
+  }
+);}
+
+
+
+
+export const getAdminSetRfqUrgencyMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof adminSetRfqUrgency>>, TError,{id: number;data: BodyType<AdminRfqUrgencyInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof adminSetRfqUrgency>>, TError,{id: number;data: BodyType<AdminRfqUrgencyInput>}, TContext> => {
+
+const mutationKey = ['adminSetRfqUrgency'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof adminSetRfqUrgency>>, {id: number;data: BodyType<AdminRfqUrgencyInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  adminSetRfqUrgency(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AdminSetRfqUrgencyMutationResult = NonNullable<Awaited<ReturnType<typeof adminSetRfqUrgency>>>
+    export type AdminSetRfqUrgencyMutationBody = BodyType<AdminRfqUrgencyInput>
+    export type AdminSetRfqUrgencyMutationError = ErrorType<void>
+
+    /**
+ * @summary Admin — override urgency classification of an RFQ
+ */
+export const useAdminSetRfqUrgency = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof adminSetRfqUrgency>>, TError,{id: number;data: BodyType<AdminRfqUrgencyInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof adminSetRfqUrgency>>,
+        TError,
+        {id: number;data: BodyType<AdminRfqUrgencyInput>},
+        TContext
+      > => {
+      return useMutation(getAdminSetRfqUrgencyMutationOptions(options));
     }
 
 export const getGetAdminRfqAuditUrl = (id: number,) => {

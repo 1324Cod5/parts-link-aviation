@@ -606,6 +606,21 @@ export const RfqAccessLevel = {
   limited: 'limited',
 } as const;
 
+/**
+ * Urgency classification for the RFQ. AOG (Aircraft on Ground) triggers the highest notification priority and fastest escalation.
+
+ */
+export type RfqUrgency = typeof RfqUrgency[keyof typeof RfqUrgency];
+
+
+export const RfqUrgency = {
+  aog: 'aog',
+  critical: 'critical',
+  high_priority: 'high_priority',
+  standard: 'standard',
+  planned: 'planned',
+} as const;
+
 export interface Rfq {
   id: number;
   buyerName: string;
@@ -632,6 +647,12 @@ export interface Rfq {
   condition?: string | null;
   quantity: number;
   status: RfqStatus;
+  urgency: RfqUrgency;
+  /**
+     * Required when urgency is AOG; describes the grounding situation
+     * @nullable
+     */
+  urgencyReason?: string | null;
   /** full = Pro/Enterprise (complete buyer contact); limited = Free (contact info hidden) */
   accessLevel: RfqAccessLevel;
   createdAt: string;
@@ -671,6 +692,12 @@ export interface RfqInput {
   condition?: string | null;
   /** @minimum 1 */
   quantity: number;
+  urgency?: RfqUrgency;
+  /**
+     * Required when urgency is aog
+     * @nullable
+     */
+  urgencyReason?: string | null;
 }
 
 export interface RfqResponseInput {
@@ -684,6 +711,17 @@ export interface RfqsPage {
   total: number;
   page: number;
   limit: number;
+}
+
+export interface AdminRfqUrgencyInput {
+  urgency: RfqUrgency;
+  /**
+     * Required when urgency is aog
+     * @nullable
+     */
+  urgencyReason?: string | null;
+  /** Admin's reason for changing the urgency classification */
+  reason: string;
 }
 
 /**
@@ -1046,6 +1084,11 @@ export const GetAdminRfqsStatus = {
 } as const;
 
 export type AdminRfqAction200 = {
+  rfq: Rfq;
+  auditEntry: AdminRfqAuditEntry;
+};
+
+export type AdminSetRfqUrgency200 = {
   rfq: Rfq;
   auditEntry: AdminRfqAuditEntry;
 };

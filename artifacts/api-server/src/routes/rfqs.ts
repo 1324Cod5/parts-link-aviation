@@ -24,6 +24,8 @@ function serializeRfq(rfq: any, accessLevel: "full" | "limited") {
     condition: rfq.condition ?? null,
     quantity: rfq.quantity,
     status: rfq.status,
+    urgency: rfq.urgency ?? "standard",
+    urgencyReason: rfq.urgencyReason ?? null,
     accessLevel,
     createdAt: rfq.createdAt?.toISOString?.() ?? rfq.createdAt,
     updatedAt: rfq.updatedAt?.toISOString?.() ?? rfq.updatedAt,
@@ -53,8 +55,11 @@ router.get("/rfqs", async (req, res): Promise<void> => {
 
   const where = conditions.length > 0 ? and(...conditions) : undefined;
 
+  // AOG RFQs surface first within each status group
   const [rows, [countRow]] = await Promise.all([
-    db.select().from(rfqsTable).where(where).orderBy(desc(rfqsTable.createdAt)).limit(limit).offset(offset),
+    db.select().from(rfqsTable).where(where)
+      .orderBy(rfqsTable.urgency, desc(rfqsTable.createdAt))
+      .limit(limit).offset(offset),
     db.select({ count: count() }).from(rfqsTable).where(where),
   ]);
 
@@ -76,6 +81,13 @@ router.post("/rfqs", async (req, res): Promise<void> => {
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
 
   const data = parsed.data;
+
+  // Validate: AOG requires urgency reason
+  if (data.urgency === "aog" && !data.urgencyReason?.trim()) {
+    res.status(400).json({ error: "AOG urgency requires an urgency reason describing the grounding situation." });
+    return;
+  }
+
   const [rfq] = await db
     .insert(rfqsTable)
     .values({
@@ -88,10 +100,20 @@ router.post("/rfqs", async (req, res): Promise<void> => {
       aircraftApplicability: data.aircraftApplicability ?? null,
       condition: data.condition ?? null,
       quantity: data.quantity,
+      urgency: (data.urgency as any) ?? "standard",
+      urgencyReason: data.urgency === "aog" ? (data.urgencyReason ?? null) : null,
     })
     .returning();
 
-  res.status(201).json(serializeRfq(rfq, "full"));
+  const serialized = serializeRfq(rfq, "full");
+
+  // AOG escalation — attach priority flag so client can show elevated notification
+  if (rfq.urgency === "aog") {
+    res.status(201).json({ ...serialized, _aogEscalation: true });
+    return;
+  }
+
+  res.status(201).json(serialized);
 });
 
 // GET /rfqs/:id
