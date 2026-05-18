@@ -303,8 +303,21 @@ router.post("/auth/login-form", async (req, res): Promise<void> => {
     .set({ failedLoginAttempts: 0, lockedUntil: null, updatedAt: new Date() })
     .where(eq(usersTable.id, user.id));
 
-  // Set session exactly like the debug login route
+  // Set session with both formats for maximum compatibility
+  const effectivePlan = getEffectivePlan(user);
   req.session!.userId = user.id;
+  req.session!.user = {
+    id: String(user.id),
+    email: user.email,
+    role: derived.computedRole,
+    subscriptionTier: effectivePlan,
+    subscriptionStatus: "active",
+    permissions: {
+      canCreateListings: true,
+      rfqFullAccess: FULL_ACCESS_PLANS.has(effectivePlan),
+      maxListings: PLAN_LISTING_LIMITS[effectivePlan] ?? 5,
+    },
+  };
   await new Promise<void>((resolve, reject) =>
     req.session!.save(err => (err ? reject(err) : resolve()))
   );
