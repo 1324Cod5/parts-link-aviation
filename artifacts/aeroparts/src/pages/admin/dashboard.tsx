@@ -6,6 +6,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { BadgeIndicator } from "@/components/ui/badge-indicator";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import {
   useGetAdminListings, getGetAdminListingsQueryKey,
   useGetAdminStats, getGetAdminStatsQueryKey,
@@ -15,6 +18,9 @@ import {
   useGetAdminSellers, getGetAdminSellersQueryKey,
   useAdminSetSellerStatus, useAdminSetSellerPlan,
   useGetRfqs,
+  useGetAdminRfqs, getGetAdminRfqsQueryKey,
+  useAdminRfqAction,
+  useGetAdminRfqAudit, getGetAdminRfqAuditQueryKey,
 } from "@workspace/api-client-react";
 import { useAuth } from "@/context/useAuth";
 import { useQueryClient } from "@tanstack/react-query";
@@ -24,7 +30,8 @@ import {
   MessageSquare, AlertTriangle, ChevronRight, LogOut, ShieldAlert,
   ExternalLink, CheckCircle2, XCircle, MapPin, Clock, TrendingUp,
   Building2, Mail, Phone, Globe, Star, AlertCircle, Search,
-  ArrowUpDown, Lock, Unlock, FileText, BarChart2, Trophy, Loader2
+  ArrowUpDown, Lock, Unlock, FileText, BarChart2, Trophy, Loader2,
+  ChevronDown, MoreVertical, History,
 } from "lucide-react";
 
 // ─── helpers ────────────────────────────────────────────────────────────────
@@ -794,93 +801,372 @@ function MroSection() {
 
 // ─── section: RFQs ──────────────────────────────────────────────────────────
 
+// ─── RFQ status display helpers ──────────────────────────────────────────────
+
+const RFQ_STATUS_META: Record<string, { label: string; className: string }> = {
+  open:      { label: "OPEN",      className: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30" },
+  closed:    { label: "CLOSED",    className: "bg-muted text-muted-foreground border-border" },
+  archived:  { label: "ARCHIVED",  className: "bg-secondary/60 text-muted-foreground border-border" },
+  suspended: { label: "SUSPENDED", className: "bg-amber-500/20 text-amber-400 border-amber-500/30" },
+  deleted:   { label: "DELETED",   className: "bg-red-500/20 text-red-400 border-red-500/30" },
+};
+
+// Actions available per status
+const RFQ_ACTIONS: Record<string, Array<{ action: string; label: string; danger?: boolean }>> = {
+  open:      [
+    { action: "close",   label: "Close RFQ" },
+    { action: "suspend", label: "Suspend RFQ" },
+    { action: "archive", label: "Archive RFQ" },
+    { action: "delete",  label: "Soft Delete", danger: true },
+  ],
+  closed:    [
+    { action: "reopen",  label: "Reopen RFQ" },
+    { action: "archive", label: "Archive RFQ" },
+    { action: "delete",  label: "Soft Delete", danger: true },
+  ],
+  archived:  [
+    { action: "reopen",  label: "Reopen RFQ" },
+    { action: "delete",  label: "Soft Delete", danger: true },
+  ],
+  suspended: [
+    { action: "reopen",  label: "Reopen RFQ" },
+    { action: "archive", label: "Archive RFQ" },
+    { action: "delete",  label: "Soft Delete", danger: true },
+  ],
+  deleted:   [],
+};
+
+// ─── Audit log drawer ────────────────────────────────────────────────────────
+
+function RfqAuditDialog({ rfqId, partNumber, open, onClose }: { rfqId: number; partNumber: string; open: boolean; onClose: () => void }) {
+  const { data, isLoading } = useGetAdminRfqAudit(rfqId, {
+    query: { enabled: open, queryKey: getGetAdminRfqAuditQueryKey(rfqId) },
+  });
+
+  const ACTION_COLORS: Record<string, string> = {
+    close:   "text-muted-foreground",
+    archive: "text-muted-foreground",
+    suspend: "text-amber-400",
+    reopen:  "text-emerald-400",
+    delete:  "text-red-400",
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={v => { if (!v) onClose(); }}>
+      <DialogContent className="bg-card border-border max-w-lg">
+        <DialogHeader>
+          <DialogTitle className="text-white flex items-center gap-2">
+            <History className="w-4 h-4 text-primary" />
+            Audit Log — <span className="font-mono text-primary text-sm">{partNumber}</span>
+          </DialogTitle>
+        </DialogHeader>
+        <div className="max-h-80 overflow-y-auto space-y-2 py-1">
+          {isLoading ? (
+            Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-14 w-full" />)
+          ) : !data?.entries.length ? (
+            <p className="text-sm text-muted-foreground text-center py-6">No admin actions recorded yet.</p>
+          ) : (
+            data.entries.map(entry => (
+              <div key={entry.id} className="border border-border rounded-md p-3 bg-card/50">
+                <div className="flex items-center justify-between mb-1">
+                  <span className={`text-xs font-semibold uppercase tracking-wider ${ACTION_COLORS[entry.action] ?? "text-white"}`}>
+                    {entry.action}
+                  </span>
+                  <span className="text-xs text-muted-foreground font-mono">
+                    {new Date(entry.createdAt).toLocaleString()}
+                  </span>
+                </div>
+                <p className="text-xs text-white/80">{entry.reason}</p>
+                <p className="text-xs text-muted-foreground mt-1">Admin ID: {entry.adminId}</p>
+              </div>
+            ))
+          )}
+        </div>
+        <DialogFooter>
+          <Button variant="outline" size="sm" onClick={onClose} className="border-border text-muted-foreground hover:text-white">Close</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ─── Action confirmation dialog ───────────────────────────────────────────────
+
+function RfqActionDialog({
+  rfqId, partNumber, action, onConfirm, onCancel, isPending,
+}: {
+  rfqId: number;
+  partNumber: string;
+  action: string;
+  onConfirm: (reason: string) => void;
+  onCancel: () => void;
+  isPending: boolean;
+}) {
+  const [reason, setReason] = useState("");
+  const isDanger = action === "delete" || action === "suspend";
+  const ACTION_LABELS: Record<string, string> = {
+    close:   "Close RFQ",
+    archive: "Archive RFQ",
+    suspend: "Suspend RFQ",
+    reopen:  "Reopen RFQ",
+    delete:  "Soft Delete RFQ",
+  };
+
+  return (
+    <Dialog open onOpenChange={v => { if (!v) onCancel(); }}>
+      <DialogContent className="bg-card border-border max-w-md">
+        <DialogHeader>
+          <DialogTitle className={`flex items-center gap-2 ${isDanger ? "text-red-400" : "text-white"}`}>
+            {ACTION_LABELS[action] ?? action}
+          </DialogTitle>
+          <p className="text-sm text-muted-foreground pt-1">
+            RFQ <span className="font-mono text-primary">#{rfqId}</span> — {partNumber}
+          </p>
+        </DialogHeader>
+        <div className="space-y-3 py-1">
+          <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+            Admin Reason <span className="text-red-400">*</span>
+          </label>
+          <Textarea
+            value={reason}
+            onChange={e => setReason(e.target.value)}
+            placeholder="Provide a clear reason for this action. This will be logged."
+            className="bg-card border-border text-white resize-none h-24 text-sm"
+            autoFocus
+          />
+          {isDanger && (
+            <p className="text-xs text-amber-400 flex items-center gap-1.5">
+              <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" />
+              This action changes the RFQ status. No data is permanently deleted.
+            </p>
+          )}
+        </div>
+        <DialogFooter className="gap-2">
+          <Button variant="outline" size="sm" onClick={onCancel} disabled={isPending} className="border-border text-muted-foreground hover:text-white">
+            Cancel
+          </Button>
+          <Button
+            size="sm"
+            variant={isDanger ? "destructive" : "default"}
+            onClick={() => { if (reason.trim()) onConfirm(reason.trim()); }}
+            disabled={!reason.trim() || isPending}
+            className="min-w-[100px]"
+          >
+            {isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : "Confirm"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ─── section: RFQ management ─────────────────────────────────────────────────
+
+type RfqStatusFilter = "open" | "closed" | "archived" | "suspended" | "deleted" | undefined;
+
 function RfqsSection() {
-  const [statusFilter, setStatusFilter] = useState<"open" | "closed" | undefined>("open");
-  const [search, setSearch] = useState("");
-  const { data, isLoading } = useGetRfqs({ status: statusFilter, q: search || undefined, limit: 50 });
+  const [statusFilter, setStatusFilter] = useState<RfqStatusFilter>("open");
+  const [search, setSearch]             = useState("");
+  const [pendingAction, setPendingAction] = useState<{ rfqId: number; partNumber: string; action: string } | null>(null);
+  const [auditTarget, setAuditTarget]     = useState<{ rfqId: number; partNumber: string } | null>(null);
+
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  const queryParams = { status: statusFilter, q: search || undefined, limit: 50 };
+  const { data, isLoading } = useGetAdminRfqs(queryParams, {
+    query: { queryKey: getGetAdminRfqsQueryKey(queryParams) },
+  });
+
+  const { mutate: applyAction, isPending } = useAdminRfqAction({
+    mutation: {
+      onSuccess: (result) => {
+        queryClient.invalidateQueries({ queryKey: getGetAdminRfqsQueryKey() });
+        toast({ title: "Action applied", description: `RFQ #${result.rfq.id} is now ${result.rfq.status}.` });
+        setPendingAction(null);
+      },
+      onError: () => {
+        toast({ title: "Action failed", description: "Could not apply action. Please try again.", variant: "destructive" });
+      },
+    },
+  });
+
+  function confirmAction(reason: string) {
+    if (!pendingAction) return;
+    applyAction({ id: pendingAction.rfqId, data: { action: pendingAction.action as any, reason } });
+  }
+
+  const STATUS_TABS: Array<{ value: RfqStatusFilter; label: string }> = [
+    { value: undefined,   label: "All" },
+    { value: "open",      label: "Open" },
+    { value: "closed",    label: "Closed" },
+    { value: "archived",  label: "Archived" },
+    { value: "suspended", label: "Suspended" },
+    { value: "deleted",   label: "Deleted" },
+  ];
+
+  const counts = data?.rfqs.reduce((acc, rfq) => {
+    acc[rfq.status] = (acc[rfq.status] ?? 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between gap-4 flex-wrap">
+      {/* Header */}
+      <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
-          <h2 className="text-lg font-semibold text-white mb-1">RFQ Monitoring</h2>
-          <p className="text-sm text-muted-foreground">Track RFQ activity across the marketplace.</p>
+          <h2 className="text-lg font-semibold text-white mb-1">RFQ Management</h2>
+          <p className="text-sm text-muted-foreground">Manage RFQ lifecycle. Every action is logged with an admin reason.</p>
         </div>
-        <div className="flex gap-2">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-            <Input placeholder="Search part…" value={search} onChange={e => setSearch(e.target.value)} className="pl-8 h-8 text-sm bg-card border-border w-40" />
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+          <Input placeholder="Search part / buyer…" value={search} onChange={e => setSearch(e.target.value)}
+            className="pl-8 h-8 text-sm bg-card border-border w-52" />
+        </div>
+      </div>
+
+      {/* Status filter tabs */}
+      <div className="flex gap-1.5 flex-wrap">
+        {STATUS_TABS.map(({ value, label }) => (
+          <Button key={String(value)} size="sm"
+            variant={statusFilter === value ? "default" : "outline"}
+            className={`h-7 text-xs px-3 ${statusFilter !== value ? "border-border text-muted-foreground hover:text-white" : ""}`}
+            onClick={() => setStatusFilter(value)}>
+            {label}
+          </Button>
+        ))}
+      </div>
+
+      {/* Stats row */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {[
+          { label: "Showing",   value: data?.total ?? 0, color: "text-white" },
+          { label: "Open",      value: isLoading ? null : (counts?.open ?? 0), color: "text-emerald-400" },
+          { label: "Suspended", value: isLoading ? null : (counts?.suspended ?? 0), color: "text-amber-400" },
+          { label: "Deleted",   value: isLoading ? null : (counts?.deleted ?? 0), color: "text-red-400" },
+        ].map(s => (
+          <div key={s.label} className="border border-border rounded-lg p-3 bg-card">
+            <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">{s.label}</p>
+            <p className={`text-xl font-bold font-mono ${s.color}`}>{s.value === null || isLoading ? "—" : s.value}</p>
           </div>
-          {(["open", "closed", undefined] as const).map(s => (
-            <Button key={String(s)} variant={statusFilter === s ? "default" : "outline"} size="sm" className={`h-8 text-xs ${statusFilter !== s ? "border-border text-muted-foreground hover:text-white" : ""}`}
-              onClick={() => setStatusFilter(s)}>
-              {s === undefined ? "All" : s === "open" ? "Open" : "Closed"}
-            </Button>
-          ))}
-        </div>
+        ))}
       </div>
 
-      <div className="grid grid-cols-3 gap-4">
-        <div className="border border-border rounded-lg p-4 bg-card">
-          <p className="text-xs text-muted-foreground uppercase tracking-wider mb-2">Showing</p>
-          <p className="text-2xl font-bold font-mono text-white">{isLoading ? "—" : data?.total ?? 0}</p>
-        </div>
-        <div className="border border-emerald-500/20 rounded-lg p-4 bg-card">
-          <p className="text-xs text-muted-foreground uppercase tracking-wider mb-2">Status Filter</p>
-          <p className="text-sm font-semibold text-emerald-400 capitalize">{statusFilter ?? "All"}</p>
-        </div>
-        <div className="border border-border rounded-lg p-4 bg-card">
-          <p className="text-xs text-muted-foreground uppercase tracking-wider mb-2">Total Responses</p>
-          <p className="text-2xl font-bold font-mono text-white">—</p>
-        </div>
-      </div>
-
+      {/* Table */}
       <div className="border border-border rounded-lg bg-card overflow-hidden">
         {isLoading ? (
           <div className="p-6 space-y-3">{Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-16 w-full" />)}</div>
-        ) : data?.rfqs.length === 0 ? (
-          <div className="p-12 text-center text-muted-foreground"><MessageSquare className="w-8 h-8 mx-auto mb-3 opacity-30" /><p>No RFQs found.</p></div>
+        ) : !data?.rfqs.length ? (
+          <div className="p-12 text-center text-muted-foreground">
+            <MessageSquare className="w-8 h-8 mx-auto mb-3 opacity-30" />
+            <p>No RFQs match this filter.</p>
+          </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border text-xs text-muted-foreground uppercase tracking-wider">
-                  <th className="text-left p-4">Part Number</th>
-                  <th className="text-left p-4 hidden md:table-cell">Buyer</th>
-                  <th className="text-left p-4 hidden lg:table-cell">Aircraft</th>
-                  <th className="text-left p-4">Qty</th>
-                  <th className="text-left p-4">Status</th>
-                  <th className="text-left p-4 hidden md:table-cell">Posted</th>
-                  <th className="text-right p-4">View</th>
+                  <th className="text-left p-3 pl-4">ID</th>
+                  <th className="text-left p-3">Part Number</th>
+                  <th className="text-left p-3 hidden md:table-cell">Buyer</th>
+                  <th className="text-left p-3 hidden lg:table-cell">Aircraft</th>
+                  <th className="text-left p-3">Qty</th>
+                  <th className="text-left p-3">Status</th>
+                  <th className="text-left p-3 hidden md:table-cell">Posted</th>
+                  <th className="text-right p-3 pr-4">Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {data?.rfqs.map(rfq => (
-                  <tr key={rfq.id} className="border-b border-border/50 hover:bg-secondary/10 transition-colors">
-                    <td className="p-4 font-mono text-primary text-xs">{rfq.partNumber}</td>
-                    <td className="p-4 hidden md:table-cell text-xs text-muted-foreground">{rfq.buyerCompany ?? rfq.buyerName}</td>
-                    <td className="p-4 hidden lg:table-cell text-xs text-muted-foreground">{rfq.aircraftApplicability ?? "—"}</td>
-                    <td className="p-4 text-xs font-mono text-white">{rfq.quantity}</td>
-                    <td className="p-4">
-                      <Badge className={rfq.status === "open" ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30 text-xs" : "bg-muted text-muted-foreground text-xs"}>
-                        {rfq.status.toUpperCase()}
-                      </Badge>
-                    </td>
-                    <td className="p-4 hidden md:table-cell text-xs text-muted-foreground">{timeAgo(rfq.createdAt)}</td>
-                    <td className="p-4 text-right">
-                      <Link href={`/rfqs/${rfq.id}`}>
-                        <Button size="sm" variant="ghost" className="text-xs h-7 gap-1 text-muted-foreground hover:text-white">
-                          <ExternalLink className="w-3 h-3" />
-                        </Button>
-                      </Link>
-                    </td>
-                  </tr>
-                ))}
+                {data.rfqs.map(rfq => {
+                  const statusMeta = RFQ_STATUS_META[rfq.status] ?? RFQ_STATUS_META.closed;
+                  const actions = RFQ_ACTIONS[rfq.status] ?? [];
+                  return (
+                    <tr key={rfq.id} className="border-b border-border/50 hover:bg-secondary/10 transition-colors">
+                      <td className="p-3 pl-4 text-xs font-mono text-muted-foreground">#{rfq.id}</td>
+                      <td className="p-3 font-mono text-primary text-xs">{rfq.partNumber}</td>
+                      <td className="p-3 hidden md:table-cell text-xs text-muted-foreground max-w-[120px] truncate">
+                        {rfq.buyerCompany ?? rfq.buyerName}
+                      </td>
+                      <td className="p-3 hidden lg:table-cell text-xs text-muted-foreground">{rfq.aircraftApplicability ?? "—"}</td>
+                      <td className="p-3 text-xs font-mono text-white">{rfq.quantity}</td>
+                      <td className="p-3">
+                        <Badge className={`text-xs border ${statusMeta.className}`}>{statusMeta.label}</Badge>
+                      </td>
+                      <td className="p-3 hidden md:table-cell text-xs text-muted-foreground">{timeAgo(rfq.createdAt)}</td>
+                      <td className="p-3 pr-4 text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          {/* Audit log */}
+                          <Button size="sm" variant="ghost"
+                            className="h-7 w-7 p-0 text-muted-foreground hover:text-white"
+                            title="View audit log"
+                            onClick={() => setAuditTarget({ rfqId: rfq.id, partNumber: rfq.partNumber })}>
+                            <History className="w-3.5 h-3.5" />
+                          </Button>
+                          {/* External link */}
+                          <Link href={`/rfqs/${rfq.id}`}>
+                            <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-muted-foreground hover:text-white" title="View RFQ">
+                              <ExternalLink className="w-3.5 h-3.5" />
+                            </Button>
+                          </Link>
+                          {/* Admin actions dropdown */}
+                          {actions.length > 0 && (
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button size="sm" variant="outline"
+                                  className="h-7 px-2 text-xs border-border text-muted-foreground hover:text-white gap-1">
+                                  <MoreVertical className="w-3.5 h-3.5" />
+                                  <ChevronDown className="w-3 h-3" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="bg-card border-border w-44">
+                                {actions.map((act, idx) => (
+                                  <span key={act.action}>
+                                    {act.danger && idx > 0 && <DropdownMenuSeparator className="bg-border/50" />}
+                                    <DropdownMenuItem
+                                      className={`text-xs cursor-pointer ${act.danger ? "text-red-400 focus:text-red-300 focus:bg-red-500/10" : "text-white focus:bg-secondary/40"}`}
+                                      onClick={() => setPendingAction({ rfqId: rfq.id, partNumber: rfq.partNumber, action: act.action })}>
+                                      {act.label}
+                                    </DropdownMenuItem>
+                                  </span>
+                                ))}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          )}
+                          {actions.length === 0 && (
+                            <span className="text-xs text-muted-foreground italic px-1">—</span>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
         )}
       </div>
+
+      {/* Action confirmation dialog */}
+      {pendingAction && (
+        <RfqActionDialog
+          rfqId={pendingAction.rfqId}
+          partNumber={pendingAction.partNumber}
+          action={pendingAction.action}
+          isPending={isPending}
+          onConfirm={confirmAction}
+          onCancel={() => setPendingAction(null)}
+        />
+      )}
+
+      {/* Audit log dialog */}
+      {auditTarget && (
+        <RfqAuditDialog
+          rfqId={auditTarget.rfqId}
+          partNumber={auditTarget.partNumber}
+          open={!!auditTarget}
+          onClose={() => setAuditTarget(null)}
+        />
+      )}
     </div>
   );
 }

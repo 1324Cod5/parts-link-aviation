@@ -6,10 +6,10 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export type RfqStatus = typeof RfqStatus[keyof typeof RfqStatus];
+export type GetAdminRfqsStatus = typeof GetAdminRfqsStatus[keyof typeof GetAdminRfqsStatus];
 
 
-export const RfqStatus = {
+export const GetAdminRfqsStatus = {
   open: 'open',
   closed: 'closed',
   archived: 'archived',

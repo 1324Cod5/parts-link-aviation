@@ -590,6 +590,9 @@ export type RfqStatus = typeof RfqStatus[keyof typeof RfqStatus];
 export const RfqStatus = {
   open: 'open',
   closed: 'closed',
+  archived: 'archived',
+  suspended: 'suspended',
+  deleted: 'deleted',
 } as const;
 
 /**
@@ -677,6 +680,46 @@ export interface RfqResponseInput {
 }
 
 export interface RfqsPage {
+  rfqs: Rfq[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
+/**
+ * Lifecycle action to perform on the RFQ
+ */
+export type AdminRfqActionInputAction = typeof AdminRfqActionInputAction[keyof typeof AdminRfqActionInputAction];
+
+
+export const AdminRfqActionInputAction = {
+  close: 'close',
+  archive: 'archive',
+  suspend: 'suspend',
+  reopen: 'reopen',
+  delete: 'delete',
+} as const;
+
+export interface AdminRfqActionInput {
+  /** Lifecycle action to perform on the RFQ */
+  action: AdminRfqActionInputAction;
+  /**
+     * Required admin reason logged with the audit entry
+     * @minLength 1
+     */
+  reason: string;
+}
+
+export interface AdminRfqAuditEntry {
+  id: number;
+  rfqId: number;
+  adminId: number;
+  action: string;
+  reason: string;
+  createdAt: string;
+}
+
+export interface AdminRfqsPage {
   rfqs: Rfq[];
   total: number;
   page: number;
@@ -972,7 +1015,44 @@ export type GetRfqsStatus = typeof GetRfqsStatus[keyof typeof GetRfqsStatus];
 export const GetRfqsStatus = {
   open: 'open',
   closed: 'closed',
+  archived: 'archived',
+  suspended: 'suspended',
+  deleted: 'deleted',
 } as const;
+
+export type GetAdminRfqsParams = {
+status?: GetAdminRfqsStatus;
+q?: string;
+/**
+ * @minimum 1
+ */
+page?: number;
+/**
+ * @minimum 1
+ * @maximum 100
+ */
+limit?: number;
+};
+
+export type GetAdminRfqsStatus = typeof GetAdminRfqsStatus[keyof typeof GetAdminRfqsStatus];
+
+
+export const GetAdminRfqsStatus = {
+  open: 'open',
+  closed: 'closed',
+  archived: 'archived',
+  suspended: 'suspended',
+  deleted: 'deleted',
+} as const;
+
+export type AdminRfqAction200 = {
+  rfq: Rfq;
+  auditEntry: AdminRfqAuditEntry;
+};
+
+export type GetAdminRfqAudit200 = {
+  entries: AdminRfqAuditEntry[];
+};
 
 export type GetMroProfilesParams = {
 q?: string;

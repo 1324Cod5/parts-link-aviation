@@ -718,7 +718,7 @@ export const getRfqsQueryLimitMax = 50;
 
 
 export const GetRfqsQueryParams = zod.object({
-  "status": zod.enum(['open', 'closed']).optional(),
+  "status": zod.enum(['open', 'closed', 'archived', 'suspended', 'deleted']).optional(),
   "q": zod.coerce.string().optional(),
   "page": zod.coerce.number().min(1).default(getRfqsQueryPageDefault),
   "limit": zod.coerce.number().min(1).max(getRfqsQueryLimitMax).default(getRfqsQueryLimitDefault)
@@ -736,7 +736,7 @@ export const GetRfqsResponse = zod.object({
   "aircraftApplicability": zod.string().nullish(),
   "condition": zod.string().nullish(),
   "quantity": zod.number(),
-  "status": zod.enum(['open', 'closed']),
+  "status": zod.enum(['open', 'closed', 'archived', 'suspended', 'deleted']),
   "accessLevel": zod.enum(['full', 'limited']).describe('full = Pro\/Enterprise (complete buyer contact); limited = Free (contact info hidden)'),
   "createdAt": zod.string(),
   "updatedAt": zod.string().optional()
@@ -785,7 +785,7 @@ export const GetRfqResponse = zod.object({
   "aircraftApplicability": zod.string().nullish(),
   "condition": zod.string().nullish(),
   "quantity": zod.number(),
-  "status": zod.enum(['open', 'closed']),
+  "status": zod.enum(['open', 'closed', 'archived', 'suspended', 'deleted']),
   "accessLevel": zod.enum(['full', 'limited']).describe('full = Pro\/Enterprise (complete buyer contact); limited = Free (contact info hidden)'),
   "createdAt": zod.string(),
   "updatedAt": zod.string().optional()
@@ -821,7 +821,7 @@ export const CloseRfqResponse = zod.object({
   "aircraftApplicability": zod.string().nullish(),
   "condition": zod.string().nullish(),
   "quantity": zod.number(),
-  "status": zod.enum(['open', 'closed']),
+  "status": zod.enum(['open', 'closed', 'archived', 'suspended', 'deleted']),
   "accessLevel": zod.enum(['full', 'limited']).describe('full = Pro\/Enterprise (complete buyer contact); limited = Free (contact info hidden)'),
   "createdAt": zod.string(),
   "updatedAt": zod.string().optional()
@@ -847,6 +847,108 @@ export const CreateRfqResponseBody = zod.object({
 export const GetSellerRfqStatsResponse = zod.object({
   "openRfqs": zod.number(),
   "myResponses": zod.number()
+})
+
+
+/**
+ * @summary Admin — list all RFQs across all statuses
+ */
+export const getAdminRfqsQueryPageDefault = 1;
+
+export const getAdminRfqsQueryLimitDefault = 50;
+export const getAdminRfqsQueryLimitMax = 100;
+
+
+
+export const GetAdminRfqsQueryParams = zod.object({
+  "status": zod.enum(['open', 'closed', 'archived', 'suspended', 'deleted']).optional(),
+  "q": zod.coerce.string().optional(),
+  "page": zod.coerce.number().min(1).default(getAdminRfqsQueryPageDefault),
+  "limit": zod.coerce.number().min(1).max(getAdminRfqsQueryLimitMax).default(getAdminRfqsQueryLimitDefault)
+})
+
+export const GetAdminRfqsResponse = zod.object({
+  "rfqs": zod.array(zod.object({
+  "id": zod.number(),
+  "buyerName": zod.string(),
+  "buyerEmail": zod.string().nullish().describe('Masked to null for free-plan sellers; full value for Pro\/Enterprise'),
+  "buyerCompany": zod.string().nullish().describe('Masked to null for free-plan sellers'),
+  "buyerPhone": zod.string().nullish().describe('Masked to null for free-plan sellers'),
+  "partNumber": zod.string(),
+  "description": zod.string(),
+  "aircraftApplicability": zod.string().nullish(),
+  "condition": zod.string().nullish(),
+  "quantity": zod.number(),
+  "status": zod.enum(['open', 'closed', 'archived', 'suspended', 'deleted']),
+  "accessLevel": zod.enum(['full', 'limited']).describe('full = Pro\/Enterprise (complete buyer contact); limited = Free (contact info hidden)'),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string().optional()
+})),
+  "total": zod.number(),
+  "page": zod.number(),
+  "limit": zod.number()
+})
+
+
+/**
+ * @summary Admin — perform a lifecycle action on an RFQ
+ */
+export const AdminRfqActionParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+
+
+
+export const AdminRfqActionBody = zod.object({
+  "action": zod.enum(['close', 'archive', 'suspend', 'reopen', 'delete']).describe('Lifecycle action to perform on the RFQ'),
+  "reason": zod.string().min(1).describe('Required admin reason logged with the audit entry')
+})
+
+export const AdminRfqActionResponse = zod.object({
+  "rfq": zod.object({
+  "id": zod.number(),
+  "buyerName": zod.string(),
+  "buyerEmail": zod.string().nullish().describe('Masked to null for free-plan sellers; full value for Pro\/Enterprise'),
+  "buyerCompany": zod.string().nullish().describe('Masked to null for free-plan sellers'),
+  "buyerPhone": zod.string().nullish().describe('Masked to null for free-plan sellers'),
+  "partNumber": zod.string(),
+  "description": zod.string(),
+  "aircraftApplicability": zod.string().nullish(),
+  "condition": zod.string().nullish(),
+  "quantity": zod.number(),
+  "status": zod.enum(['open', 'closed', 'archived', 'suspended', 'deleted']),
+  "accessLevel": zod.enum(['full', 'limited']).describe('full = Pro\/Enterprise (complete buyer contact); limited = Free (contact info hidden)'),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string().optional()
+}),
+  "auditEntry": zod.object({
+  "id": zod.number(),
+  "rfqId": zod.number(),
+  "adminId": zod.number(),
+  "action": zod.string(),
+  "reason": zod.string(),
+  "createdAt": zod.string()
+})
+})
+
+
+/**
+ * @summary Admin — get audit log for a specific RFQ
+ */
+export const GetAdminRfqAuditParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const GetAdminRfqAuditResponse = zod.object({
+  "entries": zod.array(zod.object({
+  "id": zod.number(),
+  "rfqId": zod.number(),
+  "adminId": zod.number(),
+  "action": zod.string(),
+  "reason": zod.string(),
+  "createdAt": zod.string()
+}))
 })
 
 

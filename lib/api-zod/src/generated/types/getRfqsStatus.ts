@@ -12,4 +12,7 @@ export type GetRfqsStatus = typeof GetRfqsStatus[keyof typeof GetRfqsStatus];
 export const GetRfqsStatus = {
   open: 'open',
   closed: 'closed',
+  archived: 'archived',
+  suspended: 'suspended',
+  deleted: 'deleted',
 } as const;

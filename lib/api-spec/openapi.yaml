@@ -621,7 +621,7 @@ paths:
           in: query
           schema:
             type: string
-            enum: [open, closed]
+            enum: [open, closed, archived, suspended, deleted]
         - name: q
           in: query
           schema:
@@ -745,6 +745,116 @@ paths:
                 $ref: "#/components/schemas/SellerRfqStats"
         "401":
           description: Unauthorized
+
+  /admin/rfqs:
+    get:
+      operationId: getAdminRfqs
+      tags: [admin]
+      summary: Admin — list all RFQs across all statuses
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [open, closed, archived, suspended, deleted]
+        - name: q
+          in: query
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminRfqsPage"
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+
+  /admin/rfqs/{id}/action:
+    post:
+      operationId: adminRfqAction
+      tags: [admin]
+      summary: Admin — perform a lifecycle action on an RFQ
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminRfqActionInput"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [rfq, auditEntry]
+                properties:
+                  rfq:
+                    $ref: "#/components/schemas/Rfq"
+                  auditEntry:
+                    $ref: "#/components/schemas/AdminRfqAuditEntry"
+        "400":
+          description: Bad request
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+        "404":
+          description: Not found
+
+  /admin/rfqs/{id}/audit:
+    get:
+      operationId: getAdminRfqAudit
+      tags: [admin]
+      summary: Admin — get audit log for a specific RFQ
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [entries]
+                properties:
+                  entries:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/AdminRfqAuditEntry"
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+        "404":
+          description: Not found
 
   /mro:
     get:
@@ -1633,7 +1743,7 @@ components:
           type: integer
         status:
           type: string
-          enum: [open, closed]
+          enum: [open, closed, archived, suspended, deleted]
         accessLevel:
           type: string
           enum: [full, limited]
@@ -1709,6 +1819,51 @@ components:
           type: ["integer", "null"]
 
     RfqsPage:
+      type: object
+      required: [rfqs, total, page, limit]
+      properties:
+        rfqs:
+          type: array
+          items:
+            $ref: "#/components/schemas/Rfq"
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+
+    AdminRfqActionInput:
+      type: object
+      required: [action, reason]
+      properties:
+        action:
+          type: string
+          enum: [close, archive, suspend, reopen, delete]
+          description: Lifecycle action to perform on the RFQ
+        reason:
+          type: string
+          minLength: 1
+          description: Required admin reason logged with the audit entry
+
+    AdminRfqAuditEntry:
+      type: object
+      required: [id, rfqId, adminId, action, reason, createdAt]
+      properties:
+        id:
+          type: integer
+        rfqId:
+          type: integer
+        adminId:
+          type: integer
+        action:
+          type: string
+        reason:
+          type: string
+        createdAt:
+          type: string
+
+    AdminRfqsPage:
       type: object
       required: [rfqs, total, page, limit]
       properties:

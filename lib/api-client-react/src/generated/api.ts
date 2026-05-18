@@ -20,6 +20,9 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  AdminRfqAction200,
+  AdminRfqActionInput,
+  AdminRfqsPage,
   AdminSeller,
   AdminSellerPlanUpdate,
   AdminSellerStatusUpdate,
@@ -31,6 +34,8 @@ import type {
   CheckoutSessionInput,
   CheckoutSessionResponse,
   GetAdminListingsParams,
+  GetAdminRfqAudit200,
+  GetAdminRfqsParams,
   GetListingsParams,
   GetMroProfilesParams,
   GetRfqsParams,
@@ -2687,6 +2692,239 @@ export function useGetSellerRfqStats<TData = Awaited<ReturnType<typeof getSeller
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getGetSellerRfqStatsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGetAdminRfqsUrl = (params?: GetAdminRfqsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/admin/rfqs?${stringifiedParams}` : `/api/admin/rfqs`
+}
+
+/**
+ * @summary Admin — list all RFQs across all statuses
+ */
+export const getAdminRfqs = async (params?: GetAdminRfqsParams, options?: RequestInit): Promise<AdminRfqsPage> => {
+
+  return customFetch<AdminRfqsPage>(getGetAdminRfqsUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAdminRfqsQueryKey = (params?: GetAdminRfqsParams,) => {
+    return [
+    `/api/admin/rfqs`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetAdminRfqsQueryOptions = <TData = Awaited<ReturnType<typeof getAdminRfqs>>, TError = ErrorType<void>>(params?: GetAdminRfqsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminRfqs>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAdminRfqsQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAdminRfqs>>> = ({ signal }) => getAdminRfqs(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAdminRfqs>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetAdminRfqsQueryResult = NonNullable<Awaited<ReturnType<typeof getAdminRfqs>>>
+export type GetAdminRfqsQueryError = ErrorType<void>
+
+
+/**
+ * @summary Admin — list all RFQs across all statuses
+ */
+
+export function useGetAdminRfqs<TData = Awaited<ReturnType<typeof getAdminRfqs>>, TError = ErrorType<void>>(
+ params?: GetAdminRfqsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminRfqs>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetAdminRfqsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getAdminRfqActionUrl = (id: number,) => {
+
+
+
+
+  return `/api/admin/rfqs/${id}/action`
+}
+
+/**
+ * @summary Admin — perform a lifecycle action on an RFQ
+ */
+export const adminRfqAction = async (id: number,
+    adminRfqActionInput: AdminRfqActionInput, options?: RequestInit): Promise<AdminRfqAction200> => {
+
+  return customFetch<AdminRfqAction200>(getAdminRfqActionUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      adminRfqActionInput,)
+  }
+);}
+
+
+
+
+export const getAdminRfqActionMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof adminRfqAction>>, TError,{id: number;data: BodyType<AdminRfqActionInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof adminRfqAction>>, TError,{id: number;data: BodyType<AdminRfqActionInput>}, TContext> => {
+
+const mutationKey = ['adminRfqAction'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof adminRfqAction>>, {id: number;data: BodyType<AdminRfqActionInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  adminRfqAction(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AdminRfqActionMutationResult = NonNullable<Awaited<ReturnType<typeof adminRfqAction>>>
+    export type AdminRfqActionMutationBody = BodyType<AdminRfqActionInput>
+    export type AdminRfqActionMutationError = ErrorType<void>
+
+    /**
+ * @summary Admin — perform a lifecycle action on an RFQ
+ */
+export const useAdminRfqAction = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof adminRfqAction>>, TError,{id: number;data: BodyType<AdminRfqActionInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof adminRfqAction>>,
+        TError,
+        {id: number;data: BodyType<AdminRfqActionInput>},
+        TContext
+      > => {
+      return useMutation(getAdminRfqActionMutationOptions(options));
+    }
+
+export const getGetAdminRfqAuditUrl = (id: number,) => {
+
+
+
+
+  return `/api/admin/rfqs/${id}/audit`
+}
+
+/**
+ * @summary Admin — get audit log for a specific RFQ
+ */
+export const getAdminRfqAudit = async (id: number, options?: RequestInit): Promise<GetAdminRfqAudit200> => {
+
+  return customFetch<GetAdminRfqAudit200>(getGetAdminRfqAuditUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAdminRfqAuditQueryKey = (id: number,) => {
+    return [
+    `/api/admin/rfqs/${id}/audit`
+    ] as const;
+    }
+
+
+export const getGetAdminRfqAuditQueryOptions = <TData = Awaited<ReturnType<typeof getAdminRfqAudit>>, TError = ErrorType<void>>(id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminRfqAudit>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAdminRfqAuditQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAdminRfqAudit>>> = ({ signal }) => getAdminRfqAudit(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAdminRfqAudit>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetAdminRfqAuditQueryResult = NonNullable<Awaited<ReturnType<typeof getAdminRfqAudit>>>
+export type GetAdminRfqAuditQueryError = ErrorType<void>
+
+
+/**
+ * @summary Admin — get audit log for a specific RFQ
+ */
+
+export function useGetAdminRfqAudit<TData = Awaited<ReturnType<typeof getAdminRfqAudit>>, TError = ErrorType<void>>(
+ id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminRfqAudit>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetAdminRfqAuditQueryOptions(id,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

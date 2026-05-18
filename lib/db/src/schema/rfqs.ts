@@ -4,7 +4,7 @@ import { z } from "zod/v4";
 import { usersTable } from "./users";
 import { listingsTable } from "./listings";
 
-export const rfqStatusEnum = pgEnum("rfq_status", ["open", "closed"]);
+export const rfqStatusEnum = pgEnum("rfq_status", ["open", "closed", "archived", "suspended", "deleted"]);
 
 export const rfqsTable = pgTable("rfqs", {
   id: serial("id").primaryKey(),
@@ -31,8 +31,20 @@ export const rfqResponsesTable = pgTable("rfq_responses", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+export const rfqAdminActionsTable = pgTable("rfq_admin_actions", {
+  id: serial("id").primaryKey(),
+  rfqId: integer("rfq_id").notNull().references(() => rfqsTable.id, { onDelete: "cascade" }),
+  adminId: integer("admin_id").notNull().references(() => usersTable.id, { onDelete: "cascade" }),
+  action: text("action").notNull(),
+  reason: text("reason").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 export const insertRfqSchema = createInsertSchema(rfqsTable).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertRfqResponseSchema = createInsertSchema(rfqResponsesTable).omit({ id: true, createdAt: true });
+export const insertRfqAdminActionSchema = createInsertSchema(rfqAdminActionsTable).omit({ id: true, createdAt: true });
+
 export type InsertRfq = z.infer<typeof insertRfqSchema>;
 export type Rfq = typeof rfqsTable.$inferSelect;
 export type RfqResponse = typeof rfqResponsesTable.$inferSelect;
+export type RfqAdminAction = typeof rfqAdminActionsTable.$inferSelect;
