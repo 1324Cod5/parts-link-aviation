@@ -10,7 +10,10 @@ export type RfqStatus = typeof RfqStatus[keyof typeof RfqStatus];
 
 
 export const RfqStatus = {
+  draft: 'draft',
   open: 'open',
+  quoted: 'quoted',
+  awarded: 'awarded',
   closed: 'closed',
   archived: 'archived',
   suspended: 'suspended',

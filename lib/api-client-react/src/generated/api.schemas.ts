@@ -588,7 +588,10 @@ export type RfqStatus = typeof RfqStatus[keyof typeof RfqStatus];
 
 
 export const RfqStatus = {
+  draft: 'draft',
   open: 'open',
+  quoted: 'quoted',
+  awarded: 'awarded',
   closed: 'closed',
   archived: 'archived',
   suspended: 'suspended',
@@ -653,6 +656,11 @@ export interface Rfq {
      * @nullable
      */
   urgencyReason?: string | null;
+  /**
+     * ID of the awarded quote response when status is awarded
+     * @nullable
+     */
+  awardedResponseId?: number | null;
   /** full = Pro/Enterprise (complete buyer contact); limited = Free (contact info hidden) */
   accessLevel: RfqAccessLevel;
   createdAt: string;
@@ -669,6 +677,18 @@ export interface RfqResponseItem {
   listingId?: number | null;
   /** @nullable */
   listingPartNumber?: string | null;
+  /**
+     * Quoted price in USD (numeric string); null for non-quote responses
+     * @nullable
+     */
+  price?: string | null;
+  /**
+     * Estimated delivery lead time in days; null for non-quote responses
+     * @nullable
+     */
+  leadTimeDays?: number | null;
+  /** True if this response includes a formal price quote */
+  isQuote: boolean;
   createdAt: string;
 }
 
@@ -704,6 +724,60 @@ export interface RfqResponseInput {
   message: string;
   /** @nullable */
   listingId?: number | null;
+}
+
+export interface RfqAwardInput {
+  /** ID of the quote response to award */
+  quoteId: number;
+}
+
+export interface RfqQuoteInput {
+  /**
+     * Quoted price in USD
+     * @minimum 0.01
+     */
+  price: number;
+  /**
+     * Estimated delivery lead time in calendar days
+     * @minimum 1
+     */
+  leadTimeDays: number;
+  /** Optional covering note to accompany the quote */
+  message?: string;
+  /**
+     * Optional link to an existing listing
+     * @nullable
+     */
+  listingId?: number | null;
+}
+
+export type RfqMatchedSellerTrustBadge = typeof RfqMatchedSellerTrustBadge[keyof typeof RfqMatchedSellerTrustBadge];
+
+
+export const RfqMatchedSellerTrustBadge = {
+  unverified: 'unverified',
+  document_verified: 'document_verified',
+  aviation_verified: 'aviation_verified',
+  trusted_partner: 'trusted_partner',
+} as const;
+
+export interface RfqMatchedSeller {
+  sellerId: number;
+  companyName: string;
+  /** Raw trust score 0-100 */
+  trustScore: number;
+  trustBadge: RfqMatchedSellerTrustBadge;
+  plan: string;
+  /** Computed match score 0-100 for this RFQ */
+  matchScore: number;
+  /** Total RFQ responses this seller has submitted */
+  responseCount: number;
+}
+
+export interface RfqMatches {
+  rfqId: number;
+  urgency: RfqUrgency;
+  sellers: RfqMatchedSeller[];
 }
 
 export interface RfqsPage {
@@ -1051,7 +1125,10 @@ export type GetRfqsStatus = typeof GetRfqsStatus[keyof typeof GetRfqsStatus];
 
 
 export const GetRfqsStatus = {
+  draft: 'draft',
   open: 'open',
+  quoted: 'quoted',
+  awarded: 'awarded',
   closed: 'closed',
   archived: 'archived',
   suspended: 'suspended',
@@ -1076,7 +1153,10 @@ export type GetAdminRfqsStatus = typeof GetAdminRfqsStatus[keyof typeof GetAdmin
 
 
 export const GetAdminRfqsStatus = {
+  draft: 'draft',
   open: 'open',
+  quoted: 'quoted',
+  awarded: 'awarded',
   closed: 'closed',
   archived: 'archived',
   suspended: 'suspended',

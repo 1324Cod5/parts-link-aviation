@@ -16,5 +16,17 @@ export interface RfqResponseItem {
   listingId?: number | null;
   /** @nullable */
   listingPartNumber?: string | null;
+  /**
+     * Quoted price in USD (numeric string); null for non-quote responses
+     * @nullable
+     */
+  price?: string | null;
+  /**
+     * Estimated delivery lead time in days; null for non-quote responses
+     * @nullable
+     */
+  leadTimeDays?: number | null;
+  /** True if this response includes a formal price quote */
+  isQuote: boolean;
   createdAt: string;
 }

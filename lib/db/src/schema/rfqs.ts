@@ -1,10 +1,10 @@
-import { pgTable, serial, text, timestamp, pgEnum, integer } from "drizzle-orm/pg-core";
+import { pgTable, serial, text, timestamp, pgEnum, integer, boolean, numeric } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { usersTable } from "./users";
 import { listingsTable } from "./listings";
 
-export const rfqStatusEnum  = pgEnum("rfq_status",  ["open", "closed", "archived", "suspended", "deleted"]);
+export const rfqStatusEnum  = pgEnum("rfq_status",  ["draft", "open", "quoted", "awarded", "closed", "archived", "suspended", "deleted"]);
 export const rfqUrgencyEnum = pgEnum("rfq_urgency", ["aog", "critical", "high_priority", "standard", "planned"]);
 
 export const rfqsTable = pgTable("rfqs", {
@@ -21,6 +21,7 @@ export const rfqsTable = pgTable("rfqs", {
   status: rfqStatusEnum("status").notNull().default("open"),
   urgency: rfqUrgencyEnum("urgency").notNull().default("standard"),
   urgencyReason: text("urgency_reason"),
+  awardedResponseId: integer("awarded_response_id"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -29,8 +30,11 @@ export const rfqResponsesTable = pgTable("rfq_responses", {
   id: serial("id").primaryKey(),
   rfqId: integer("rfq_id").notNull().references(() => rfqsTable.id, { onDelete: "cascade" }),
   sellerId: integer("seller_id").notNull().references(() => usersTable.id, { onDelete: "cascade" }),
-  message: text("message").notNull(),
+  message: text("message").notNull().default(""),
   listingId: integer("listing_id").references(() => listingsTable.id, { onDelete: "set null" }),
+  price: numeric("price", { precision: 12, scale: 2 }),
+  leadTimeDays: integer("lead_time_days"),
+  isQuote: boolean("is_quote").notNull().default(false),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

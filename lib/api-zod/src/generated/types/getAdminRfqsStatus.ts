@@ -10,7 +10,10 @@ export type GetAdminRfqsStatus = typeof GetAdminRfqsStatus[keyof typeof GetAdmin
 
 
 export const GetAdminRfqsStatus = {
+  draft: 'draft',
   open: 'open',
+  quoted: 'quoted',
+  awarded: 'awarded',
   closed: 'closed',
   archived: 'archived',
   suspended: 'suspended',

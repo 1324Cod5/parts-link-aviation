@@ -718,7 +718,7 @@ export const getRfqsQueryLimitMax = 50;
 
 
 export const GetRfqsQueryParams = zod.object({
-  "status": zod.enum(['open', 'closed', 'archived', 'suspended', 'deleted']).optional(),
+  "status": zod.enum(['draft', 'open', 'quoted', 'awarded', 'closed', 'archived', 'suspended', 'deleted']).optional(),
   "q": zod.coerce.string().optional(),
   "page": zod.coerce.number().min(1).default(getRfqsQueryPageDefault),
   "limit": zod.coerce.number().min(1).max(getRfqsQueryLimitMax).default(getRfqsQueryLimitDefault)
@@ -736,9 +736,10 @@ export const GetRfqsResponse = zod.object({
   "aircraftApplicability": zod.string().nullish(),
   "condition": zod.string().nullish(),
   "quantity": zod.number(),
-  "status": zod.enum(['open', 'closed', 'archived', 'suspended', 'deleted']),
+  "status": zod.enum(['draft', 'open', 'quoted', 'awarded', 'closed', 'archived', 'suspended', 'deleted']),
   "urgency": zod.enum(['aog', 'critical', 'high_priority', 'standard', 'planned']).describe('Urgency classification for the RFQ. AOG (Aircraft on Ground) triggers the highest notification priority and fastest escalation.\n'),
   "urgencyReason": zod.string().nullish().describe('Required when urgency is AOG; describes the grounding situation'),
+  "awardedResponseId": zod.number().nullish().describe('ID of the awarded quote response when status is awarded'),
   "accessLevel": zod.enum(['full', 'limited']).describe('full = Pro\/Enterprise (complete buyer contact); limited = Free (contact info hidden)'),
   "createdAt": zod.string(),
   "updatedAt": zod.string().optional()
@@ -789,9 +790,10 @@ export const GetRfqResponse = zod.object({
   "aircraftApplicability": zod.string().nullish(),
   "condition": zod.string().nullish(),
   "quantity": zod.number(),
-  "status": zod.enum(['open', 'closed', 'archived', 'suspended', 'deleted']),
+  "status": zod.enum(['draft', 'open', 'quoted', 'awarded', 'closed', 'archived', 'suspended', 'deleted']),
   "urgency": zod.enum(['aog', 'critical', 'high_priority', 'standard', 'planned']).describe('Urgency classification for the RFQ. AOG (Aircraft on Ground) triggers the highest notification priority and fastest escalation.\n'),
   "urgencyReason": zod.string().nullish().describe('Required when urgency is AOG; describes the grounding situation'),
+  "awardedResponseId": zod.number().nullish().describe('ID of the awarded quote response when status is awarded'),
   "accessLevel": zod.enum(['full', 'limited']).describe('full = Pro\/Enterprise (complete buyer contact); limited = Free (contact info hidden)'),
   "createdAt": zod.string(),
   "updatedAt": zod.string().optional()
@@ -804,6 +806,9 @@ export const GetRfqResponse = zod.object({
   "message": zod.string(),
   "listingId": zod.number().nullish(),
   "listingPartNumber": zod.string().nullish(),
+  "price": zod.string().nullish().describe('Quoted price in USD (numeric string); null for non-quote responses'),
+  "leadTimeDays": zod.number().nullish().describe('Estimated delivery lead time in days; null for non-quote responses'),
+  "isQuote": zod.boolean().describe('True if this response includes a formal price quote'),
   "createdAt": zod.string()
 }))
 })
@@ -827,9 +832,10 @@ export const CloseRfqResponse = zod.object({
   "aircraftApplicability": zod.string().nullish(),
   "condition": zod.string().nullish(),
   "quantity": zod.number(),
-  "status": zod.enum(['open', 'closed', 'archived', 'suspended', 'deleted']),
+  "status": zod.enum(['draft', 'open', 'quoted', 'awarded', 'closed', 'archived', 'suspended', 'deleted']),
   "urgency": zod.enum(['aog', 'critical', 'high_priority', 'standard', 'planned']).describe('Urgency classification for the RFQ. AOG (Aircraft on Ground) triggers the highest notification priority and fastest escalation.\n'),
   "urgencyReason": zod.string().nullish().describe('Required when urgency is AOG; describes the grounding situation'),
+  "awardedResponseId": zod.number().nullish().describe('ID of the awarded quote response when status is awarded'),
   "accessLevel": zod.enum(['full', 'limited']).describe('full = Pro\/Enterprise (complete buyer contact); limited = Free (contact info hidden)'),
   "createdAt": zod.string(),
   "updatedAt": zod.string().optional()
@@ -846,6 +852,80 @@ export const CreateRfqResponseParams = zod.object({
 export const CreateRfqResponseBody = zod.object({
   "message": zod.string(),
   "listingId": zod.number().nullish()
+})
+
+
+/**
+ * @summary Seller submits a formal quote with price and lead time
+ */
+export const SubmitRfqQuoteParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const submitRfqQuoteBodyPriceMin = 0.01;
+
+
+
+
+export const SubmitRfqQuoteBody = zod.object({
+  "price": zod.number().min(submitRfqQuoteBodyPriceMin).describe('Quoted price in USD'),
+  "leadTimeDays": zod.number().min(1).describe('Estimated delivery lead time in calendar days'),
+  "message": zod.string().optional().describe('Optional covering note to accompany the quote'),
+  "listingId": zod.number().nullish().describe('Optional link to an existing listing')
+})
+
+
+/**
+ * @summary Buyer awards a quote, transitioning RFQ to awarded status
+ */
+export const AwardRfqQuoteParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const AwardRfqQuoteBody = zod.object({
+  "quoteId": zod.number().describe('ID of the quote response to award')
+})
+
+export const AwardRfqQuoteResponse = zod.object({
+  "id": zod.number(),
+  "buyerName": zod.string(),
+  "buyerEmail": zod.string().nullish().describe('Masked to null for free-plan sellers; full value for Pro\/Enterprise'),
+  "buyerCompany": zod.string().nullish().describe('Masked to null for free-plan sellers'),
+  "buyerPhone": zod.string().nullish().describe('Masked to null for free-plan sellers'),
+  "partNumber": zod.string(),
+  "description": zod.string(),
+  "aircraftApplicability": zod.string().nullish(),
+  "condition": zod.string().nullish(),
+  "quantity": zod.number(),
+  "status": zod.enum(['draft', 'open', 'quoted', 'awarded', 'closed', 'archived', 'suspended', 'deleted']),
+  "urgency": zod.enum(['aog', 'critical', 'high_priority', 'standard', 'planned']).describe('Urgency classification for the RFQ. AOG (Aircraft on Ground) triggers the highest notification priority and fastest escalation.\n'),
+  "urgencyReason": zod.string().nullish().describe('Required when urgency is AOG; describes the grounding situation'),
+  "awardedResponseId": zod.number().nullish().describe('ID of the awarded quote response when status is awarded'),
+  "accessLevel": zod.enum(['full', 'limited']).describe('full = Pro\/Enterprise (complete buyer contact); limited = Free (contact info hidden)'),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string().optional()
+})
+
+
+/**
+ * @summary Get ranked seller matches for an RFQ
+ */
+export const GetRfqMatchesParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const GetRfqMatchesResponse = zod.object({
+  "rfqId": zod.number(),
+  "urgency": zod.enum(['aog', 'critical', 'high_priority', 'standard', 'planned']).describe('Urgency classification for the RFQ. AOG (Aircraft on Ground) triggers the highest notification priority and fastest escalation.\n'),
+  "sellers": zod.array(zod.object({
+  "sellerId": zod.number(),
+  "companyName": zod.string(),
+  "trustScore": zod.number().describe('Raw trust score 0-100'),
+  "trustBadge": zod.enum(['unverified', 'document_verified', 'aviation_verified', 'trusted_partner']),
+  "plan": zod.string(),
+  "matchScore": zod.number().describe('Computed match score 0-100 for this RFQ'),
+  "responseCount": zod.number().describe('Total RFQ responses this seller has submitted')
+}))
 })
 
 
@@ -869,7 +949,7 @@ export const getAdminRfqsQueryLimitMax = 100;
 
 
 export const GetAdminRfqsQueryParams = zod.object({
-  "status": zod.enum(['open', 'closed', 'archived', 'suspended', 'deleted']).optional(),
+  "status": zod.enum(['draft', 'open', 'quoted', 'awarded', 'closed', 'archived', 'suspended', 'deleted']).optional(),
   "q": zod.coerce.string().optional(),
   "page": zod.coerce.number().min(1).default(getAdminRfqsQueryPageDefault),
   "limit": zod.coerce.number().min(1).max(getAdminRfqsQueryLimitMax).default(getAdminRfqsQueryLimitDefault)
@@ -887,9 +967,10 @@ export const GetAdminRfqsResponse = zod.object({
   "aircraftApplicability": zod.string().nullish(),
   "condition": zod.string().nullish(),
   "quantity": zod.number(),
-  "status": zod.enum(['open', 'closed', 'archived', 'suspended', 'deleted']),
+  "status": zod.enum(['draft', 'open', 'quoted', 'awarded', 'closed', 'archived', 'suspended', 'deleted']),
   "urgency": zod.enum(['aog', 'critical', 'high_priority', 'standard', 'planned']).describe('Urgency classification for the RFQ. AOG (Aircraft on Ground) triggers the highest notification priority and fastest escalation.\n'),
   "urgencyReason": zod.string().nullish().describe('Required when urgency is AOG; describes the grounding situation'),
+  "awardedResponseId": zod.number().nullish().describe('ID of the awarded quote response when status is awarded'),
   "accessLevel": zod.enum(['full', 'limited']).describe('full = Pro\/Enterprise (complete buyer contact); limited = Free (contact info hidden)'),
   "createdAt": zod.string(),
   "updatedAt": zod.string().optional()
@@ -927,9 +1008,10 @@ export const AdminRfqActionResponse = zod.object({
   "aircraftApplicability": zod.string().nullish(),
   "condition": zod.string().nullish(),
   "quantity": zod.number(),
-  "status": zod.enum(['open', 'closed', 'archived', 'suspended', 'deleted']),
+  "status": zod.enum(['draft', 'open', 'quoted', 'awarded', 'closed', 'archived', 'suspended', 'deleted']),
   "urgency": zod.enum(['aog', 'critical', 'high_priority', 'standard', 'planned']).describe('Urgency classification for the RFQ. AOG (Aircraft on Ground) triggers the highest notification priority and fastest escalation.\n'),
   "urgencyReason": zod.string().nullish().describe('Required when urgency is AOG; describes the grounding situation'),
+  "awardedResponseId": zod.number().nullish().describe('ID of the awarded quote response when status is awarded'),
   "accessLevel": zod.enum(['full', 'limited']).describe('full = Pro\/Enterprise (complete buyer contact); limited = Free (contact info hidden)'),
   "createdAt": zod.string(),
   "updatedAt": zod.string().optional()
@@ -970,9 +1052,10 @@ export const AdminSetRfqUrgencyResponse = zod.object({
   "aircraftApplicability": zod.string().nullish(),
   "condition": zod.string().nullish(),
   "quantity": zod.number(),
-  "status": zod.enum(['open', 'closed', 'archived', 'suspended', 'deleted']),
+  "status": zod.enum(['draft', 'open', 'quoted', 'awarded', 'closed', 'archived', 'suspended', 'deleted']),
   "urgency": zod.enum(['aog', 'critical', 'high_priority', 'standard', 'planned']).describe('Urgency classification for the RFQ. AOG (Aircraft on Ground) triggers the highest notification priority and fastest escalation.\n'),
   "urgencyReason": zod.string().nullish().describe('Required when urgency is AOG; describes the grounding situation'),
+  "awardedResponseId": zod.number().nullish().describe('ID of the awarded quote response when status is awarded'),
   "accessLevel": zod.enum(['full', 'limited']).describe('full = Pro\/Enterprise (complete buyer contact); limited = Free (contact info hidden)'),
   "createdAt": zod.string(),
   "updatedAt": zod.string().optional()

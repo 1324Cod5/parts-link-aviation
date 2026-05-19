@@ -621,7 +621,7 @@ paths:
           in: query
           schema:
             type: string
-            enum: [open, closed, archived, suspended, deleted]
+            enum: [draft, open, quoted, awarded, closed, archived, suspended, deleted]
         - name: q
           in: query
           schema:
@@ -731,6 +731,89 @@ paths:
         "401":
           description: Unauthorized
 
+  /rfqs/{id}/quote:
+    post:
+      operationId: submitRfqQuote
+      tags: [rfqs]
+      summary: Seller submits a formal quote with price and lead time
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RfqQuoteInput"
+      responses:
+        "201":
+          description: Quote submitted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RfqResponseItem"
+        "400":
+          description: Validation error or RFQ not open
+        "401":
+          description: Unauthorized
+        "402":
+          description: Paid plan required
+
+  /rfqs/{id}/award:
+    post:
+      operationId: awardRfqQuote
+      tags: [rfqs]
+      summary: Buyer awards a quote, transitioning RFQ to awarded status
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RfqAwardInput"
+      responses:
+        "200":
+          description: RFQ awarded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Rfq"
+        "400":
+          description: Invalid quote or RFQ not in quoteable state
+        "404":
+          description: Not found
+
+  /rfqs/{id}/matches:
+    get:
+      operationId: getRfqMatches
+      tags: [rfqs]
+      summary: Get ranked seller matches for an RFQ
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Ranked seller matches
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RfqMatches"
+        "401":
+          description: Unauthorized
+        "404":
+          description: Not found
+
   /seller/rfqs:
     get:
       operationId: getSellerRfqStats
@@ -756,7 +839,7 @@ paths:
           in: query
           schema:
             type: string
-            enum: [open, closed, archived, suspended, deleted]
+            enum: [draft, open, quoted, awarded, closed, archived, suspended, deleted]
         - name: q
           in: query
           schema:
@@ -1782,12 +1865,15 @@ components:
           type: integer
         status:
           type: string
-          enum: [open, closed, archived, suspended, deleted]
+          enum: [draft, open, quoted, awarded, closed, archived, suspended, deleted]
         urgency:
           $ref: "#/components/schemas/RfqUrgency"
         urgencyReason:
           type: ["string", "null"]
           description: Required when urgency is AOG; describes the grounding situation
+        awardedResponseId:
+          type: ["integer", "null"]
+          description: ID of the awarded quote response when status is awarded
         accessLevel:
           type: string
           enum: [full, limited]
@@ -1799,7 +1885,7 @@ components:
 
     RfqResponseItem:
       type: object
-      required: [id, rfqId, sellerId, message, createdAt]
+      required: [id, rfqId, sellerId, message, isQuote, createdAt]
       properties:
         id:
           type: integer
@@ -1815,6 +1901,15 @@ components:
           type: ["integer", "null"]
         listingPartNumber:
           type: ["string", "null"]
+        price:
+          type: ["string", "null"]
+          description: Quoted price in USD (numeric string); null for non-quote responses
+        leadTimeDays:
+          type: ["integer", "null"]
+          description: Estimated delivery lead time in days; null for non-quote responses
+        isQuote:
+          type: boolean
+          description: True if this response includes a formal price quote
         createdAt:
           type: string
 
@@ -1866,6 +1961,69 @@ components:
           type: string
         listingId:
           type: ["integer", "null"]
+
+    RfqAwardInput:
+      type: object
+      required: [quoteId]
+      properties:
+        quoteId:
+          type: integer
+          description: ID of the quote response to award
+
+    RfqQuoteInput:
+      type: object
+      required: [price, leadTimeDays]
+      properties:
+        price:
+          type: number
+          minimum: 0.01
+          description: Quoted price in USD
+        leadTimeDays:
+          type: integer
+          minimum: 1
+          description: Estimated delivery lead time in calendar days
+        message:
+          type: string
+          description: Optional covering note to accompany the quote
+        listingId:
+          type: ["integer", "null"]
+          description: Optional link to an existing listing
+
+    RfqMatchedSeller:
+      type: object
+      required: [sellerId, companyName, trustScore, trustBadge, plan, matchScore, responseCount]
+      properties:
+        sellerId:
+          type: integer
+        companyName:
+          type: string
+        trustScore:
+          type: integer
+          description: Raw trust score 0-100
+        trustBadge:
+          type: string
+          enum: [unverified, document_verified, aviation_verified, trusted_partner]
+        plan:
+          type: string
+        matchScore:
+          type: number
+          description: Computed match score 0-100 for this RFQ
+        responseCount:
+          type: integer
+          description: Total RFQ responses this seller has submitted
+
+    RfqMatches:
+      type: object
+      required: [rfqId, urgency, sellers]
+      properties:
+        rfqId:
+          type: integer
+        urgency:
+          $ref: "#/components/schemas/RfqUrgency"
+        sellers:
+          type: array
+          items:
+            $ref: "#/components/schemas/RfqMatchedSeller"
 
     RfqsPage:
       type: object

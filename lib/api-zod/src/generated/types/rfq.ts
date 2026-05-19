@@ -41,6 +41,11 @@ export interface Rfq {
      * @nullable
      */
   urgencyReason?: string | null;
+  /**
+     * ID of the awarded quote response when status is awarded
+     * @nullable
+     */
+  awardedResponseId?: number | null;
   /** full = Pro/Enterprise (complete buyer contact); limited = Free (contact info hidden) */
   accessLevel: RfqAccessLevel;
   createdAt: string;
