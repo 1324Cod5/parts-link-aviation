@@ -13,7 +13,7 @@ import {
 import { useAuth } from "@/context/AuthContext";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Edit2, Trash2, Package, FileCheck2, MessageSquare, ShieldCheck, Zap, Building2, AlertTriangle, ClipboardList, Wrench, Shield } from "lucide-react";
+import { Plus, Edit2, Trash2, Package, FileCheck2, MessageSquare, ShieldCheck, Zap, Building2, AlertTriangle, ClipboardList, Wrench, Shield, FileSpreadsheet } from "lucide-react";
 import { TrustBadge, TrustScoreBar, TRUST_BADGE_META } from "@/components/ui/trust-badge";
 
 function formatPrice(price: number | null) {
@@ -103,19 +103,26 @@ export default function SellerDashboard() {
             <h1 className="text-2xl font-bold text-white">Seller Dashboard</h1>
             <p className="text-muted-foreground text-sm mt-1">{user.companyName}</p>
           </div>
-          {canAdd ? (
-            <Link href="/seller/listings/new">
-              <Button className="flex items-center gap-2">
-                <Plus className="h-4 w-4" /> New Listing
+          <div className="flex items-center gap-2">
+            <Link href="/seller/bulk-upload">
+              <Button variant="outline" className="flex items-center gap-2 border-border text-white/80 hover:text-white">
+                <FileSpreadsheet className="h-4 w-4" /> Bulk Upload
               </Button>
             </Link>
-          ) : (
-            <Link href="/pricing">
-              <Button className="flex items-center gap-2 bg-amber-500/10 text-amber-400 border border-amber-500/30 hover:bg-amber-500/20">
-                <Zap className="h-4 w-4" /> Upgrade Plan
-              </Button>
-            </Link>
-          )}
+            {canAdd ? (
+              <Link href="/seller/listings/new">
+                <Button className="flex items-center gap-2">
+                  <Plus className="h-4 w-4" /> New Listing
+                </Button>
+              </Link>
+            ) : (
+              <Link href="/pricing">
+                <Button className="flex items-center gap-2 bg-amber-500/10 text-amber-400 border border-amber-500/30 hover:bg-amber-500/20">
+                  <Zap className="h-4 w-4" /> Upgrade Plan
+                </Button>
+              </Link>
+            )}
+          </div>
         </div>
 
         {/* Limit warning banner */}

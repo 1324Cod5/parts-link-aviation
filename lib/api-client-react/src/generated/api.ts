@@ -31,6 +31,9 @@ import type {
   AdminStats,
   AuthResponse,
   BadgeUpdate,
+  BulkImportRequest,
+  BulkImportResponse,
+  BulkParseResponse,
   ChangePassword200,
   ChangePasswordInput,
   CheckoutSessionInput,
@@ -1506,6 +1509,227 @@ export const useCreateInquiry = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getCreateInquiryMutationOptions(options));
+    }
+
+export const getGetBulkUploadTemplateUrl = () => {
+
+
+
+
+  return `/api/seller/bulk-upload/template`
+}
+
+/**
+ * @summary Download the CSV template for bulk listing upload
+ */
+export const getBulkUploadTemplate = async ( options?: RequestInit): Promise<Blob> => {
+
+  return customFetch<Blob>(getGetBulkUploadTemplateUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetBulkUploadTemplateQueryKey = () => {
+    return [
+    `/api/seller/bulk-upload/template`
+    ] as const;
+    }
+
+
+export const getGetBulkUploadTemplateQueryOptions = <TData = Awaited<ReturnType<typeof getBulkUploadTemplate>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getBulkUploadTemplate>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetBulkUploadTemplateQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getBulkUploadTemplate>>> = ({ signal }) => getBulkUploadTemplate({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getBulkUploadTemplate>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetBulkUploadTemplateQueryResult = NonNullable<Awaited<ReturnType<typeof getBulkUploadTemplate>>>
+export type GetBulkUploadTemplateQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Download the CSV template for bulk listing upload
+ */
+
+export function useGetBulkUploadTemplate<TData = Awaited<ReturnType<typeof getBulkUploadTemplate>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getBulkUploadTemplate>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetBulkUploadTemplateQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getParseBulkUploadUrl = () => {
+
+
+
+
+  return `/api/seller/bulk-upload/parse`
+}
+
+/**
+ * Upload a .xlsx or .csv file via multipart/form-data (field name: `file`).
+Returns valid and invalid rows with per-row validation errors.
+
+ * @summary Parse and validate an Excel or CSV file for bulk listing import
+ */
+export const parseBulkUpload = async ( options?: RequestInit): Promise<BulkParseResponse> => {
+
+  return customFetch<BulkParseResponse>(getParseBulkUploadUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getParseBulkUploadMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof parseBulkUpload>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof parseBulkUpload>>, TError,void, TContext> => {
+
+const mutationKey = ['parseBulkUpload'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof parseBulkUpload>>, void> = () => {
+
+
+          return  parseBulkUpload(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ParseBulkUploadMutationResult = NonNullable<Awaited<ReturnType<typeof parseBulkUpload>>>
+
+    export type ParseBulkUploadMutationError = ErrorType<void>
+
+    /**
+ * @summary Parse and validate an Excel or CSV file for bulk listing import
+ */
+export const useParseBulkUpload = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof parseBulkUpload>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof parseBulkUpload>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getParseBulkUploadMutationOptions(options));
+    }
+
+export const getImportBulkListingsUrl = () => {
+
+
+
+
+  return `/api/seller/bulk-upload/import`
+}
+
+/**
+ * @summary Create listings in bulk from pre-validated rows
+ */
+export const importBulkListings = async (bulkImportRequest: BulkImportRequest, options?: RequestInit): Promise<BulkImportResponse> => {
+
+  return customFetch<BulkImportResponse>(getImportBulkListingsUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      bulkImportRequest,)
+  }
+);}
+
+
+
+
+export const getImportBulkListingsMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof importBulkListings>>, TError,{data: BodyType<BulkImportRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof importBulkListings>>, TError,{data: BodyType<BulkImportRequest>}, TContext> => {
+
+const mutationKey = ['importBulkListings'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof importBulkListings>>, {data: BodyType<BulkImportRequest>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  importBulkListings(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ImportBulkListingsMutationResult = NonNullable<Awaited<ReturnType<typeof importBulkListings>>>
+    export type ImportBulkListingsMutationBody = BodyType<BulkImportRequest>
+    export type ImportBulkListingsMutationError = ErrorType<void>
+
+    /**
+ * @summary Create listings in bulk from pre-validated rows
+ */
+export const useImportBulkListings = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof importBulkListings>>, TError,{data: BodyType<BulkImportRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof importBulkListings>>,
+        TError,
+        {data: BodyType<BulkImportRequest>},
+        TContext
+      > => {
+      return useMutation(getImportBulkListingsMutationOptions(options));
     }
 
 export const getGetSellerListingsUrl = () => {

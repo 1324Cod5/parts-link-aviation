@@ -12,6 +12,7 @@ import SellerLogin from "@/pages/seller/login";
 import SellerDashboard from "@/pages/seller/dashboard";
 import NewListing from "@/pages/seller/new-listing";
 import EditListing from "@/pages/seller/edit-listing";
+import BulkUpload from "@/pages/seller/bulk-upload";
 import AdminDashboard from "@/pages/admin/dashboard";
 import AdminLogin from "@/pages/admin/login";
 import AdminChangePassword from "@/pages/admin/change-password";
@@ -48,6 +49,7 @@ function Router() {
       <Route path="/seller/dashboard" component={SellerDashboard} />
       <Route path="/seller/listings/new" component={NewListing} />
       <Route path="/seller/listings/:id/edit" component={EditListing} />
+      <Route path="/seller/bulk-upload" component={BulkUpload} />
       <Route path="/admin/login" component={AdminLogin} />
       <Route path="/admin/change-password" component={AdminChangePassword} />
       <Route path="/admin/review-cert/:id" component={AdminCertReview} />

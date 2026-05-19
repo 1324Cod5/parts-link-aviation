@@ -444,6 +444,65 @@ paths:
               schema:
                 $ref: "#/components/schemas/Inquiry"
 
+  /seller/bulk-upload/template:
+    get:
+      operationId: getBulkUploadTemplate
+      tags: [seller]
+      summary: Download the CSV template for bulk listing upload
+      responses:
+        "200":
+          description: CSV file download
+          content:
+            text/csv:
+              schema:
+                type: string
+                format: binary
+
+  /seller/bulk-upload/parse:
+    post:
+      operationId: parseBulkUpload
+      tags: [seller]
+      summary: Parse and validate an Excel or CSV file for bulk listing import
+      description: |
+        Upload a .xlsx or .csv file via multipart/form-data (field name: `file`).
+        Returns valid and invalid rows with per-row validation errors.
+      security:
+        - sessionAuth: []
+      responses:
+        "200":
+          description: Parse result with valid and invalid rows
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BulkParseResponse"
+        "400":
+          description: Bad request
+        "401":
+          description: Not authenticated
+
+  /seller/bulk-upload/import:
+    post:
+      operationId: importBulkListings
+      tags: [seller]
+      summary: Create listings in bulk from pre-validated rows
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BulkImportRequest"
+      responses:
+        "200":
+          description: Import result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BulkImportResponse"
+        "400":
+          description: Bad request
+        "401":
+          description: Not authenticated
+
   /seller/listings:
     get:
       operationId: getSellerListings
@@ -2661,3 +2720,86 @@ components:
         status:
           type: string
           enum: [pending, active, suspended]
+
+    BulkParsedRow:
+      type: object
+      required: [rowNumber, partNumber, description, manufacturer, condition, saleType, quantity]
+      properties:
+        rowNumber:
+          type: integer
+        partNumber:
+          type: string
+        description:
+          type: string
+        manufacturer:
+          type: string
+        aircraftApplicability:
+          type: ["string", "null"]
+        condition:
+          type: string
+          enum: [new, overhauled, serviceable, as_removed, repaired]
+        saleType:
+          type: string
+          enum: [outright, exchange, both]
+        quantity:
+          type: integer
+          minimum: 1
+        price:
+          type: ["number", "null"]
+
+    BulkInvalidRow:
+      type: object
+      required: [rowNumber, rawData, errors]
+      properties:
+        rowNumber:
+          type: integer
+        rawData:
+          type: object
+          additionalProperties: true
+        errors:
+          type: array
+          items:
+            type: string
+
+    BulkParseResponse:
+      type: object
+      required: [valid, invalid, totalRows, fileName]
+      properties:
+        valid:
+          type: array
+          items:
+            $ref: "#/components/schemas/BulkParsedRow"
+        invalid:
+          type: array
+          items:
+            $ref: "#/components/schemas/BulkInvalidRow"
+        totalRows:
+          type: integer
+        fileName:
+          type: string
+
+    BulkImportRequest:
+      type: object
+      required: [rows]
+      properties:
+        rows:
+          type: array
+          items:
+            $ref: "#/components/schemas/BulkParsedRow"
+
+    BulkImportResponse:
+      type: object
+      required: [imported, skipped, limitReached, listingIds]
+      properties:
+        imported:
+          type: integer
+        skipped:
+          type: integer
+        limitReached:
+          type: boolean
+        listingIds:
+          type: array
+          items:
+            type: integer
+        remainingSlots:
+          type: ["integer", "null"]

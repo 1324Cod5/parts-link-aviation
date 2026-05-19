@@ -1204,6 +1204,69 @@ export interface MroStatusUpdate {
   status: MroStatusUpdateStatus;
 }
 
+export type BulkParsedRowCondition = typeof BulkParsedRowCondition[keyof typeof BulkParsedRowCondition];
+
+
+export const BulkParsedRowCondition = {
+  new: 'new',
+  overhauled: 'overhauled',
+  serviceable: 'serviceable',
+  as_removed: 'as_removed',
+  repaired: 'repaired',
+} as const;
+
+export type BulkParsedRowSaleType = typeof BulkParsedRowSaleType[keyof typeof BulkParsedRowSaleType];
+
+
+export const BulkParsedRowSaleType = {
+  outright: 'outright',
+  exchange: 'exchange',
+  both: 'both',
+} as const;
+
+export interface BulkParsedRow {
+  rowNumber: number;
+  partNumber: string;
+  description: string;
+  manufacturer: string;
+  /** @nullable */
+  aircraftApplicability?: string | null;
+  condition: BulkParsedRowCondition;
+  saleType: BulkParsedRowSaleType;
+  /** @minimum 1 */
+  quantity: number;
+  /** @nullable */
+  price?: number | null;
+}
+
+export type BulkInvalidRowRawData = { [key: string]: unknown };
+
+export interface BulkInvalidRow {
+  rowNumber: number;
+  rawData: BulkInvalidRowRawData;
+  errors: string[];
+}
+
+export interface BulkParseResponse {
+  valid: BulkParsedRow[];
+  invalid: BulkInvalidRow[];
+  totalRows: number;
+  fileName: string;
+}
+
+export interface BulkImportRequest {
+  rows: BulkParsedRow[];
+}
+
+export interface BulkImportResponse {
+  imported: number;
+  skipped: number;
+  limitReached: boolean;
+  listingIds: number[];
+  /** @nullable */
+  remainingSlots?: number | null;
+}
+
 export type ChangePassword200 = {
   ok: boolean;
 };

@@ -530,6 +530,66 @@ export const CreateInquiryBody = zod.object({
 
 
 /**
+ * Upload a .xlsx or .csv file via multipart/form-data (field name: `file`).
+Returns valid and invalid rows with per-row validation errors.
+
+ * @summary Parse and validate an Excel or CSV file for bulk listing import
+ */
+
+
+
+export const ParseBulkUploadResponse = zod.object({
+  "valid": zod.array(zod.object({
+  "rowNumber": zod.number(),
+  "partNumber": zod.string(),
+  "description": zod.string(),
+  "manufacturer": zod.string(),
+  "aircraftApplicability": zod.string().nullish(),
+  "condition": zod.enum(['new', 'overhauled', 'serviceable', 'as_removed', 'repaired']),
+  "saleType": zod.enum(['outright', 'exchange', 'both']),
+  "quantity": zod.number().min(1),
+  "price": zod.number().nullish()
+})),
+  "invalid": zod.array(zod.object({
+  "rowNumber": zod.number(),
+  "rawData": zod.record(zod.string(), zod.unknown()),
+  "errors": zod.array(zod.string())
+})),
+  "totalRows": zod.number(),
+  "fileName": zod.string()
+})
+
+
+/**
+ * @summary Create listings in bulk from pre-validated rows
+ */
+
+
+
+export const ImportBulkListingsBody = zod.object({
+  "rows": zod.array(zod.object({
+  "rowNumber": zod.number(),
+  "partNumber": zod.string(),
+  "description": zod.string(),
+  "manufacturer": zod.string(),
+  "aircraftApplicability": zod.string().nullish(),
+  "condition": zod.enum(['new', 'overhauled', 'serviceable', 'as_removed', 'repaired']),
+  "saleType": zod.enum(['outright', 'exchange', 'both']),
+  "quantity": zod.number().min(1),
+  "price": zod.number().nullish()
+}))
+})
+
+export const ImportBulkListingsResponse = zod.object({
+  "imported": zod.number(),
+  "skipped": zod.number(),
+  "limitReached": zod.boolean(),
+  "listingIds": zod.array(zod.number()),
+  "remainingSlots": zod.number().nullish()
+})
+
+
+/**
  * @summary Get current seller's listings
  */
 export const GetSellerListingsResponseItem = zod.object({
