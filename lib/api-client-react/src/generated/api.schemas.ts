@@ -10,6 +10,89 @@ export interface UploadImagesResponse {
   urls: string[];
 }
 
+export type UploadDocumentsResponseDocumentsItem = {
+  fileName: string;
+  fileUrl: string;
+  mimeType: string;
+};
+
+export interface UploadDocumentsResponse {
+  documents: UploadDocumentsResponseDocumentsItem[];
+}
+
+export type DocumentInputDocumentType = typeof DocumentInputDocumentType[keyof typeof DocumentInputDocumentType];
+
+
+export const DocumentInputDocumentType = {
+  faa_8130_3: 'faa_8130_3',
+  easa_form_1: 'easa_form_1',
+  tcca_form_1: 'tcca_form_1',
+  overhaul_report: 'overhaul_report',
+  test_report: 'test_report',
+  coa: 'coa',
+  other: 'other',
+} as const;
+
+export interface DocumentInput {
+  fileName: string;
+  documentType: DocumentInputDocumentType;
+  fileUrl: string;
+}
+
+export type DocumentStatusUpdateVerificationStatus = typeof DocumentStatusUpdateVerificationStatus[keyof typeof DocumentStatusUpdateVerificationStatus];
+
+
+export const DocumentStatusUpdateVerificationStatus = {
+  pending: 'pending',
+  approved: 'approved',
+  rejected: 'rejected',
+} as const;
+
+export interface DocumentStatusUpdate {
+  verificationStatus: DocumentStatusUpdateVerificationStatus;
+  /** @nullable */
+  reviewNote?: string | null;
+}
+
+export type ListingDocumentDocumentType = typeof ListingDocumentDocumentType[keyof typeof ListingDocumentDocumentType];
+
+
+export const ListingDocumentDocumentType = {
+  faa_8130_3: 'faa_8130_3',
+  easa_form_1: 'easa_form_1',
+  tcca_form_1: 'tcca_form_1',
+  overhaul_report: 'overhaul_report',
+  test_report: 'test_report',
+  coa: 'coa',
+  other: 'other',
+} as const;
+
+export type ListingDocumentVerificationStatus = typeof ListingDocumentVerificationStatus[keyof typeof ListingDocumentVerificationStatus];
+
+
+export const ListingDocumentVerificationStatus = {
+  pending: 'pending',
+  approved: 'approved',
+  rejected: 'rejected',
+} as const;
+
+export interface ListingDocument {
+  id: number;
+  listingId: number;
+  fileName: string;
+  documentType: ListingDocumentDocumentType;
+  fileUrl: string;
+  verificationStatus: ListingDocumentVerificationStatus;
+  /** @nullable */
+  reviewNote?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface DocumentsResponse {
+  documents: ListingDocument[];
+}
+
 export interface HealthStatus {
   status: string;
 }
@@ -346,6 +429,7 @@ export interface Listing {
   price: number | null;
   certificationDocs?: string[];
   photos?: string[];
+  documents?: ListingDocument[];
   /** @nullable */
   traceHistory?: string | null;
   badge: ListingBadge;
@@ -389,6 +473,7 @@ export interface ListingInput {
   price?: number | null;
   certificationDocs?: string[];
   photos?: string[];
+  documents?: DocumentInput[];
   /** @nullable */
   traceHistory?: string | null;
 }
@@ -426,6 +511,7 @@ export interface ListingUpdate {
   price?: number | null;
   certificationDocs?: string[];
   photos?: string[];
+  documents?: DocumentInput[];
   /** @nullable */
   traceHistory?: string | null;
 }

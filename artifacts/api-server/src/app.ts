@@ -140,10 +140,14 @@ app.get("/debug/session", (req, res) => {
   });
 });
 
-// ─── Static uploads — served before the API router ───────────────────────────
+// ─── Static file serving — uploads and documents ─────────────────────────────
 const UPLOADS_DIR = path.join(process.cwd(), "uploads");
 fs.mkdirSync(UPLOADS_DIR, { recursive: true });
 app.use("/api/uploads", express.static(UPLOADS_DIR, { maxAge: "7d" }));
+
+const DOCUMENTS_DIR = path.join(process.cwd(), "documents");
+fs.mkdirSync(DOCUMENTS_DIR, { recursive: true });
+app.use("/api/documents", express.static(DOCUMENTS_DIR, { maxAge: "7d" }));
 
 app.use("/api", router);
 

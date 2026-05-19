@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { db, listingsTable, usersTable, inquiriesTable } from "@workspace/db";
+import { db, listingsTable, usersTable, inquiriesTable, listingDocumentsTable } from "@workspace/db";
 import { eq, ilike, and, gte, lte, or, count, sql } from "drizzle-orm";
 import {
   GetListingsQueryParams,
@@ -32,7 +32,21 @@ const PLAN_ORDER_SQL = sql<number>`
     ELSE 2
   END`;
 
-function serializeListing(listing: any, seller: any) {
+function serializeDoc(d: any) {
+  return {
+    id: d.id,
+    listingId: d.listingId,
+    fileName: d.fileName,
+    documentType: d.documentType,
+    fileUrl: d.fileUrl,
+    verificationStatus: d.verificationStatus,
+    reviewNote: d.reviewNote ?? null,
+    createdAt: d.createdAt instanceof Date ? d.createdAt.toISOString() : d.createdAt,
+    updatedAt: d.updatedAt instanceof Date ? d.updatedAt.toISOString() : d.updatedAt,
+  };
+}
+
+function serializeListing(listing: any, seller: any, documents?: any[]) {
   return {
     id: listing.id,
     partNumber: listing.partNumber,
@@ -45,6 +59,7 @@ function serializeListing(listing: any, seller: any) {
     price: listing.price ? parseFloat(listing.price) : null,
     certificationDocs: listing.certificationDocs ?? [],
     photos: listing.photos ?? [],
+    documents: documents ? documents.map(serializeDoc) : [],
     traceHistory: listing.traceHistory,
     badge: listing.badge,
     status: listing.status,
@@ -224,8 +239,30 @@ router.post("/listings", async (req, res): Promise<void> => {
     })
     .returning();
 
+  // Create document records if provided
+  const rawDocs = (req.body as any).documents as any[] | undefined;
+  if (Array.isArray(rawDocs) && rawDocs.length > 0) {
+    const toInsert = rawDocs.slice(0, 10).filter((d: any) => d?.fileUrl);
+    if (toInsert.length > 0) {
+      await db.insert(listingDocumentsTable).values(
+        toInsert.map((d: any) => ({
+          listingId: listing.id,
+          fileName: d.fileName ?? "document",
+          documentType: d.documentType ?? "other",
+          fileUrl: d.fileUrl,
+        })),
+      );
+    }
+  }
+
+  const documents = await db
+    .select()
+    .from(listingDocumentsTable)
+    .where(eq(listingDocumentsTable.listingId, listing.id))
+    .orderBy(listingDocumentsTable.createdAt);
+
   void recomputeAndSave(userId);
-  res.status(201).json(serializeListing(listing, seller));
+  res.status(201).json(serializeListing(listing, seller, documents));
 });
 
 router.get("/listings/:id", async (req, res): Promise<void> => {
@@ -247,7 +284,13 @@ router.get("/listings/:id", async (req, res): Promise<void> => {
     return;
   }
 
-  res.json(serializeListing(row.listing, row.seller));
+  const documents = await db
+    .select()
+    .from(listingDocumentsTable)
+    .where(eq(listingDocumentsTable.listingId, params.data.id))
+    .orderBy(listingDocumentsTable.createdAt);
+
+  res.json(serializeListing(row.listing, row.seller, documents));
 });
 
 router.patch("/listings/:id", async (req, res): Promise<void> => {
@@ -270,6 +313,7 @@ router.patch("/listings/:id", async (req, res): Promise<void> => {
 
   const updateData: any = { ...parsed.data, updatedAt: new Date() };
   if (parsed.data.price != null) updateData.price = String(parsed.data.price);
+  delete updateData.documents;
 
   const [updated] = await db
     .update(listingsTable)
@@ -277,9 +321,32 @@ router.patch("/listings/:id", async (req, res): Promise<void> => {
     .where(eq(listingsTable.id, params.data.id))
     .returning();
 
+  // Replace documents if provided
+  const rawDocs = (req.body as any).documents as any[] | undefined;
+  if (Array.isArray(rawDocs)) {
+    await db.delete(listingDocumentsTable).where(eq(listingDocumentsTable.listingId, params.data.id));
+    const toInsert = rawDocs.slice(0, 10).filter((d: any) => d?.fileUrl);
+    if (toInsert.length > 0) {
+      await db.insert(listingDocumentsTable).values(
+        toInsert.map((d: any) => ({
+          listingId: params.data.id,
+          fileName: d.fileName ?? "document",
+          documentType: d.documentType ?? "other",
+          fileUrl: d.fileUrl,
+        })),
+      );
+    }
+  }
+
+  const documents = await db
+    .select()
+    .from(listingDocumentsTable)
+    .where(eq(listingDocumentsTable.listingId, params.data.id))
+    .orderBy(listingDocumentsTable.createdAt);
+
   const [seller] = await db.select().from(usersTable).where(eq(usersTable.id, updated.sellerId));
   void recomputeAndSave(updated.sellerId);
-  res.json(serializeListing(updated, seller));
+  res.json(serializeListing(updated, seller, documents));
 });
 
 router.delete("/listings/:id", async (req, res): Promise<void> => {

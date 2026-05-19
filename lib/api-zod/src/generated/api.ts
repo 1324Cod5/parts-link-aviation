@@ -187,6 +187,17 @@ export const GetFeaturedListingsResponseItem = zod.object({
   "price": zod.number().nullable(),
   "certificationDocs": zod.array(zod.string()).optional(),
   "photos": zod.array(zod.string()).optional(),
+  "documents": zod.array(zod.object({
+  "id": zod.number(),
+  "listingId": zod.number(),
+  "fileName": zod.string(),
+  "documentType": zod.enum(['faa_8130_3', 'easa_form_1', 'tcca_form_1', 'overhaul_report', 'test_report', 'coa', 'other']),
+  "fileUrl": zod.string(),
+  "verificationStatus": zod.enum(['pending', 'approved', 'rejected']),
+  "reviewNote": zod.string().nullish(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+})).optional(),
   "traceHistory": zod.string().nullish(),
   "badge": zod.enum(['pending_verification', 'documentation_reviewed', 'verified']),
   "status": zod.enum(['active', 'removed']),
@@ -243,6 +254,17 @@ export const GetListingsResponse = zod.object({
   "price": zod.number().nullable(),
   "certificationDocs": zod.array(zod.string()).optional(),
   "photos": zod.array(zod.string()).optional(),
+  "documents": zod.array(zod.object({
+  "id": zod.number(),
+  "listingId": zod.number(),
+  "fileName": zod.string(),
+  "documentType": zod.enum(['faa_8130_3', 'easa_form_1', 'tcca_form_1', 'overhaul_report', 'test_report', 'coa', 'other']),
+  "fileUrl": zod.string(),
+  "verificationStatus": zod.enum(['pending', 'approved', 'rejected']),
+  "reviewNote": zod.string().nullish(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+})).optional(),
   "traceHistory": zod.string().nullish(),
   "badge": zod.enum(['pending_verification', 'documentation_reviewed', 'verified']),
   "status": zod.enum(['active', 'removed']),
@@ -280,6 +302,11 @@ export const CreateListingBody = zod.object({
   "price": zod.number().nullish(),
   "certificationDocs": zod.array(zod.string()).optional(),
   "photos": zod.array(zod.string()).optional(),
+  "documents": zod.array(zod.object({
+  "fileName": zod.string(),
+  "documentType": zod.enum(['faa_8130_3', 'easa_form_1', 'tcca_form_1', 'overhaul_report', 'test_report', 'coa', 'other']),
+  "fileUrl": zod.string()
+})).optional(),
   "traceHistory": zod.string().nullish()
 })
 
@@ -303,6 +330,17 @@ export const GetListingResponse = zod.object({
   "price": zod.number().nullable(),
   "certificationDocs": zod.array(zod.string()).optional(),
   "photos": zod.array(zod.string()).optional(),
+  "documents": zod.array(zod.object({
+  "id": zod.number(),
+  "listingId": zod.number(),
+  "fileName": zod.string(),
+  "documentType": zod.enum(['faa_8130_3', 'easa_form_1', 'tcca_form_1', 'overhaul_report', 'test_report', 'coa', 'other']),
+  "fileUrl": zod.string(),
+  "verificationStatus": zod.enum(['pending', 'approved', 'rejected']),
+  "reviewNote": zod.string().nullish(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+})).optional(),
   "traceHistory": zod.string().nullish(),
   "badge": zod.enum(['pending_verification', 'documentation_reviewed', 'verified']),
   "status": zod.enum(['active', 'removed']),
@@ -340,6 +378,11 @@ export const UpdateListingBody = zod.object({
   "price": zod.number().nullish(),
   "certificationDocs": zod.array(zod.string()).optional(),
   "photos": zod.array(zod.string()).optional(),
+  "documents": zod.array(zod.object({
+  "fileName": zod.string(),
+  "documentType": zod.enum(['faa_8130_3', 'easa_form_1', 'tcca_form_1', 'overhaul_report', 'test_report', 'coa', 'other']),
+  "fileUrl": zod.string()
+})).optional(),
   "traceHistory": zod.string().nullish()
 })
 
@@ -355,6 +398,17 @@ export const UpdateListingResponse = zod.object({
   "price": zod.number().nullable(),
   "certificationDocs": zod.array(zod.string()).optional(),
   "photos": zod.array(zod.string()).optional(),
+  "documents": zod.array(zod.object({
+  "id": zod.number(),
+  "listingId": zod.number(),
+  "fileName": zod.string(),
+  "documentType": zod.enum(['faa_8130_3', 'easa_form_1', 'tcca_form_1', 'overhaul_report', 'test_report', 'coa', 'other']),
+  "fileUrl": zod.string(),
+  "verificationStatus": zod.enum(['pending', 'approved', 'rejected']),
+  "reviewNote": zod.string().nullish(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+})).optional(),
   "traceHistory": zod.string().nullish(),
   "badge": zod.enum(['pending_verification', 'documentation_reviewed', 'verified']),
   "status": zod.enum(['active', 'removed']),
@@ -409,6 +463,17 @@ export const UpdateListingBadgeResponse = zod.object({
   "price": zod.number().nullable(),
   "certificationDocs": zod.array(zod.string()).optional(),
   "photos": zod.array(zod.string()).optional(),
+  "documents": zod.array(zod.object({
+  "id": zod.number(),
+  "listingId": zod.number(),
+  "fileName": zod.string(),
+  "documentType": zod.enum(['faa_8130_3', 'easa_form_1', 'tcca_form_1', 'overhaul_report', 'test_report', 'coa', 'other']),
+  "fileUrl": zod.string(),
+  "verificationStatus": zod.enum(['pending', 'approved', 'rejected']),
+  "reviewNote": zod.string().nullish(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+})).optional(),
   "traceHistory": zod.string().nullish(),
   "badge": zod.enum(['pending_verification', 'documentation_reviewed', 'verified']),
   "status": zod.enum(['active', 'removed']),
@@ -479,6 +544,17 @@ export const GetSellerListingsResponseItem = zod.object({
   "price": zod.number().nullable(),
   "certificationDocs": zod.array(zod.string()).optional(),
   "photos": zod.array(zod.string()).optional(),
+  "documents": zod.array(zod.object({
+  "id": zod.number(),
+  "listingId": zod.number(),
+  "fileName": zod.string(),
+  "documentType": zod.enum(['faa_8130_3', 'easa_form_1', 'tcca_form_1', 'overhaul_report', 'test_report', 'coa', 'other']),
+  "fileUrl": zod.string(),
+  "verificationStatus": zod.enum(['pending', 'approved', 'rejected']),
+  "reviewNote": zod.string().nullish(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+})).optional(),
   "traceHistory": zod.string().nullish(),
   "badge": zod.enum(['pending_verification', 'documentation_reviewed', 'verified']),
   "status": zod.enum(['active', 'removed']),
@@ -534,6 +610,53 @@ export const GetSellerAnalyticsResponse = zod.object({
 
 
 /**
+ * @summary Get all documents for a listing
+ */
+export const GetListingDocumentsParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const GetListingDocumentsResponse = zod.object({
+  "documents": zod.array(zod.object({
+  "id": zod.number(),
+  "listingId": zod.number(),
+  "fileName": zod.string(),
+  "documentType": zod.enum(['faa_8130_3', 'easa_form_1', 'tcca_form_1', 'overhaul_report', 'test_report', 'coa', 'other']),
+  "fileUrl": zod.string(),
+  "verificationStatus": zod.enum(['pending', 'approved', 'rejected']),
+  "reviewNote": zod.string().nullish(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+}))
+})
+
+
+/**
+ * @summary Approve or reject a certification document (admin)
+ */
+export const UpdateDocumentStatusParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const UpdateDocumentStatusBody = zod.object({
+  "verificationStatus": zod.enum(['pending', 'approved', 'rejected']),
+  "reviewNote": zod.string().nullish()
+})
+
+export const UpdateDocumentStatusResponse = zod.object({
+  "id": zod.number(),
+  "listingId": zod.number(),
+  "fileName": zod.string(),
+  "documentType": zod.enum(['faa_8130_3', 'easa_form_1', 'tcca_form_1', 'overhaul_report', 'test_report', 'coa', 'other']),
+  "fileUrl": zod.string(),
+  "verificationStatus": zod.enum(['pending', 'approved', 'rejected']),
+  "reviewNote": zod.string().nullish(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+})
+
+
+/**
  * @summary Get all listings for admin review
  */
 export const GetAdminListingsQueryParams = zod.object({
@@ -553,6 +676,17 @@ export const GetAdminListingsResponseItem = zod.object({
   "price": zod.number().nullable(),
   "certificationDocs": zod.array(zod.string()).optional(),
   "photos": zod.array(zod.string()).optional(),
+  "documents": zod.array(zod.object({
+  "id": zod.number(),
+  "listingId": zod.number(),
+  "fileName": zod.string(),
+  "documentType": zod.enum(['faa_8130_3', 'easa_form_1', 'tcca_form_1', 'overhaul_report', 'test_report', 'coa', 'other']),
+  "fileUrl": zod.string(),
+  "verificationStatus": zod.enum(['pending', 'approved', 'rejected']),
+  "reviewNote": zod.string().nullish(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+})).optional(),
   "traceHistory": zod.string().nullish(),
   "badge": zod.enum(['pending_verification', 'documentation_reviewed', 'verified']),
   "status": zod.enum(['active', 'removed']),
@@ -592,6 +726,17 @@ export const GetAdminListingResponse = zod.object({
   "price": zod.number().nullable(),
   "certificationDocs": zod.array(zod.string()).optional(),
   "photos": zod.array(zod.string()).optional(),
+  "documents": zod.array(zod.object({
+  "id": zod.number(),
+  "listingId": zod.number(),
+  "fileName": zod.string(),
+  "documentType": zod.enum(['faa_8130_3', 'easa_form_1', 'tcca_form_1', 'overhaul_report', 'test_report', 'coa', 'other']),
+  "fileUrl": zod.string(),
+  "verificationStatus": zod.enum(['pending', 'approved', 'rejected']),
+  "reviewNote": zod.string().nullish(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+})).optional(),
   "traceHistory": zod.string().nullish(),
   "badge": zod.enum(['pending_verification', 'documentation_reviewed', 'verified']),
   "status": zod.enum(['active', 'removed']),

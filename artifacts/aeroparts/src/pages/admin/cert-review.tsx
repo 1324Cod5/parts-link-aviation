@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useParams, useLocation, Link } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -9,101 +10,148 @@ import {
   getGetAdminListingQueryKey,
   getGetAdminListingsQueryKey,
   useUpdateListingBadge,
+  useGetListingDocuments,
+  getGetListingDocumentsQueryKey,
+  useUpdateDocumentStatus,
 } from "@workspace/api-client-react";
 import {
   ArrowLeft, FileText, ExternalLink, AlertCircle, CheckCircle2,
-  ShieldCheck, Building2, Package, Calendar,
+  ShieldCheck, Building2, Package, Calendar, XCircle, Clock, Download,
 } from "lucide-react";
 
-function DocViewer({ url, index }: { url: string; index: number }) {
-  const isImage = /\.(png|jpe?g|gif|webp|svg)(\?.*)?$/i.test(url);
-  const isPdf = /\.pdf(\?.*)?$/i.test(url);
-  const isHttp = /^https?:\/\//i.test(url);
+const DOC_TYPE_LABELS: Record<string, string> = {
+  faa_8130_3: "FAA Form 8130-3",
+  easa_form_1: "EASA Form 1",
+  tcca_form_1: "TCCA Form 1",
+  overhaul_report: "Overhaul Report",
+  test_report: "Test Report",
+  coa: "Certificate of Conformance",
+  other: "Other",
+};
 
-  if (!isHttp) {
+function DocStatusBadge({ status }: { status: string }) {
+  if (status === "approved") {
     return (
-      <div className="border border-border rounded-lg p-4 bg-secondary/20">
-        <div className="flex items-center gap-2 mb-2">
-          <FileText className="w-4 h-4 text-muted-foreground" />
-          <span className="text-sm font-medium text-white">Document {index + 1}</span>
-        </div>
-        <p className="text-sm text-muted-foreground font-mono break-all">{url}</p>
-        <p className="text-xs text-amber-400 mt-2 flex items-center gap-1">
-          <AlertCircle className="w-3 h-3" />
-          Reference string — not a viewable URL
-        </p>
-      </div>
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+        <CheckCircle2 className="w-3 h-3" /> Approved
+      </span>
     );
   }
-
-  if (isImage) {
+  if (status === "rejected") {
     return (
-      <div className="border border-border rounded-lg overflow-hidden bg-secondary/20">
-        <div className="flex items-center justify-between px-4 py-2 border-b border-border">
-          <span className="text-sm font-medium text-white flex items-center gap-2">
-            <FileText className="w-4 h-4 text-muted-foreground" />
-            Document {index + 1}
-          </span>
-          <a href={url} target="_blank" rel="noopener noreferrer"
-            className="text-xs text-primary hover:underline flex items-center gap-1">
-            Open <ExternalLink className="w-3 h-3" />
-          </a>
-        </div>
-        <img
-          src={url}
-          alt={`Document ${index + 1}`}
-          className="w-full max-h-96 object-contain bg-black/20"
-          onError={e => {
-            (e.currentTarget as HTMLImageElement).style.display = "none";
-            (e.currentTarget.nextSibling as HTMLElement).style.display = "flex";
-          }}
-        />
-        <div className="hidden items-center gap-2 p-4 text-sm text-muted-foreground">
-          <AlertCircle className="w-4 h-4 text-amber-400" />
-          Image could not be loaded.{" "}
-          <a href={url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
-            Open directly
-          </a>
-        </div>
-      </div>
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-red-500/10 text-red-400 border border-red-500/20">
+        <XCircle className="w-3 h-3" /> Rejected
+      </span>
     );
   }
+  return (
+    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-amber-500/10 text-amber-400 border border-amber-500/20">
+      <Clock className="w-3 h-3" /> Pending
+    </span>
+  );
+}
 
-  if (isPdf) {
-    return (
-      <div className="border border-border rounded-lg overflow-hidden bg-secondary/20">
-        <div className="flex items-center justify-between px-4 py-2 border-b border-border">
-          <span className="text-sm font-medium text-white flex items-center gap-2">
-            <FileText className="w-4 h-4 text-primary" />
-            Document {index + 1} — PDF
-          </span>
-          <a href={url} target="_blank" rel="noopener noreferrer"
-            className="text-xs text-primary hover:underline flex items-center gap-1">
-            Open in tab <ExternalLink className="w-3 h-3" />
-          </a>
-        </div>
-        <iframe
-          src={url}
-          title={`Document ${index + 1}`}
-          className="w-full h-96 border-0"
-        />
-      </div>
+function DocRow({ doc, listingId }: { doc: any; listingId: number }) {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const updateStatus = useUpdateDocumentStatus();
+  const [note, setNote] = useState(doc.reviewNote ?? "");
+
+  const isPdf = /\.pdf(\?.*)?$/i.test(doc.fileUrl);
+  const isImage = /\.(png|jpe?g)(\?.*)?$/i.test(doc.fileUrl);
+
+  function handleUpdate(status: "approved" | "rejected") {
+    updateStatus.mutate(
+      { id: doc.id, data: { verificationStatus: status, reviewNote: note || null } },
+      {
+        onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: ["getListingDocuments", listingId] });
+          toast({
+            title: status === "approved" ? "Document approved" : "Document rejected",
+            description: doc.fileName,
+          });
+        },
+        onError: () => {
+          toast({ title: "Action failed", description: "Could not update document status.", variant: "destructive" });
+        },
+      },
     );
   }
 
   return (
-    <div className="border border-border rounded-lg p-4 bg-secondary/20">
-      <div className="flex items-center justify-between">
-        <span className="text-sm font-medium text-white flex items-center gap-2">
-          <FileText className="w-4 h-4 text-muted-foreground" />
-          Document {index + 1}
-        </span>
-        <a href={url} target="_blank" rel="noopener noreferrer"
-          className="inline-flex items-center gap-1.5 text-xs text-primary border border-primary/30 rounded px-2.5 py-1 hover:bg-primary/10 transition-colors">
-          Open document <ExternalLink className="w-3 h-3" />
-        </a>
+    <div className="border border-border rounded-lg overflow-hidden bg-card">
+      {/* Header */}
+      <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-border flex-wrap">
+        <div className="flex items-center gap-2 min-w-0">
+          <FileText className="w-4 h-4 text-primary flex-shrink-0" />
+          <span className="text-sm font-medium text-white font-mono truncate">{doc.fileName}</span>
+        </div>
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <DocStatusBadge status={doc.verificationStatus} />
+          <span className="text-xs text-muted-foreground px-1.5 py-0.5 rounded bg-secondary/30 border border-border">
+            {DOC_TYPE_LABELS[doc.documentType] ?? doc.documentType}
+          </span>
+          <a
+            href={doc.fileUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+          >
+            <Download className="w-3 h-3" /> Open
+          </a>
+        </div>
       </div>
-      <p className="text-xs text-muted-foreground font-mono mt-2 break-all">{url}</p>
+
+      {/* Preview */}
+      {isImage && (
+        <img
+          src={doc.fileUrl}
+          alt={doc.fileName}
+          className="w-full max-h-64 object-contain bg-black/20"
+          onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
+        />
+      )}
+      {isPdf && (
+        <iframe
+          src={doc.fileUrl}
+          title={doc.fileName}
+          className="w-full h-64 border-0 bg-black/10"
+        />
+      )}
+
+      {/* Review note + actions */}
+      <div className="px-4 py-3 space-y-3">
+        <div>
+          <label className="text-xs text-muted-foreground mb-1 block">Review note (optional)</label>
+          <input
+            type="text"
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            placeholder="Add a note for the seller..."
+            className="w-full bg-secondary/20 border border-border rounded px-3 py-1.5 text-sm text-white placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary/50"
+          />
+        </div>
+        <div className="flex gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            className="border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10 gap-1.5"
+            onClick={() => handleUpdate("approved")}
+            disabled={updateStatus.isPending || doc.verificationStatus === "approved"}
+          >
+            <CheckCircle2 className="w-3.5 h-3.5" /> Approve
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            className="border-red-500/30 text-red-400 hover:bg-red-500/10 gap-1.5"
+            onClick={() => handleUpdate("rejected")}
+            disabled={updateStatus.isPending || doc.verificationStatus === "rejected"}
+          >
+            <XCircle className="w-3.5 h-3.5" /> Reject
+          </Button>
+        </div>
+      </div>
     </div>
   );
 }
@@ -120,6 +168,10 @@ export default function AdminCertReview() {
       enabled: !isNaN(listingId),
       queryKey: getGetAdminListingQueryKey(listingId),
     },
+  });
+
+  const { data: docsData, isLoading: docsLoading } = useGetListingDocuments(listingId, {
+    query: { enabled: !isNaN(listingId), queryKey: getGetListingDocumentsQueryKey(listingId) },
   });
 
   const badgeMutation = useUpdateListingBadge();
@@ -174,8 +226,11 @@ export default function AdminCertReview() {
     );
   }
 
-  const docs = listing.certificationDocs ?? [];
-  const hasDocs = docs.length > 0 && docs.some(d => d.trim());
+  const docs = docsData?.documents ?? [];
+  const hasDocs = docs.length > 0;
+  const approvedCount = docs.filter((d) => d.verificationStatus === "approved").length;
+  const rejectedCount = docs.filter((d) => d.verificationStatus === "rejected").length;
+  const pendingCount = docs.filter((d) => d.verificationStatus === "pending").length;
 
   return (
     <div className="min-h-screen bg-background">
@@ -223,9 +278,16 @@ export default function AdminCertReview() {
           <div className="flex items-center gap-2 text-sm">
             <FileText className="w-4 h-4 text-muted-foreground flex-shrink-0" />
             <span className="text-muted-foreground">Documents:</span>
-            <span className={hasDocs ? "text-emerald-400 font-medium" : "text-amber-400 font-medium"}>
-              {hasDocs ? `${docs.filter(d => d.trim()).length} uploaded` : "None"}
-            </span>
+            {hasDocs ? (
+              <span className="text-white font-medium">
+                {docs.length} total
+                {approvedCount > 0 && <span className="text-emerald-400 ml-1">· {approvedCount} approved</span>}
+                {rejectedCount > 0 && <span className="text-red-400 ml-1">· {rejectedCount} rejected</span>}
+                {pendingCount > 0 && <span className="text-amber-400 ml-1">· {pendingCount} pending</span>}
+              </span>
+            ) : (
+              <span className="text-amber-400 font-medium">None uploaded</span>
+            )}
           </div>
         </div>
 
@@ -235,16 +297,21 @@ export default function AdminCertReview() {
             Certification Documents
           </h2>
 
-          {hasDocs ? (
+          {docsLoading ? (
             <div className="space-y-3">
-              {docs.filter(d => d.trim()).map((doc, i) => (
-                <DocViewer key={i} url={doc} index={i} />
+              <Skeleton className="h-32 w-full rounded-lg" />
+              <Skeleton className="h-32 w-full rounded-lg" />
+            </div>
+          ) : hasDocs ? (
+            <div className="space-y-4">
+              {docs.map((doc) => (
+                <DocRow key={doc.id} doc={doc} listingId={listingId} />
               ))}
             </div>
           ) : (
             <div className="border border-border rounded-lg p-8 bg-card text-center">
               <AlertCircle className="w-8 h-8 text-amber-400 mx-auto mb-3 opacity-70" />
-              <p className="text-white font-medium">No document uploaded</p>
+              <p className="text-white font-medium">No documents uploaded</p>
               <p className="text-sm text-muted-foreground mt-1">
                 The seller has not attached any certification documents to this listing.
               </p>
@@ -264,11 +331,14 @@ export default function AdminCertReview() {
           </div>
         )}
 
-        {/* Review actions */}
+        {/* Overall badge review */}
         <div className="border border-border rounded-lg p-5 bg-card">
-          <h2 className="text-sm font-semibold text-white mb-1">Review Decision</h2>
+          <h2 className="text-sm font-semibold text-white mb-1">Overall Listing Decision</h2>
           <p className="text-xs text-muted-foreground mb-4">
-            Current status: <span className="text-white font-medium">{listing.badge.replace(/_/g, " ")}</span>
+            Current badge: <span className="text-white font-medium">{listing.badge.replace(/_/g, " ")}</span>.
+            {hasDocs && pendingCount === 0 && approvedCount > 0 && (
+              <span className="text-emerald-400 ml-1">All documents reviewed.</span>
+            )}
           </p>
           <div className="flex gap-3 flex-wrap">
             <Button
@@ -295,7 +365,7 @@ export default function AdminCertReview() {
           {!hasDocs && (
             <p className="text-xs text-amber-400 mt-3 flex items-center gap-1.5">
               <AlertCircle className="w-3 h-3" />
-              No documents have been uploaded. You can still update the badge, but review manually before approving.
+              No documents uploaded. Review manually before approving.
             </p>
           )}
         </div>

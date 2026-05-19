@@ -5,20 +5,42 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useCreateListing, getGetSellerListingsQueryKey, getGetSellerStatsQueryKey } from "@workspace/api-client-react";
+import { useCreateListing, getGetSellerListingsQueryKey, getGetSellerStatsQueryKey, type DocumentInputDocumentType } from "@workspace/api-client-react";
 import { useAuth } from "@/context/AuthContext";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Trash2, ArrowLeft, Zap, ImagePlus, Loader2, AlertCircle, X } from "lucide-react";
+import { Plus, Trash2, ArrowLeft, Zap, ImagePlus, Loader2, AlertCircle, X, FileUp, FileText, CheckCircle2 } from "lucide-react";
 
 const MAX_PHOTOS = 5;
-const ACCEPTED_TYPES = "image/jpeg,image/png,image/webp,image/gif,image/avif";
+const MAX_DOCS = 10;
+const ACCEPTED_IMAGE_TYPES = "image/jpeg,image/png,image/webp,image/gif,image/avif";
+const ACCEPTED_DOC_TYPES = ".pdf,.docx,.jpg,.jpeg,.png";
+
+const DOC_TYPE_LABELS: Record<string, string> = {
+  faa_8130_3: "FAA Form 8130-3",
+  easa_form_1: "EASA Form 1",
+  tcca_form_1: "TCCA Form 1",
+  overhaul_report: "Overhaul Report",
+  test_report: "Test Report",
+  coa: "Certificate of Conformance",
+  other: "Other",
+};
 
 interface PhotoEntry {
   objectUrl: string;
   serverUrl: string | null;
   uploading: boolean;
   error: boolean;
+}
+
+interface DocEntry {
+  id: string;
+  fileName: string;
+  documentType: string;
+  fileUrl: string | null;
+  uploading: boolean;
+  error: boolean;
+  mimeType: string;
 }
 
 interface LimitError {
@@ -33,10 +55,12 @@ export default function NewListing() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const createListing = useCreateListing();
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const photoInputRef = useRef<HTMLInputElement>(null);
+  const docInputRef = useRef<HTMLInputElement>(null);
 
   const [limitError, setLimitError] = useState<LimitError | null>(null);
   const [photoEntries, setPhotoEntries] = useState<PhotoEntry[]>([]);
+  const [docEntries, setDocEntries] = useState<DocEntry[]>([]);
 
   const [form, setForm] = useState({
     partNumber: "",
@@ -47,13 +71,12 @@ export default function NewListing() {
     saleType: "outright" as any,
     quantity: 1,
     price: "" as string | number,
-    certificationDocs: [""],
     traceHistory: "",
   });
 
   // ─── Photo upload ────────────────────────────────────────────────────────────
 
-  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePhotoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files ?? []);
     if (files.length === 0) return;
 
@@ -68,7 +91,6 @@ export default function NewListing() {
       toast({ description: `Only ${remaining} slot(s) remaining — added first ${remaining}.` });
     }
 
-    // Create preview entries immediately
     const newEntries: PhotoEntry[] = toAdd.map((f) => ({
       objectUrl: URL.createObjectURL(f),
       serverUrl: null,
@@ -77,25 +99,16 @@ export default function NewListing() {
     }));
     setPhotoEntries((prev) => [...prev, ...newEntries]);
 
-    // Upload to server
     const formData = new FormData();
     toAdd.forEach((f) => formData.append("images", f));
 
     try {
-      const res = await fetch("/api/upload", {
-        method: "POST",
-        body: formData,
-        credentials: "include",
-      });
-
+      const res = await fetch("/api/upload", { method: "POST", body: formData, credentials: "include" });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
         throw new Error(body.error ?? "Upload failed");
       }
-
       const { urls }: { urls: string[] } = await res.json();
-
-      // Match back by objectUrl and fill in server URLs
       setPhotoEntries((prev) =>
         prev.map((entry) => {
           const batchIdx = newEntries.findIndex((n) => n.objectUrl === entry.objectUrl);
@@ -106,11 +119,7 @@ export default function NewListing() {
         }),
       );
     } catch (err: any) {
-      toast({
-        title: "Upload failed",
-        description: err?.message ?? "Could not upload images. Please try again.",
-        variant: "destructive",
-      });
+      toast({ title: "Upload failed", description: err?.message ?? "Could not upload images.", variant: "destructive" });
       setPhotoEntries((prev) =>
         prev.map((entry) => {
           const isBatch = newEntries.some((n) => n.objectUrl === entry.objectUrl);
@@ -120,8 +129,7 @@ export default function NewListing() {
       );
     }
 
-    // Reset input so the same file can be selected again
-    if (fileInputRef.current) fileInputRef.current.value = "";
+    if (photoInputRef.current) photoInputRef.current.value = "";
   };
 
   const removePhoto = (i: number) => {
@@ -132,27 +140,99 @@ export default function NewListing() {
     });
   };
 
+  // ─── Document upload ──────────────────────────────────────────────────────────
+
+  const handleDocSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? []);
+    if (files.length === 0) return;
+
+    const remaining = MAX_DOCS - docEntries.length;
+    if (remaining <= 0) {
+      toast({ title: "Document limit reached", description: `Maximum ${MAX_DOCS} documents per listing.`, variant: "destructive" });
+      return;
+    }
+
+    const toAdd = files.slice(0, remaining);
+    if (files.length > remaining) {
+      toast({ description: `Only ${remaining} slot(s) remaining — added first ${remaining}.` });
+    }
+
+    const newEntries: DocEntry[] = toAdd.map((f) => ({
+      id: `${Date.now()}-${Math.random()}`,
+      fileName: f.name,
+      documentType: "other",
+      fileUrl: null,
+      uploading: true,
+      error: false,
+      mimeType: f.type,
+    }));
+    setDocEntries((prev) => [...prev, ...newEntries]);
+
+    const formData = new FormData();
+    toAdd.forEach((f) => formData.append("files", f));
+
+    try {
+      const res = await fetch("/api/upload-documents", { method: "POST", body: formData, credentials: "include" });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error ?? "Upload failed");
+      }
+      const { documents }: { documents: { fileName: string; fileUrl: string; mimeType: string }[] } = await res.json();
+      setDocEntries((prev) =>
+        prev.map((entry) => {
+          const batchIdx = newEntries.findIndex((n) => n.id === entry.id);
+          if (batchIdx !== -1 && documents[batchIdx]) {
+            return { ...entry, fileUrl: documents[batchIdx].fileUrl, uploading: false };
+          }
+          return entry;
+        }),
+      );
+    } catch (err: any) {
+      toast({ title: "Upload failed", description: err?.message ?? "Could not upload documents.", variant: "destructive" });
+      setDocEntries((prev) =>
+        prev.map((entry) => {
+          const isBatch = newEntries.some((n) => n.id === entry.id);
+          if (isBatch) return { ...entry, uploading: false, error: true };
+          return entry;
+        }),
+      );
+    }
+
+    if (docInputRef.current) docInputRef.current.value = "";
+  };
+
+  const removeDoc = (id: string) => {
+    setDocEntries((prev) => prev.filter((d) => d.id !== id));
+  };
+
+  const updateDocType = (id: string, documentType: string) => {
+    setDocEntries((prev) => prev.map((d) => d.id === id ? { ...d, documentType } : d));
+  };
+
   // ─── Form submit ─────────────────────────────────────────────────────────────
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setLimitError(null);
 
-    const pendingUploads = photoEntries.filter((p) => p.uploading);
-    if (pendingUploads.length > 0) {
-      toast({ title: "Please wait", description: "Images are still uploading.", variant: "destructive" });
+    const anyPhotoUploading = photoEntries.some((p) => p.uploading);
+    const anyDocUploading = docEntries.some((d) => d.uploading);
+    if (anyPhotoUploading || anyDocUploading) {
+      toast({ title: "Please wait", description: "Files are still uploading.", variant: "destructive" });
       return;
     }
 
-    const photos = photoEntries
-      .filter((p) => p.serverUrl !== null && !p.error)
-      .map((p) => p.serverUrl!);
+    const photos = photoEntries.filter((p) => p.serverUrl !== null && !p.error).map((p) => p.serverUrl!);
+    const documents = docEntries
+      .filter((d) => d.fileUrl !== null && !d.error)
+      .map((d) => ({ fileName: d.fileName, documentType: d.documentType as DocumentInputDocumentType, fileUrl: d.fileUrl! }));
 
     const data = {
       ...form,
       price: form.price !== "" ? Number(form.price) : null,
-      certificationDocs: form.certificationDocs.filter((d) => d.trim()),
+      certificationDocs: [],
       photos,
+      documents,
       aircraftApplicability: form.aircraftApplicability || null,
       traceHistory: form.traceHistory || null,
     };
@@ -179,14 +259,6 @@ export default function NewListing() {
       },
     });
   };
-
-  // ─── Cert docs helpers ────────────────────────────────────────────────────────
-
-  const addDoc = () => setForm((f) => ({ ...f, certificationDocs: [...f.certificationDocs, ""] }));
-  const removeDoc = (i: number) =>
-    setForm((f) => ({ ...f, certificationDocs: f.certificationDocs.filter((_, idx) => idx !== i) }));
-  const updateDoc = (i: number, val: string) =>
-    setForm((f) => ({ ...f, certificationDocs: f.certificationDocs.map((d, idx) => (idx === i ? val : d)) }));
 
   // ─── Guard screens ────────────────────────────────────────────────────────────
 
@@ -234,10 +306,13 @@ export default function NewListing() {
     );
   }
 
-  // ─── Main form ────────────────────────────────────────────────────────────────
+  // ─── Derived state ─────────────────────────────────────────────────────────────
 
-  const canAddMore = photoEntries.length < MAX_PHOTOS;
-  const anyUploading = photoEntries.some((p) => p.uploading);
+  const canAddMorePhotos = photoEntries.length < MAX_PHOTOS;
+  const canAddMoreDocs = docEntries.length < MAX_DOCS;
+  const anyPhotoUploading = photoEntries.some((p) => p.uploading);
+  const anyDocUploading = docEntries.some((d) => d.uploading);
+  const anyUploading = anyPhotoUploading || anyDocUploading;
 
   return (
     <MainLayout>
@@ -319,22 +394,81 @@ export default function NewListing() {
             {/* Certification Documents */}
             <div className="space-y-4">
               <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider border-b border-border pb-2">Certification Documents</h2>
-              <p className="text-xs text-muted-foreground">Enter URLs to uploaded certification documents (e.g. FAA Form 8130-3, EASA Form 1). Use a public link so admin can preview the document.</p>
-              <div className="space-y-2">
-                {form.certificationDocs.map((doc, i) => (
-                  <div key={i} className="flex gap-2">
-                    <Input value={doc} onChange={e => updateDoc(i, e.target.value)} placeholder="https://docs.example.com/faa-8130-3.pdf" className="flex-1 font-mono text-sm" />
-                    {form.certificationDocs.length > 1 && (
-                      <Button type="button" variant="ghost" size="sm" className="h-9 w-9 p-0 text-destructive" onClick={() => removeDoc(i)}>
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
-                    )}
-                  </div>
-                ))}
-                <Button type="button" variant="outline" size="sm" onClick={addDoc} className="text-xs">
-                  <Plus className="h-3.5 w-3.5 mr-1" /> Add Document
-                </Button>
-              </div>
+              <p className="text-xs text-muted-foreground">
+                Upload up to {MAX_DOCS} certification documents. Accepted: PDF, DOCX, JPG, PNG — max 20 MB each.
+                Each document is individually reviewed by our admin team.
+              </p>
+
+              {/* Document list */}
+              {docEntries.length > 0 && (
+                <div className="space-y-2">
+                  {docEntries.map((doc) => (
+                    <div key={doc.id} className="flex items-center gap-3 p-3 border border-border rounded-lg bg-secondary/10">
+                      <div className="flex-shrink-0">
+                        {doc.uploading ? (
+                          <Loader2 className="h-4 w-4 text-muted-foreground animate-spin" />
+                        ) : doc.error ? (
+                          <AlertCircle className="h-4 w-4 text-destructive" />
+                        ) : (
+                          <CheckCircle2 className="h-4 w-4 text-emerald-400" />
+                        )}
+                      </div>
+                      <FileText className="h-4 w-4 text-blue-400 flex-shrink-0" />
+                      <span className="text-sm text-white/80 truncate flex-1 font-mono text-xs">{doc.fileName}</span>
+                      {!doc.uploading && !doc.error && (
+                        <Select value={doc.documentType} onValueChange={(v) => updateDocType(doc.id, v)}>
+                          <SelectTrigger className="w-44 h-7 text-xs">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {Object.entries(DOC_TYPE_LABELS).map(([val, label]) => (
+                              <SelectItem key={val} value={val} className="text-xs">{label}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      )}
+                      {doc.error && <span className="text-xs text-destructive">Upload failed</span>}
+                      <button
+                        type="button"
+                        onClick={() => removeDoc(doc.id)}
+                        className="flex-shrink-0 h-6 w-6 rounded flex items-center justify-center text-muted-foreground hover:text-destructive transition-colors"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Add documents button */}
+              {canAddMoreDocs && (
+                <>
+                  <input
+                    ref={docInputRef}
+                    type="file"
+                    accept={ACCEPTED_DOC_TYPES}
+                    multiple
+                    className="hidden"
+                    onChange={handleDocSelect}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => docInputRef.current?.click()}
+                    className="text-xs gap-1.5"
+                    disabled={anyDocUploading}
+                  >
+                    {anyDocUploading
+                      ? <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Uploading…</>
+                      : <><FileUp className="h-3.5 w-3.5" /> Add Documents ({docEntries.length}/{MAX_DOCS})</>
+                    }
+                  </Button>
+                </>
+              )}
+              {!canAddMoreDocs && (
+                <p className="text-xs text-muted-foreground">Maximum {MAX_DOCS} documents reached.</p>
+              )}
             </div>
 
             {/* Photos */}
@@ -344,7 +478,6 @@ export default function NewListing() {
                 Upload up to {MAX_PHOTOS} photos of the part. Accepted: JPEG, PNG, WebP, GIF — max 10 MB each.
               </p>
 
-              {/* Preview grid */}
               {photoEntries.length > 0 && (
                 <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
                   {photoEntries.map((entry, i) => (
@@ -357,23 +490,17 @@ export default function NewListing() {
                         alt={`Photo ${i + 1}`}
                         className={`w-full h-full object-cover transition-opacity ${entry.uploading || entry.error ? "opacity-40" : "opacity-100"}`}
                       />
-
-                      {/* Uploading overlay */}
                       {entry.uploading && (
                         <div className="absolute inset-0 flex items-center justify-center">
                           <Loader2 className="h-5 w-5 text-white animate-spin drop-shadow" />
                         </div>
                       )}
-
-                      {/* Error overlay */}
                       {entry.error && !entry.uploading && (
                         <div className="absolute inset-0 flex flex-col items-center justify-center gap-1">
                           <AlertCircle className="h-4 w-4 text-destructive drop-shadow" />
                           <span className="text-[10px] text-destructive font-medium">Failed</span>
                         </div>
                       )}
-
-                      {/* Remove button */}
                       {!entry.uploading && (
                         <button
                           type="button"
@@ -383,8 +510,6 @@ export default function NewListing() {
                           <X className="h-3 w-3 text-white" />
                         </button>
                       )}
-
-                      {/* Success indicator */}
                       {!entry.uploading && !entry.error && entry.serverUrl && (
                         <div className="absolute bottom-1 left-1 h-2 w-2 rounded-full bg-green-400" title="Uploaded" />
                       )}
@@ -393,37 +518,33 @@ export default function NewListing() {
                 </div>
               )}
 
-              {/* Add photos button */}
-              {canAddMore && (
+              {canAddMorePhotos && (
                 <>
                   <input
-                    ref={fileInputRef}
+                    ref={photoInputRef}
                     type="file"
-                    accept={ACCEPTED_TYPES}
+                    accept={ACCEPTED_IMAGE_TYPES}
                     multiple
                     className="hidden"
-                    onChange={handleFileSelect}
+                    onChange={handlePhotoSelect}
                   />
                   <Button
                     type="button"
                     variant="outline"
                     size="sm"
-                    onClick={() => fileInputRef.current?.click()}
+                    onClick={() => photoInputRef.current?.click()}
                     className="text-xs gap-1.5"
-                    disabled={anyUploading}
+                    disabled={anyPhotoUploading}
                   >
-                    {anyUploading
+                    {anyPhotoUploading
                       ? <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Uploading…</>
                       : <><ImagePlus className="h-3.5 w-3.5" /> Add Photos ({photoEntries.length}/{MAX_PHOTOS})</>
                     }
                   </Button>
                 </>
               )}
-
-              {!canAddMore && (
-                <p className="text-xs text-muted-foreground">
-                  Maximum {MAX_PHOTOS} photos reached. Remove one to add another.
-                </p>
+              {!canAddMorePhotos && (
+                <p className="text-xs text-muted-foreground">Maximum {MAX_PHOTOS} photos reached. Remove one to add another.</p>
               )}
             </div>
 

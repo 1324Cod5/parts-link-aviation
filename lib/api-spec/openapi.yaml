@@ -177,6 +177,29 @@ paths:
                 items:
                   $ref: "#/components/schemas/Listing"
 
+  /upload-documents:
+    post:
+      operationId: uploadDocuments
+      tags: [listings]
+      summary: Upload certification documents
+      description: |
+        Upload up to 10 certification documents via multipart/form-data (field name: `files`).
+        Requires authentication. Accepted types: PDF, DOCX, JPG, PNG — max 20 MB each.
+        Returns file metadata and server-hosted URLs.
+      security:
+        - sessionAuth: []
+      responses:
+        "201":
+          description: Uploaded successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UploadDocumentsResponse"
+        "400":
+          description: Invalid file type, size, or count
+        "401":
+          description: Not authenticated
+
   /upload:
     post:
       operationId: uploadImages
@@ -469,6 +492,62 @@ paths:
                 $ref: "#/components/schemas/LimitReachedError"
         "401":
           description: Unauthorized
+
+  /listings/{id}/documents:
+    get:
+      operationId: getListingDocuments
+      tags: [listings]
+      summary: Get all documents for a listing
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Documents list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DocumentsResponse"
+        "400":
+          description: Invalid id
+
+  /documents/{id}:
+    patch:
+      operationId: updateDocumentStatus
+      tags: [admin]
+      summary: Approve or reject a certification document (admin)
+      security:
+        - sessionAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DocumentStatusUpdate"
+      responses:
+        "200":
+          description: Document updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ListingDocument"
+        "400":
+          description: Invalid status value
+        "401":
+          description: Not authenticated
+        "403":
+          description: Admin access required
+        "404":
+          description: Document not found
 
   /admin/listings:
     get:
@@ -1309,6 +1388,79 @@ components:
             type: string
           description: Server-hosted URLs for the uploaded images
 
+    UploadDocumentsResponse:
+      type: object
+      required: [documents]
+      properties:
+        documents:
+          type: array
+          items:
+            type: object
+            required: [fileName, fileUrl, mimeType]
+            properties:
+              fileName:
+                type: string
+              fileUrl:
+                type: string
+              mimeType:
+                type: string
+
+    DocumentInput:
+      type: object
+      required: [fileName, documentType, fileUrl]
+      properties:
+        fileName:
+          type: string
+        documentType:
+          type: string
+          enum: [faa_8130_3, easa_form_1, tcca_form_1, overhaul_report, test_report, coa, other]
+        fileUrl:
+          type: string
+
+    DocumentStatusUpdate:
+      type: object
+      required: [verificationStatus]
+      properties:
+        verificationStatus:
+          type: string
+          enum: [pending, approved, rejected]
+        reviewNote:
+          type: ["string", "null"]
+
+    ListingDocument:
+      type: object
+      required: [id, listingId, fileName, documentType, fileUrl, verificationStatus, createdAt, updatedAt]
+      properties:
+        id:
+          type: integer
+        listingId:
+          type: integer
+        fileName:
+          type: string
+        documentType:
+          type: string
+          enum: [faa_8130_3, easa_form_1, tcca_form_1, overhaul_report, test_report, coa, other]
+        fileUrl:
+          type: string
+        verificationStatus:
+          type: string
+          enum: [pending, approved, rejected]
+        reviewNote:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+
+    DocumentsResponse:
+      type: object
+      required: [documents]
+      properties:
+        documents:
+          type: array
+          items:
+            $ref: "#/components/schemas/ListingDocument"
+
     HealthStatus:
       type: object
       required: [status]
@@ -1630,6 +1782,10 @@ components:
           type: array
           items:
             type: string
+        documents:
+          type: array
+          items:
+            $ref: "#/components/schemas/ListingDocument"
         traceHistory:
           type: ["string", "null"]
         badge:
@@ -1677,6 +1833,10 @@ components:
           type: array
           items:
             type: string
+        documents:
+          type: array
+          items:
+            $ref: "#/components/schemas/DocumentInput"
         traceHistory:
           type: ["string", "null"]
 
@@ -1709,6 +1869,10 @@ components:
           type: array
           items:
             type: string
+        documents:
+          type: array
+          items:
+            $ref: "#/components/schemas/DocumentInput"
         traceHistory:
           type: ["string", "null"]
 

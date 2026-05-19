@@ -7,6 +7,7 @@
  */
 import type { ListingBadge } from './listingBadge';
 import type { ListingCondition } from './listingCondition';
+import type { ListingDocument } from './listingDocument';
 import type { ListingSaleType } from './listingSaleType';
 import type { ListingStatus } from './listingStatus';
 import type { Seller } from './seller';
@@ -25,6 +26,7 @@ export interface Listing {
   price: number | null;
   certificationDocs?: string[];
   photos?: string[];
+  documents?: ListingDocument[];
   /** @nullable */
   traceHistory?: string | null;
   badge: ListingBadge;

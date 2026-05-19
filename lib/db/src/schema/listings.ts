@@ -7,6 +7,8 @@ export const conditionEnum = pgEnum("condition", ["new", "overhauled", "servicea
 export const saleTypeEnum = pgEnum("sale_type", ["outright", "exchange", "both"]);
 export const badgeEnum = pgEnum("badge", ["pending_verification", "documentation_reviewed", "verified"]);
 export const listingStatusEnum = pgEnum("listing_status", ["active", "removed"]);
+export const docTypeEnum = pgEnum("doc_type", ["faa_8130_3", "easa_form_1", "tcca_form_1", "overhaul_report", "test_report", "coa", "other"]);
+export const docVerificationEnum = pgEnum("doc_verification_status", ["pending", "approved", "rejected"]);
 
 export const listingsTable = pgTable("listings", {
   id: serial("id").primaryKey(),
@@ -31,3 +33,17 @@ export const listingsTable = pgTable("listings", {
 export const insertListingSchema = createInsertSchema(listingsTable).omit({ id: true, createdAt: true, updatedAt: true });
 export type InsertListing = z.infer<typeof insertListingSchema>;
 export type Listing = typeof listingsTable.$inferSelect;
+
+export const listingDocumentsTable = pgTable("listing_documents", {
+  id: serial("id").primaryKey(),
+  listingId: integer("listing_id").notNull().references(() => listingsTable.id, { onDelete: "cascade" }),
+  fileName: text("file_name").notNull(),
+  documentType: docTypeEnum("document_type").notNull().default("other"),
+  fileUrl: text("file_url").notNull(),
+  verificationStatus: docVerificationEnum("verification_status").notNull().default("pending"),
+  reviewNote: text("review_note"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export type ListingDocument = typeof listingDocumentsTable.$inferSelect;

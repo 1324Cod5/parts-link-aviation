@@ -5,6 +5,7 @@
  * AeroParts Marketplace API
  * OpenAPI spec version: 0.1.0
  */
+import type { DocumentInput } from './documentInput';
 import type { ListingInputCondition } from './listingInputCondition';
 import type { ListingInputSaleType } from './listingInputSaleType';
 
@@ -21,6 +22,7 @@ export interface ListingInput {
   price?: number | null;
   certificationDocs?: string[];
   photos?: string[];
+  documents?: DocumentInput[];
   /** @nullable */
   traceHistory?: string | null;
 }

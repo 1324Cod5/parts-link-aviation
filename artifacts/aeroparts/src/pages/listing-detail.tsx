@@ -6,12 +6,44 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useGetListing, getGetListingQueryKey, useCreateInquiry } from "@workspace/api-client-react";
+import {
+  useGetListing, getGetListingQueryKey, useCreateInquiry,
+  useGetListingDocuments, getGetListingDocumentsQueryKey,
+} from "@workspace/api-client-react";
 import { useToast } from "@/hooks/use-toast";
 import {
-  ArrowLeft, FileText, Camera, Building2, Phone, Mail, Package, RefreshCw, ChevronRight
+  ArrowLeft, FileText, Camera, Building2, Phone, Mail, Package, RefreshCw, ChevronRight,
+  CheckCircle2, XCircle, Clock, Download,
 } from "lucide-react";
 import { TrustBadge, TrustScoreBar } from "@/components/ui/trust-badge";
+
+const DOC_TYPE_LABELS: Record<string, string> = {
+  faa_8130_3: "FAA Form 8130-3",
+  easa_form_1: "EASA Form 1",
+  tcca_form_1: "TCCA Form 1",
+  overhaul_report: "Overhaul Report",
+  test_report: "Test Report",
+  coa: "Certificate of Conformance",
+  other: "Other",
+};
+
+function DocVerificationBadge({ status }: { status: string }) {
+  if (status === "approved") return (
+    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+      <CheckCircle2 className="w-2.5 h-2.5" /> Approved
+    </span>
+  );
+  if (status === "rejected") return (
+    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-red-500/10 text-red-400 border border-red-500/20">
+      <XCircle className="w-2.5 h-2.5" /> Rejected
+    </span>
+  );
+  return (
+    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-500/10 text-amber-400 border border-amber-500/20">
+      <Clock className="w-2.5 h-2.5" /> Pending Review
+    </span>
+  );
+}
 
 function formatCondition(c: string) {
   return c.split("_").map(w => w[0].toUpperCase() + w.slice(1)).join(" ");
@@ -26,6 +58,10 @@ export default function ListingDetail() {
   const { id } = useParams<{ id: string }>();
   const { toast } = useToast();
   const [activePhoto, setActivePhoto] = useState(0);
+
+  const { data: docsData } = useGetListingDocuments(Number(id), {
+    query: { enabled: !!id, queryKey: getGetListingDocumentsQueryKey(Number(id)) },
+  });
   const [inquiryForm, setInquiryForm] = useState({
     buyerName: "", buyerEmail: "", buyerPhone: "", buyerCompany: "", message: ""
   });
@@ -170,17 +206,31 @@ export default function ListingDetail() {
             </div>
 
             {/* Certification Documents */}
-            {listing.certificationDocs && listing.certificationDocs.length > 0 && (
+            {docsData && docsData.documents.length > 0 && (
               <div className="bg-card border border-border rounded-md p-6">
                 <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
                   <FileText className="h-5 w-5 text-primary" />
                   Certification Documents
                 </h2>
                 <div className="space-y-2">
-                  {listing.certificationDocs.map((doc, i) => (
-                    <div key={i} className="flex items-center gap-3 p-3 bg-secondary/30 rounded border border-border/50">
+                  {docsData.documents.map((doc) => (
+                    <div key={doc.id} className="flex items-center gap-3 p-3 bg-secondary/30 rounded border border-border/50">
                       <FileText className="h-4 w-4 text-blue-400 flex-shrink-0" />
-                      <span className="text-sm text-white/80">{doc}</span>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-white/90 font-mono truncate">{doc.fileName}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          {DOC_TYPE_LABELS[doc.documentType] ?? doc.documentType}
+                        </p>
+                      </div>
+                      <DocVerificationBadge status={doc.verificationStatus} />
+                      <a
+                        href={doc.fileUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex-shrink-0 inline-flex items-center gap-1 text-xs text-primary hover:underline"
+                      >
+                        <Download className="h-3 w-3" /> View
+                      </a>
                     </div>
                   ))}
                 </div>
