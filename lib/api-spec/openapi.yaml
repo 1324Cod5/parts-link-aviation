@@ -814,6 +814,29 @@ paths:
         "404":
           description: Not found
 
+  /rfqs/{id}/recommendations:
+    get:
+      operationId: getRfqRecommendations
+      tags: [rfqs]
+      summary: Get intelligent price estimates, ranked sellers, and an auto-quote suggestion for an RFQ
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Recommendations
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RfqRecommendations"
+        "401":
+          description: Unauthorized
+        "404":
+          description: Not found
+
   /seller/rfqs:
     get:
       operationId: getSellerRfqStats
@@ -2024,6 +2047,99 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/RfqMatchedSeller"
+
+    RfqPriceEstimate:
+      type: object
+      required: [low, mid, high, currency, dataPoints, confidence, urgencyAdjusted]
+      properties:
+        low:
+          type: number
+          description: Lower bound of estimated price range in USD
+        mid:
+          type: number
+          description: Midpoint / most likely price in USD
+        high:
+          type: number
+          description: Upper bound of estimated price range in USD
+        currency:
+          type: string
+          example: USD
+        dataPoints:
+          type: integer
+          description: Number of historical quotes used to derive this estimate
+        confidence:
+          type: string
+          enum: [low, medium, high]
+          description: "low = <3 data points, medium = 3–9, high = 10+"
+        urgencyAdjusted:
+          type: boolean
+          description: Whether the urgency multiplier was applied
+
+    RfqScoredSeller:
+      type: object
+      required: [sellerId, companyName, trustScore, trustBadge, plan, matchScore, responseCount, winRate, totalQuotes]
+      properties:
+        sellerId:
+          type: integer
+        companyName:
+          type: string
+        trustScore:
+          type: integer
+        trustBadge:
+          type: string
+          enum: [unverified, document_verified, aviation_verified, trusted_partner]
+        plan:
+          type: string
+        matchScore:
+          type: number
+          description: Composite 0–100 score incorporating trust, tier, win rate, response speed, and pricing accuracy
+        responseCount:
+          type: integer
+        totalQuotes:
+          type: integer
+          description: Total formal price quotes submitted
+        winRate:
+          type: number
+          description: Fraction of submitted quotes that were awarded (0–1)
+        avgResponseTimeHours:
+          type: ["number", "null"]
+          description: Average time in hours from RFQ creation to first response
+        pricingAccuracy:
+          type: ["number", "null"]
+          description: How closely the seller prices relative to market median (0–1, 1 = perfect)
+
+    RfqAutoQuoteSuggestion:
+      type: object
+      required: [suggestedPrice, suggestedLeadTimeDays, rationale]
+      properties:
+        suggestedPrice:
+          type: number
+          description: Recommended quote price in USD derived from historical data
+        suggestedLeadTimeDays:
+          type: integer
+          description: Recommended lead time based on urgency and historical patterns
+        topSeller:
+          $ref: "#/components/schemas/RfqScoredSeller"
+        rationale:
+          type: string
+          description: Human-readable explanation of the suggestion
+
+    RfqRecommendations:
+      type: object
+      required: [rfqId, urgency, priceEstimate, rankedSellers]
+      properties:
+        rfqId:
+          type: integer
+        urgency:
+          $ref: "#/components/schemas/RfqUrgency"
+        priceEstimate:
+          $ref: "#/components/schemas/RfqPriceEstimate"
+        rankedSellers:
+          type: array
+          items:
+            $ref: "#/components/schemas/RfqScoredSeller"
+        autoQuoteSuggestion:
+          $ref: "#/components/schemas/RfqAutoQuoteSuggestion"
 
     RfqsPage:
       type: object

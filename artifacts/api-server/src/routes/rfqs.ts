@@ -3,6 +3,13 @@ import { db, rfqsTable, rfqResponsesTable, usersTable, listingsTable } from "@wo
 import { eq, desc, like, or, count, and, sql, inArray } from "drizzle-orm";
 import { CreateRfqBody, CreateRfqResponseBody, SubmitRfqQuoteBody, AwardRfqQuoteBody } from "@workspace/api-zod";
 import { FULL_ACCESS_PLANS } from "../lib/planEnforcement";
+import {
+  computeSellerStats,
+  estimateMarketPrice,
+  scoreSellerFull,
+  buildAutoQuoteSuggestion,
+  fetchActiveSellers,
+} from "../lib/rfqAnalysis";
 
 const router: IRouter = Router();
 
@@ -449,6 +456,51 @@ router.get("/rfqs/:id/matches", async (req, res): Promise<void> => {
   scored.sort((a, b) => b.matchScore - a.matchScore);
 
   res.json({ rfqId: id, urgency: rfq.urgency, sellers: scored.slice(0, 20) });
+});
+
+// ─── GET /rfqs/:id/recommendations — analysis engine ─────────────────────────
+
+router.get("/rfqs/:id/recommendations", async (req, res): Promise<void> => {
+  const sessionUser = req.session?.user;
+  if (!sessionUser) { res.status(401).json({ error: "Not authenticated" }); return; }
+
+  const id = parseInt(req.params.id);
+  if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+
+  const [rfq] = await db.select().from(rfqsTable).where(eq(rfqsTable.id, id));
+  if (!rfq) { res.status(404).json({ error: "RFQ not found" }); return; }
+
+  // Run price estimation and seller fetch in parallel
+  const [priceEstimate, sellers] = await Promise.all([
+    estimateMarketPrice(rfq.partNumber, rfq.urgency ?? "standard", rfq.condition ?? null),
+    fetchActiveSellers(),
+  ]);
+
+  // Compute enhanced stats for all fetched sellers in one DB round-trip
+  const sellerIds = sellers.map((s) => s.id);
+  const statsMap = await computeSellerStats(sellerIds);
+
+  // Score each seller with the full model
+  const rankedSellers = sellers
+    .map((s) => scoreSellerFull(s, statsMap.get(s.id)!, rfq.urgency ?? "standard"))
+    .sort((a, b) => b.matchScore - a.matchScore)
+    .slice(0, 20);
+
+  // Build auto-quote suggestion
+  const autoQuoteSuggestion = buildAutoQuoteSuggestion(
+    priceEstimate,
+    rankedSellers,
+    rfq.urgency ?? "standard",
+    rfq.condition ?? null,
+  );
+
+  res.json({
+    rfqId: id,
+    urgency: rfq.urgency,
+    priceEstimate,
+    rankedSellers,
+    autoQuoteSuggestion,
+  });
 });
 
 export default router;

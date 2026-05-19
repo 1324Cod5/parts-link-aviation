@@ -66,6 +66,7 @@ import type {
   RfqInput,
   RfqMatches,
   RfqQuoteInput,
+  RfqRecommendations,
   RfqResponseInput,
   RfqResponseItem,
   RfqsPage,
@@ -2841,6 +2842,83 @@ export function useGetRfqMatches<TData = Awaited<ReturnType<typeof getRfqMatches
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getGetRfqMatchesQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGetRfqRecommendationsUrl = (id: number,) => {
+
+
+
+
+  return `/api/rfqs/${id}/recommendations`
+}
+
+/**
+ * @summary Get intelligent price estimates, ranked sellers, and an auto-quote suggestion for an RFQ
+ */
+export const getRfqRecommendations = async (id: number, options?: RequestInit): Promise<RfqRecommendations> => {
+
+  return customFetch<RfqRecommendations>(getGetRfqRecommendationsUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetRfqRecommendationsQueryKey = (id: number,) => {
+    return [
+    `/api/rfqs/${id}/recommendations`
+    ] as const;
+    }
+
+
+export const getGetRfqRecommendationsQueryOptions = <TData = Awaited<ReturnType<typeof getRfqRecommendations>>, TError = ErrorType<void>>(id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getRfqRecommendations>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetRfqRecommendationsQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getRfqRecommendations>>> = ({ signal }) => getRfqRecommendations(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getRfqRecommendations>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetRfqRecommendationsQueryResult = NonNullable<Awaited<ReturnType<typeof getRfqRecommendations>>>
+export type GetRfqRecommendationsQueryError = ErrorType<void>
+
+
+/**
+ * @summary Get intelligent price estimates, ranked sellers, and an auto-quote suggestion for an RFQ
+ */
+
+export function useGetRfqRecommendations<TData = Awaited<ReturnType<typeof getRfqRecommendations>>, TError = ErrorType<void>>(
+ id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getRfqRecommendations>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetRfqRecommendationsQueryOptions(id,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

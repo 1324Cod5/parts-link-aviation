@@ -780,6 +780,87 @@ export interface RfqMatches {
   sellers: RfqMatchedSeller[];
 }
 
+/**
+ * low = <3 data points, medium = 3–9, high = 10+
+ */
+export type RfqPriceEstimateConfidence = typeof RfqPriceEstimateConfidence[keyof typeof RfqPriceEstimateConfidence];
+
+
+export const RfqPriceEstimateConfidence = {
+  low: 'low',
+  medium: 'medium',
+  high: 'high',
+} as const;
+
+export interface RfqPriceEstimate {
+  /** Lower bound of estimated price range in USD */
+  low: number;
+  /** Midpoint / most likely price in USD */
+  mid: number;
+  /** Upper bound of estimated price range in USD */
+  high: number;
+  currency: string;
+  /** Number of historical quotes used to derive this estimate */
+  dataPoints: number;
+  /** low = <3 data points, medium = 3–9, high = 10+ */
+  confidence: RfqPriceEstimateConfidence;
+  /** Whether the urgency multiplier was applied */
+  urgencyAdjusted: boolean;
+}
+
+export type RfqScoredSellerTrustBadge = typeof RfqScoredSellerTrustBadge[keyof typeof RfqScoredSellerTrustBadge];
+
+
+export const RfqScoredSellerTrustBadge = {
+  unverified: 'unverified',
+  document_verified: 'document_verified',
+  aviation_verified: 'aviation_verified',
+  trusted_partner: 'trusted_partner',
+} as const;
+
+export interface RfqScoredSeller {
+  sellerId: number;
+  companyName: string;
+  trustScore: number;
+  trustBadge: RfqScoredSellerTrustBadge;
+  plan: string;
+  /** Composite 0–100 score incorporating trust, tier, win rate, response speed, and pricing accuracy */
+  matchScore: number;
+  responseCount: number;
+  /** Total formal price quotes submitted */
+  totalQuotes: number;
+  /** Fraction of submitted quotes that were awarded (0–1) */
+  winRate: number;
+  /**
+     * Average time in hours from RFQ creation to first response
+     * @nullable
+     */
+  avgResponseTimeHours?: number | null;
+  /**
+     * How closely the seller prices relative to market median (0–1, 1 = perfect)
+     * @nullable
+     */
+  pricingAccuracy?: number | null;
+}
+
+export interface RfqAutoQuoteSuggestion {
+  /** Recommended quote price in USD derived from historical data */
+  suggestedPrice: number;
+  /** Recommended lead time based on urgency and historical patterns */
+  suggestedLeadTimeDays: number;
+  topSeller?: RfqScoredSeller;
+  /** Human-readable explanation of the suggestion */
+  rationale: string;
+}
+
+export interface RfqRecommendations {
+  rfqId: number;
+  urgency: RfqUrgency;
+  priceEstimate: RfqPriceEstimate;
+  rankedSellers: RfqScoredSeller[];
+  autoQuoteSuggestion?: RfqAutoQuoteSuggestion;
+}
+
 export interface RfqsPage {
   rfqs: Rfq[];
   total: number;

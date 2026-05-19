@@ -930,6 +930,59 @@ export const GetRfqMatchesResponse = zod.object({
 
 
 /**
+ * @summary Get intelligent price estimates, ranked sellers, and an auto-quote suggestion for an RFQ
+ */
+export const GetRfqRecommendationsParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const GetRfqRecommendationsResponse = zod.object({
+  "rfqId": zod.number(),
+  "urgency": zod.enum(['aog', 'critical', 'high_priority', 'standard', 'planned']).describe('Urgency classification for the RFQ. AOG (Aircraft on Ground) triggers the highest notification priority and fastest escalation.\n'),
+  "priceEstimate": zod.object({
+  "low": zod.number().describe('Lower bound of estimated price range in USD'),
+  "mid": zod.number().describe('Midpoint \/ most likely price in USD'),
+  "high": zod.number().describe('Upper bound of estimated price range in USD'),
+  "currency": zod.string(),
+  "dataPoints": zod.number().describe('Number of historical quotes used to derive this estimate'),
+  "confidence": zod.enum(['low', 'medium', 'high']).describe('low = <3 data points, medium = 3–9, high = 10+'),
+  "urgencyAdjusted": zod.boolean().describe('Whether the urgency multiplier was applied')
+}),
+  "rankedSellers": zod.array(zod.object({
+  "sellerId": zod.number(),
+  "companyName": zod.string(),
+  "trustScore": zod.number(),
+  "trustBadge": zod.enum(['unverified', 'document_verified', 'aviation_verified', 'trusted_partner']),
+  "plan": zod.string(),
+  "matchScore": zod.number().describe('Composite 0–100 score incorporating trust, tier, win rate, response speed, and pricing accuracy'),
+  "responseCount": zod.number(),
+  "totalQuotes": zod.number().describe('Total formal price quotes submitted'),
+  "winRate": zod.number().describe('Fraction of submitted quotes that were awarded (0–1)'),
+  "avgResponseTimeHours": zod.number().nullish().describe('Average time in hours from RFQ creation to first response'),
+  "pricingAccuracy": zod.number().nullish().describe('How closely the seller prices relative to market median (0–1, 1 = perfect)')
+})),
+  "autoQuoteSuggestion": zod.object({
+  "suggestedPrice": zod.number().describe('Recommended quote price in USD derived from historical data'),
+  "suggestedLeadTimeDays": zod.number().describe('Recommended lead time based on urgency and historical patterns'),
+  "topSeller": zod.object({
+  "sellerId": zod.number(),
+  "companyName": zod.string(),
+  "trustScore": zod.number(),
+  "trustBadge": zod.enum(['unverified', 'document_verified', 'aviation_verified', 'trusted_partner']),
+  "plan": zod.string(),
+  "matchScore": zod.number().describe('Composite 0–100 score incorporating trust, tier, win rate, response speed, and pricing accuracy'),
+  "responseCount": zod.number(),
+  "totalQuotes": zod.number().describe('Total formal price quotes submitted'),
+  "winRate": zod.number().describe('Fraction of submitted quotes that were awarded (0–1)'),
+  "avgResponseTimeHours": zod.number().nullish().describe('Average time in hours from RFQ creation to first response'),
+  "pricingAccuracy": zod.number().nullish().describe('How closely the seller prices relative to market median (0–1, 1 = perfect)')
+}).optional(),
+  "rationale": zod.string().describe('Human-readable explanation of the suggestion')
+}).optional()
+})
+
+
+/**
  * @summary Get RFQ summary stats for seller dashboard
  */
 export const GetSellerRfqStatsResponse = zod.object({
