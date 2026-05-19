@@ -1,5 +1,5 @@
 import bcrypt from "bcrypt";
-import { db, usersTable, mroProfilesTable } from "@workspace/db";
+import { db, usersTable, mroProfilesTable, listingsTable, inquiriesTable, rfqResponsesTable } from "@workspace/db";
 import { eq, inArray } from "drizzle-orm";
 import { logger } from "./logger";
 
@@ -165,6 +165,20 @@ export async function seedTestAccounts(): Promise<void> {
 
     if (existing.length > 0) {
       const ids = existing.map(r => r.id);
+
+      // Delete dependent records in FK order before removing users
+      const sellerListings = await db
+        .select({ id: listingsTable.id })
+        .from(listingsTable)
+        .where(inArray(listingsTable.sellerId, ids));
+
+      if (sellerListings.length > 0) {
+        const listingIds = sellerListings.map(l => l.id);
+        await db.delete(inquiriesTable).where(inArray(inquiriesTable.listingId, listingIds));
+        await db.delete(listingsTable).where(inArray(listingsTable.id, listingIds));
+      }
+
+      await db.delete(rfqResponsesTable).where(inArray(rfqResponsesTable.sellerId, ids));
       await db.delete(mroProfilesTable).where(inArray(mroProfilesTable.userId, ids));
       await db.delete(usersTable).where(inArray(usersTable.id, ids));
     }

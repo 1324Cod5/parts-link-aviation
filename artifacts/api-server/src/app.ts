@@ -4,6 +4,8 @@ import pinoHttp from "pino-http";
 import session from "express-session";
 import connectPgSimple from "connect-pg-simple";
 import pg from "pg";
+import path from "path";
+import fs from "fs";
 import { eq } from "drizzle-orm";
 import { db, usersTable } from "@workspace/db";
 import router from "./routes";
@@ -137,6 +139,11 @@ app.get("/debug/session", (req, res) => {
     user: (req.session as any).user
   });
 });
+
+// ─── Static uploads — served before the API router ───────────────────────────
+const UPLOADS_DIR = path.join(process.cwd(), "uploads");
+fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+app.use("/api/uploads", express.static(UPLOADS_DIR, { maxAge: "7d" }));
 
 app.use("/api", router);
 

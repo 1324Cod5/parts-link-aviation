@@ -177,6 +177,29 @@ paths:
                 items:
                   $ref: "#/components/schemas/Listing"
 
+  /upload:
+    post:
+      operationId: uploadImages
+      tags: [listings]
+      summary: Upload listing images
+      description: |
+        Upload up to 5 images for a listing via multipart/form-data (field name: `images`).
+        Requires authentication. Accepted types: JPEG, PNG, WebP, GIF — max 10 MB each.
+        Returns an array of server-hosted image URLs.
+      security:
+        - sessionAuth: []
+      responses:
+        "201":
+          description: Uploaded successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UploadImagesResponse"
+        "400":
+          description: Invalid file type, size, or count
+        "401":
+          description: Not authenticated
+
   /listings:
     get:
       operationId: getListings
@@ -1276,6 +1299,16 @@ paths:
 
 components:
   schemas:
+    UploadImagesResponse:
+      type: object
+      required: [urls]
+      properties:
+        urls:
+          type: array
+          items:
+            type: string
+          description: Server-hosted URLs for the uploaded images
+
     HealthStatus:
       type: object
       required: [status]

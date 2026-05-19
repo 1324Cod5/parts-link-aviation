@@ -5,6 +5,11 @@
  * AeroParts Marketplace API
  * OpenAPI spec version: 0.1.0
  */
+export interface UploadImagesResponse {
+  /** Server-hosted URLs for the uploaded images */
+  urls: string[];
+}
+
 export interface HealthStatus {
   status: string;
 }

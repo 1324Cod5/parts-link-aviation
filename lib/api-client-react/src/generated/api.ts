@@ -77,6 +77,7 @@ import type {
   ServiceQuoteRequestInput,
   SubscriptionInfo,
   SubscriptionProductsResponse,
+  UploadImagesResponse,
   User
 } from './api.schemas';
 
@@ -759,6 +760,80 @@ export function useGetFeaturedListings<TData = Awaited<ReturnType<typeof getFeat
 
 
 
+
+export const getUploadImagesUrl = () => {
+
+
+
+
+  return `/api/upload`
+}
+
+/**
+ * Upload up to 5 images for a listing via multipart/form-data (field name: `images`).
+Requires authentication. Accepted types: JPEG, PNG, WebP, GIF — max 10 MB each.
+Returns an array of server-hosted image URLs.
+
+ * @summary Upload listing images
+ */
+export const uploadImages = async ( options?: RequestInit): Promise<UploadImagesResponse> => {
+
+  return customFetch<UploadImagesResponse>(getUploadImagesUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getUploadImagesMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof uploadImages>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof uploadImages>>, TError,void, TContext> => {
+
+const mutationKey = ['uploadImages'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof uploadImages>>, void> = () => {
+
+
+          return  uploadImages(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UploadImagesMutationResult = NonNullable<Awaited<ReturnType<typeof uploadImages>>>
+
+    export type UploadImagesMutationError = ErrorType<void>
+
+    /**
+ * @summary Upload listing images
+ */
+export const useUploadImages = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof uploadImages>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof uploadImages>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getUploadImagesMutationOptions(options));
+    }
 
 export const getGetListingsUrl = (params?: GetListingsParams,) => {
   const normalizedParams = new URLSearchParams();
