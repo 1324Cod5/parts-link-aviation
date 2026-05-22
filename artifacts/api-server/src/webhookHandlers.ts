@@ -114,6 +114,23 @@ export class WebhookHandlers {
       }
     }
 
+    // Derive billing cycle (monthly | yearly) from the Stripe price interval.
+    let billingCycle: "monthly" | "yearly" = user.billingCycle as "monthly" | "yearly" ?? "monthly";
+    if (priceId) {
+      try {
+        const intervalResult = await db.execute(sql`
+          SELECT recurring->>'interval' AS interval
+          FROM stripe.prices
+          WHERE id = ${priceId}
+        `);
+        const interval = intervalResult.rows[0]?.interval as string | undefined;
+        if (interval === "year") billingCycle = "yearly";
+        else if (interval === "month") billingCycle = "monthly";
+      } catch (err) {
+        logger.warn({ err, priceId }, "Could not resolve billing interval from Stripe price");
+      }
+    }
+
     // Grace period: 7 days after the subscription period end on payment failure.
     const rawPeriodEnd = sub.current_period_end;
     const currentPeriodEnd = rawPeriodEnd ? new Date(Number(rawPeriodEnd) * 1000) : null;
@@ -143,6 +160,7 @@ export class WebhookHandlers {
         currentPeriodEnd,
         gracePeriodEnd,
         trialEndsAt,
+        billingCycle,
         updatedAt: new Date(),
       })
       .where(eq(usersTable.id, user.id));

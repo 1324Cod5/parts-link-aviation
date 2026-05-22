@@ -331,6 +331,18 @@ export const SubscriptionInfoSubscriptionStatus = {
   suspended: 'suspended',
 } as const;
 
+/**
+ * Billing interval for the active subscription: monthly or yearly
+ * @nullable
+ */
+export type SubscriptionInfoBillingCycle = typeof SubscriptionInfoBillingCycle[keyof typeof SubscriptionInfoBillingCycle] | null;
+
+
+export const SubscriptionInfoBillingCycle = {
+  monthly: 'monthly',
+  yearly: 'yearly',
+} as const;
+
 export interface SubscriptionInfo {
   /** Subscribed plan (may differ from effectivePlan if payment is lapsed) */
   plan: SubscriptionInfoPlan;
@@ -361,6 +373,11 @@ export interface SubscriptionInfo {
   hasFullRfqAccess?: boolean;
   /** @nullable */
   mroServiceLimit?: number | null;
+  /**
+     * Billing interval for the active subscription: monthly or yearly
+     * @nullable
+     */
+  billingCycle?: SubscriptionInfoBillingCycle;
 }
 
 export interface CheckoutSessionInput {

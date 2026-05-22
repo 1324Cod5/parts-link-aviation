@@ -45,6 +45,7 @@ async function getSubscriptionInfo(userId: number) {
     canAddListing,
     hasFullRfqAccess: FULL_ACCESS_PLANS.has(effectivePlan),
     mroServiceLimit: MRO_SERVICE_LIMITS[effectivePlan] ?? 1,
+    billingCycle: (user.billingCycle ?? "monthly") as "monthly" | "yearly",
   };
 }
 

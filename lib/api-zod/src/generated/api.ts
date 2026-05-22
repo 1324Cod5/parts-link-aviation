@@ -934,7 +934,8 @@ export const GetSubscriptionResponse = zod.object({
   "listingLimit": zod.number().nullable(),
   "canAddListing": zod.boolean(),
   "hasFullRfqAccess": zod.boolean().optional(),
-  "mroServiceLimit": zod.number().nullish()
+  "mroServiceLimit": zod.number().nullish(),
+  "billingCycle": zod.union([zod.literal('monthly'),zod.literal('yearly'),zod.literal(null)]).nullish().describe('Billing interval for the active subscription: monthly or yearly')
 })
 
 

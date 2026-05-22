@@ -6,6 +6,7 @@ import { db, usersTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { recomputeAndSave } from "./lib/trustScore";
 import { resumeAogEscalations } from "./lib/aogEscalation";
+import { startRenewalReminderJob } from "./lib/renewalReminder";
 
 const rawPort = process.env["PORT"];
 
@@ -67,6 +68,9 @@ app.listen(port, async (err) => {
 
   // Re-arm AOG escalation timers for any unresolved AOG RFQs (fire-and-forget)
   void resumeAogEscalations();
+
+  // Schedule yearly renewal reminder emails (30 days before renewal)
+  startRenewalReminderJob();
 
   // Recompute trust scores for all sellers on startup (fire-and-forget)
   void (async () => {

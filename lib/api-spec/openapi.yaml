@@ -2085,6 +2085,10 @@ components:
           type: boolean
         mroServiceLimit:
           type: ["integer", "null"]
+        billingCycle:
+          type: ["string", "null"]
+          enum: [monthly, yearly, null]
+          description: "Billing interval for the active subscription: monthly or yearly"
 
     CheckoutSessionInput:
       type: object

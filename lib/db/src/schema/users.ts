@@ -39,6 +39,8 @@ export const usersTable = pgTable("users", {
   currentPeriodEnd: timestamp("current_period_end"),
   gracePeriodEnd: timestamp("grace_period_end"),
   trialEndsAt: timestamp("trial_ends_at"),
+  // Billing cycle (monthly | yearly) — updated from Stripe webhook on subscription events
+  billingCycle: text("billing_cycle").notNull().default("monthly"),
   // Trust scoring
   trustScore: integer("trust_score").notNull().default(0),
   trustBadge: trustBadgeEnum("trust_badge").notNull().default("unverified"),

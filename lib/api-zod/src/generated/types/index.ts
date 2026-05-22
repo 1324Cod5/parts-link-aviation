@@ -154,6 +154,7 @@ export * from './serviceQuoteRequestStatus';
 export * from './serviceQuoteRequestUrgency';
 export * from './startConversationBody';
 export * from './subscriptionInfo';
+export * from './subscriptionInfoBillingCycle';
 export * from './subscriptionInfoEffectivePlan';
 export * from './subscriptionInfoPlan';
 export * from './subscriptionInfoSubscriptionStatus';

@@ -5,6 +5,7 @@
  * AeroParts Marketplace API
  * OpenAPI spec version: 0.1.0
  */
+import type { SubscriptionInfoBillingCycle } from './subscriptionInfoBillingCycle';
 import type { SubscriptionInfoEffectivePlan } from './subscriptionInfoEffectivePlan';
 import type { SubscriptionInfoPlan } from './subscriptionInfoPlan';
 import type { SubscriptionInfoSubscriptionStatus } from './subscriptionInfoSubscriptionStatus';
@@ -39,4 +40,9 @@ export interface SubscriptionInfo {
   hasFullRfqAccess?: boolean;
   /** @nullable */
   mroServiceLimit?: number | null;
+  /**
+     * Billing interval for the active subscription: monthly or yearly
+     * @nullable
+     */
+  billingCycle?: SubscriptionInfoBillingCycle;
 }

@@ -11,15 +11,17 @@ import {
 } from "@workspace/api-client-react";
 
 import { useToast } from "@/hooks/use-toast";
-import { Check, Zap, Building2, Package, Wrench, ShieldCheck, Star, Rocket, Clock, Loader2 } from "lucide-react";
+import { Check, Zap, Building2, Package, Wrench, ShieldCheck, Star, Rocket, Clock, Loader2, CalendarDays } from "lucide-react";
+
+type BillingCycle = "monthly" | "yearly";
 
 const PARTS_TIERS = [
   {
     id: "free" as const,
     planKey: "free",
     name: "Free",
-    price: null,
-    priceLabel: "Free",
+    monthlyPrice: null,
+    yearlyPrice: null,
     icon: Package,
     listingLimit: 5,
     description: "For individual brokers testing the platform.",
@@ -32,13 +34,14 @@ const PARTS_TIERS = [
     ],
     cta: "Get Started Free",
     highlight: false,
+    supportsYearly: false,
   },
   {
     id: "pro" as const,
     planKey: "pro",
     name: "Parts Pro",
-    price: 149,
-    priceLabel: "$149/mo",
+    monthlyPrice: 149,
+    yearlyPrice: 1490,  // ~$124/mo — save $298/yr (2 months free)
     icon: Zap,
     listingLimit: 50,
     description: "For growing MROs and active parts brokers.",
@@ -52,13 +55,14 @@ const PARTS_TIERS = [
     ],
     cta: "Upgrade to Pro",
     highlight: true,
+    supportsYearly: true,
   },
   {
     id: "enterprise" as const,
     planKey: "enterprise",
     name: "Enterprise",
-    price: 299,
-    priceLabel: "$299/mo",
+    monthlyPrice: 299,
+    yearlyPrice: 2990,  // ~$249/mo — save $598/yr (2 months free)
     icon: Building2,
     listingLimit: null,
     description: "For airlines, large MROs, and global distributors.",
@@ -73,6 +77,7 @@ const PARTS_TIERS = [
     ],
     cta: "Upgrade to Enterprise",
     highlight: false,
+    supportsYearly: true,
   },
 ];
 
@@ -142,6 +147,7 @@ export default function Pricing() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
   const [checkingOutPlan, setCheckingOutPlan] = useState<string | null>(null);
+  const [billingCycle, setBillingCycle] = useState<BillingCycle>("monthly");
 
   const checkoutMutation = useCreateCheckoutSession();
 
@@ -153,28 +159,27 @@ export default function Pricing() {
 
   const currentPlan = (subscription as any)?.effectivePlan ?? subscription?.plan ?? user?.plan ?? "free";
 
-  // Find Stripe price ID for a given plan key (monthly billing)
-  const getPriceId = (planKey: string): string | null => {
+  const getPriceId = (planKey: string, cycle: BillingCycle): string | null => {
     if (!productsData?.products) return null;
     for (const product of productsData.products) {
       const meta = product.metadata as Record<string, string> | undefined;
       if (meta?.plan === planKey) {
-        const monthly = product.prices.find(
-          (p: any) => p.interval === "month",
-        );
-        return monthly?.id ?? null;
+        const targetInterval = cycle === "yearly" ? "year" : "month";
+        const price = product.prices.find((p: any) => p.interval === targetInterval);
+        // Fall back to monthly if yearly price isn't synced yet
+        return price?.id ?? product.prices.find((p: any) => p.interval === "month")?.id ?? null;
       }
     }
     return null;
   };
 
-  const handleCheckout = async (planKey: string) => {
+  const handleCheckout = async (planKey: string, cycle: BillingCycle = billingCycle) => {
     if (!user) {
       navigate("/seller/login");
       return;
     }
 
-    const priceId = getPriceId(planKey);
+    const priceId = getPriceId(planKey, cycle);
     if (!priceId) {
       toast({
         title: "Plan not available",
@@ -213,7 +218,7 @@ export default function Pricing() {
       <div className="container mx-auto px-4 py-16">
 
         {/* ── PARTS MARKETPLACE SECTION ── */}
-        <div className="text-center max-w-2xl mx-auto mb-14">
+        <div className="text-center max-w-2xl mx-auto mb-10">
           <div className="inline-flex items-center gap-2 text-xs text-muted-foreground uppercase tracking-widest border border-border rounded-full px-3 py-1 mb-4">
             <Package className="w-3.5 h-3.5" /> Parts Marketplace
           </div>
@@ -222,6 +227,42 @@ export default function Pricing() {
             List your certified aircraft components to a global network of qualified buyers.
             Scale your subscription as your inventory grows.
           </p>
+        </div>
+
+        {/* Billing cycle toggle (Pro & Enterprise only) */}
+        <div className="flex flex-col items-center gap-3 mb-10">
+          <div className="inline-flex items-center bg-secondary/60 border border-border rounded-lg p-1 gap-1">
+            <button
+              onClick={() => setBillingCycle("monthly")}
+              className={`px-5 py-2 rounded-md text-sm font-medium transition-colors ${
+                billingCycle === "monthly"
+                  ? "bg-card text-white shadow"
+                  : "text-muted-foreground hover:text-white"
+              }`}
+            >
+              Monthly
+            </button>
+            <button
+              onClick={() => setBillingCycle("yearly")}
+              className={`px-5 py-2 rounded-md text-sm font-medium transition-colors flex items-center gap-2 ${
+                billingCycle === "yearly"
+                  ? "bg-card text-white shadow"
+                  : "text-muted-foreground hover:text-white"
+              }`}
+            >
+              <CalendarDays className="h-3.5 w-3.5" />
+              Yearly
+            </button>
+          </div>
+          {billingCycle === "yearly" && (
+            <div className="inline-flex items-center gap-1.5 text-xs font-semibold text-green-400 bg-green-500/10 border border-green-500/20 rounded-full px-3 py-1">
+              <Check className="h-3 w-3" />
+              Save 2 months — get 10 months for the price of 12
+            </div>
+          )}
+          {billingCycle === "monthly" && (
+            <p className="text-xs text-muted-foreground">Switch to yearly to save ~17% on Pro &amp; Enterprise</p>
+          )}
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto mb-24">
@@ -233,6 +274,26 @@ export default function Pricing() {
               (currentPlan === "pro" && tier.id === "free")
             );
             const isLoading = checkingOutPlan === tier.planKey;
+
+            // Determine displayed price based on billing cycle
+            const showYearly = billingCycle === "yearly" && tier.supportsYearly;
+            const displayedPrice = showYearly ? tier.yearlyPrice : tier.monthlyPrice;
+            const perMonthEquiv = showYearly && tier.yearlyPrice
+              ? Math.round(tier.yearlyPrice / 12)
+              : null;
+
+            let priceLabel: string;
+            if (displayedPrice == null) {
+              priceLabel = "Free";
+            } else if (showYearly) {
+              priceLabel = `$${displayedPrice.toLocaleString()}/yr`;
+            } else {
+              priceLabel = `$${displayedPrice}/mo`;
+            }
+
+            const savingsAmount = tier.monthlyPrice && tier.yearlyPrice
+              ? tier.monthlyPrice * 12 - tier.yearlyPrice
+              : null;
 
             return (
               <div
@@ -259,10 +320,23 @@ export default function Pricing() {
                   </div>
                   <h2 className="text-xl font-bold text-white mb-1">{tier.name}</h2>
                   <p className="text-muted-foreground text-sm mb-4">{tier.description}</p>
+
                   <div className="flex items-baseline gap-1">
-                    <span className="text-4xl font-bold text-white font-mono">{tier.priceLabel}</span>
-                    {tier.price && <span className="text-muted-foreground text-sm">/month</span>}
+                    <span className="text-4xl font-bold text-white font-mono">{priceLabel}</span>
                   </div>
+                  {showYearly && perMonthEquiv && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      ~${perMonthEquiv}/mo · billed annually
+                    </p>
+                  )}
+                  {!showYearly && tier.monthlyPrice && (
+                    <p className="text-xs text-muted-foreground mt-1">billed monthly</p>
+                  )}
+                  {showYearly && savingsAmount && (
+                    <div className="inline-flex items-center gap-1 mt-2 text-xs text-green-400 font-medium bg-green-500/10 border border-green-500/20 rounded-full px-2.5 py-0.5">
+                      <Check className="h-3 w-3" /> Save ${savingsAmount.toLocaleString()}/yr
+                    </div>
+                  )}
                 </div>
 
                 <ul className="space-y-3 mb-8 flex-1">
@@ -297,7 +371,7 @@ export default function Pricing() {
                     className="w-full gap-2"
                     variant={tier.highlight ? "default" : "outline"}
                     disabled={!!checkingOutPlan || isDowngrade}
-                    onClick={() => handleCheckout(tier.planKey)}
+                    onClick={() => handleCheckout(tier.planKey, billingCycle)}
                   >
                     {isLoading ? (
                       <><Loader2 className="h-4 w-4 animate-spin" /> Redirecting…</>
@@ -329,19 +403,16 @@ export default function Pricing() {
                         <Clock className="w-3 h-3" /> Limited time
                       </span>
                     </div>
-                    <h3 className="text-xl font-bold text-white mb-1">
-                      First 3 months at <span className="text-amber-400 font-mono">$20/mo</span> for early MRO adopters
-                    </h3>
-                    <p className="text-sm text-amber-200/60 leading-relaxed">
-                      Be among the first MRO providers on AeroParts and lock in the launch partner rate on any paid MRO plan.
-                      After 3 months, your plan renews at the standard rate — cancel anytime.
+                    <h3 className="text-lg font-bold text-white mb-1">First 3 Months at $20/mo</h3>
+                    <p className="text-amber-200/70 text-sm leading-relaxed">
+                      Early MRO adopters who list during the launch period get 3 months at $20/mo on any paid MRO plan — then renew at the standard rate.
                     </p>
                   </div>
                 </div>
                 <div className="flex-shrink-0">
                   <Link href="/mro/register">
-                    <Button className="bg-amber-500 hover:bg-amber-400 text-black font-semibold gap-2 px-6">
-                      <Rocket className="w-4 h-4" /> Claim Launch Rate
+                    <Button className="bg-amber-500 hover:bg-amber-400 text-black font-semibold gap-2">
+                      <Rocket className="w-4 h-4" /> Claim Offer
                     </Button>
                   </Link>
                 </div>
@@ -349,23 +420,22 @@ export default function Pricing() {
             </div>
           </div>
 
-          {/* MRO Section Header */}
-          <div className="text-center max-w-2xl mx-auto mb-12">
+          <div className="text-center max-w-2xl mx-auto mb-14">
             <div className="inline-flex items-center gap-2 text-xs text-muted-foreground uppercase tracking-widest border border-border rounded-full px-3 py-1 mb-4">
-              <Wrench className="w-3.5 h-3.5" /> MRO Services Directory
+              <Wrench className="w-3.5 h-3.5" /> MRO Services
             </div>
-            <h2 className="text-3xl font-bold text-white mb-3">MRO Services Pricing</h2>
+            <h2 className="text-3xl font-bold text-white mb-4">MRO Directory Listings</h2>
             <p className="text-muted-foreground">
-              List your MRO capabilities and receive qualified service quote requests directly from operators and airlines worldwide.
+              Get discovered by airlines, operators, and fleet managers searching for certified maintenance, repair &amp; overhaul providers.
             </p>
           </div>
 
-          {/* MRO Tier Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
             {MRO_TIERS.map(tier => {
               const Icon = tier.icon;
               const isCurrentPlan = currentPlan === tier.id;
-              const isLoading = tier.planKey && checkingOutPlan === tier.planKey;
+              const isLoading = checkingOutPlan === tier.id;
+
               return (
                 <div
                   key={tier.id}
@@ -438,8 +508,12 @@ export default function Pricing() {
           <div className="space-y-6">
             {[
               {
+                q: "What's the difference between monthly and yearly billing?",
+                a: "Monthly billing charges your card each month. Yearly billing charges once per year and saves you the equivalent of 2 months — roughly 17% off. Pro yearly is $1,490/yr vs $1,788/yr on monthly; Enterprise yearly is $2,990/yr vs $3,588/yr.",
+              },
+              {
                 q: "How does billing work?",
-                a: "All plans are billed monthly through Stripe. You'll be redirected to a secure Stripe Checkout page to enter your payment details. You can manage, upgrade, or cancel at any time via the billing portal.",
+                a: "All plans are billed through Stripe. You'll be redirected to a secure Stripe Checkout page to enter your payment details. You can manage, upgrade, or cancel at any time via the billing portal.",
               },
               {
                 q: "What happens when I hit my listing limit?",
@@ -448,6 +522,10 @@ export default function Pricing() {
               {
                 q: "What happens if my payment fails?",
                 a: "You get a 7-day grace period while Stripe retries your payment. During that time your plan stays active. If payment isn't resolved after 7 days, your account is downgraded to Free.",
+              },
+              {
+                q: "Do you send reminders before yearly renewal?",
+                a: "Yes. We send an email reminder 30 days before your yearly subscription renews so you have time to review or make changes via the billing portal.",
               },
               {
                 q: "How does the Launch Partner promotion work?",

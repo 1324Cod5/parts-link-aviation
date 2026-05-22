@@ -14,7 +14,7 @@ import { useQueryClient, useQuery, useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import {
   ArrowLeft, Zap, Building2, Package, Check, AlertTriangle,
-  ShieldCheck, Star, CreditCard, ExternalLink, XCircle, Clock,
+  ShieldCheck, Star, CreditCard, ExternalLink, XCircle, Clock, CalendarDays,
 } from "lucide-react";
 
 const PLAN_META: Record<string, { label: string; color: string; bg: string; limit: string; icon: React.ElementType }> = {
@@ -132,6 +132,8 @@ export default function SubscriptionManagement() {
   const hasActiveSub = status === "active" || status === "trial" || isPastDue;
   const isPlanDowngraded = effectivePlan !== storedPlan; // grace period expired or cancelled
 
+  const billingCycle = (subscription as any)?.billingCycle as "monthly" | "yearly" | undefined;
+
   const usedPct = subscription?.listingLimit
     ? Math.min(100, Math.round(((subscription.activeListings ?? 0) / subscription.listingLimit) * 100))
     : 0;
@@ -208,6 +210,20 @@ export default function SubscriptionManagement() {
             </div>
           )}
 
+          {/* Billing cycle badge */}
+          {!isLoading && billingCycle && hasActiveSub && (
+            <div className="mt-3">
+              <span className={`inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full border ${
+                billingCycle === "yearly"
+                  ? "bg-green-500/10 text-green-400 border-green-500/20"
+                  : "bg-secondary text-muted-foreground border-border"
+              }`}>
+                <CalendarDays className="h-3 w-3" />
+                {billingCycle === "yearly" ? "Yearly billing — 2 months free" : "Monthly billing"}
+              </span>
+            </div>
+          )}
+
           {/* Billing dates */}
           {!isLoading && (currentPeriodEnd || gracePeriodEnd) && (
             <div className="mt-4 pt-4 border-t border-border space-y-2">
@@ -217,7 +233,9 @@ export default function SubscriptionManagement() {
                   <span>
                     {status === "cancelled"
                       ? `Access ends: ${new Date(currentPeriodEnd).toLocaleDateString()}`
-                      : `Next billing: ${new Date(currentPeriodEnd).toLocaleDateString()}`}
+                      : billingCycle === "yearly"
+                        ? `Yearly renewal: ${new Date(currentPeriodEnd).toLocaleDateString()}`
+                        : `Next billing: ${new Date(currentPeriodEnd).toLocaleDateString()}`}
                   </span>
                 </div>
               )}
