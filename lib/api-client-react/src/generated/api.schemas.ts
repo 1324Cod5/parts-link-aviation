@@ -1386,6 +1386,44 @@ export interface SuspendListingBody {
   reason?: string;
 }
 
+export type AogEscalationPhase = typeof AogEscalationPhase[keyof typeof AogEscalationPhase];
+
+
+export const AogEscalationPhase = {
+  immediate: 'immediate',
+  expanded: 'expanded',
+  full: 'full',
+  critical: 'critical',
+} as const;
+
+export interface AogEscalation {
+  phase: AogEscalationPhase;
+  createdAt: string;
+  lastEscalatedAt: string;
+}
+
+export interface AogActiveRfq {
+  id: number;
+  partNumber: string;
+  description: string;
+  quantity: number;
+  /** @nullable */
+  aircraftApplicability?: string | null;
+  /** @nullable */
+  condition?: string | null;
+  /** @nullable */
+  urgencyReason?: string | null;
+  buyerName?: string;
+  /** @nullable */
+  buyerCompany?: string | null;
+  createdAt: string;
+  escalation?: AogEscalation | null;
+}
+
+export interface AogActiveRfqsResponse {
+  rfqs: AogActiveRfq[];
+}
+
 export type ListingAuditLogMetadata = { [key: string]: unknown } | null;
 
 export type ListingAuditLogAdmin = {

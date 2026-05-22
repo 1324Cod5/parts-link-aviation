@@ -11,6 +11,7 @@ import { logger } from "./logger";
 import {
   rfqAlertTemplate,
   aogAlertTemplate,
+  aogPhaseAlertTemplate,
   quoteAwardedTemplate,
   certUpdateTemplate,
   dailyDigestTemplate,
@@ -182,6 +183,42 @@ export async function notifyAogRfq(rfq: RfqPayload): Promise<void> {
     const isEnterprise = s.plan === "enterprise";
     const subject = `🔴 AOG ALERT: ${rfq.partNumber} — Aircraft on Ground${isEnterprise ? " (Exclusive Priority)" : ""}`;
     await send(s.email, subject, aogAlertTemplate(s, rfq, isEnterprise));
+  }
+}
+
+// ─── AOG phased escalation alert ─────────────────────────────────────────────
+
+export interface AogEscalationSeller {
+  id: number;
+  email: string;
+  companyName: string;
+  contactName: string;
+  plan: string;
+}
+
+/**
+ * Send a phased AOG escalation alert to a specific list of sellers.
+ * Phase: "immediate" | "expanded" | "full" | "critical"
+ */
+export async function sendAogPhaseAlert(
+  rfq: RfqPayload,
+  sellers: AogEscalationSeller[],
+  phase: string,
+): Promise<void> {
+  const phaseLabel =
+    phase === "immediate" ? "PRIORITY ALERT" :
+    phase === "expanded"  ? "ESCALATED — 10 MIN" :
+    phase === "full"      ? "CRITICAL ESCALATION — 20 MIN" : "CRITICAL";
+
+  for (const s of sellers) {
+    const subject = `🔴 AOG ${phaseLabel}: ${rfq.partNumber}`;
+    const html = aogPhaseAlertTemplate(
+      { id: s.id, email: s.email, companyName: s.companyName, contactName: s.contactName },
+      rfq,
+      phase,
+      s.plan === "enterprise",
+    );
+    await send(s.email, subject, html);
   }
 }
 

@@ -8,18 +8,35 @@ import {
   useGetSellerStats, getGetSellerStatsQueryKey,
   useGetSellerRfqStats,
   useGetMyMroProfile, getGetMyMroProfileQueryKey,
-  useDeleteListing
+  useDeleteListing,
+  useGetAogActiveRfqs, getGetAogActiveRfqsQueryKey,
 } from "@workspace/api-client-react";
 import { useAuth } from "@/context/AuthContext";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Edit2, Trash2, Package, FileCheck2, MessageSquare, ShieldCheck, Zap, Building2, AlertTriangle, ClipboardList, Wrench, Shield, FileSpreadsheet, Lock } from "lucide-react";
+import { Plus, Edit2, Trash2, Package, FileCheck2, MessageSquare, ShieldCheck, Zap, Building2, AlertTriangle, ClipboardList, Wrench, Shield, FileSpreadsheet, Lock, Radio, ArrowRight, Clock } from "lucide-react";
 import { TrustBadge, TrustScoreBar, TRUST_BADGE_META } from "@/components/ui/trust-badge";
 
 function formatPrice(price: number | null) {
   if (price == null) return "POA";
   return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(price);
 }
+
+function formatElapsed(isoDate: string): string {
+  const ms = Date.now() - new Date(isoDate).getTime();
+  const min = Math.floor(ms / 60_000);
+  if (min < 1) return "just now";
+  if (min < 60) return `${min}m elapsed`;
+  const h = Math.floor(min / 60);
+  return `${h}h ${min % 60}m elapsed`;
+}
+
+const PHASE_META: Record<string, { label: string; className: string }> = {
+  immediate: { label: "PRIORITY WINDOW",  className: "bg-emerald-500/20 text-emerald-400 border-emerald-500/40" },
+  expanded:  { label: "10 MIN — EXPANDED", className: "bg-amber-500/20  text-amber-400  border-amber-500/40"  },
+  full:      { label: "20 MIN — FULL",     className: "bg-red-500/20    text-red-400    border-red-500/40"    },
+  critical:  { label: "30 MIN — CRITICAL", className: "bg-red-800/30    text-red-300    border-red-600/60 animate-pulse" },
+};
 
 function formatCondition(c: string) {
   return c.split("_").map(w => w[0].toUpperCase() + w.slice(1)).join(" ");
@@ -49,6 +66,12 @@ export default function SellerDashboard() {
   });
 
   const deleteMutation = useDeleteListing();
+
+  // AOG alerts — poll every 60 s so sellers see new alerts quickly
+  const { data: aogData } = useGetAogActiveRfqs({
+    query: { queryKey: getGetAogActiveRfqsQueryKey(), refetchInterval: 60_000, retry: false },
+  });
+  const aogRfqs = aogData?.rfqs ?? [];
 
   const handleDelete = (id: number, partNumber: string) => {
     if (!confirm(`Delete listing ${partNumber}? This cannot be undone.`)) return;
@@ -131,6 +154,76 @@ export default function SellerDashboard() {
             )}
           </div>
         </div>
+
+        {/* ─── AOG Alerts Panel ─────────────────────────────────────────── */}
+        {aogRfqs.length > 0 && (
+          <div className="mb-6 rounded-md border border-red-600/60 bg-red-950/40 overflow-hidden">
+            {/* Panel header */}
+            <div className="flex items-center gap-3 px-4 py-3 bg-red-900/40 border-b border-red-600/40">
+              <span className="relative flex h-3 w-3">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-75" />
+                <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500" />
+              </span>
+              <Radio className="h-4 w-4 text-red-400" />
+              <span className="text-sm font-bold text-red-300 uppercase tracking-wider">
+                AOG Alerts — {aogRfqs.length} Active
+              </span>
+              <span className="ml-auto text-xs text-red-500/70">Live · updates every 60s</span>
+            </div>
+
+            {/* Alert rows */}
+            <div className="divide-y divide-red-900/40">
+              {aogRfqs.map(rfq => {
+                const pm = rfq.escalation
+                  ? PHASE_META[rfq.escalation.phase] ?? PHASE_META.immediate
+                  : null;
+                return (
+                  <div key={rfq.id} className="flex items-start gap-4 px-4 py-4 hover:bg-red-900/20 transition-colors">
+                    {/* Left: alert icon */}
+                    <div className="mt-0.5 flex-shrink-0 h-8 w-8 rounded-md bg-red-700/30 flex items-center justify-center">
+                      <span className="text-base">🔴</span>
+                    </div>
+
+                    {/* Center: details */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex flex-wrap items-center gap-2 mb-1">
+                        <span className="font-mono text-sm font-bold text-red-200">{rfq.partNumber}</span>
+                        {rfq.aircraftApplicability && (
+                          <span className="text-xs text-red-400/70">{rfq.aircraftApplicability}</span>
+                        )}
+                        {pm && (
+                          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${pm.className}`}>
+                            {pm.label}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-red-200/60 truncate">{rfq.description}</p>
+                      {rfq.urgencyReason && (
+                        <p className="text-xs text-red-400/80 mt-0.5 italic">"{rfq.urgencyReason}"</p>
+                      )}
+                      <div className="flex items-center gap-1 mt-1.5 text-[10px] text-red-500/60">
+                        <Clock className="h-3 w-3" />
+                        <span>{formatElapsed(rfq.createdAt)}</span>
+                        {rfq.buyerCompany && <span className="ml-2">· {rfq.buyerCompany}</span>}
+                        <span className="ml-2">· Qty: {rfq.quantity}</span>
+                      </div>
+                    </div>
+
+                    {/* Right: CTA */}
+                    <Link href={`/rfqs/${rfq.id}`} className="flex-shrink-0">
+                      <Button
+                        size="sm"
+                        className="h-8 px-3 text-xs bg-red-600 hover:bg-red-500 text-white border-0 flex items-center gap-1.5"
+                      >
+                        Respond Now <ArrowRight className="h-3 w-3" />
+                      </Button>
+                    </Link>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* Limit warning banner */}
         {!statsLoading && stats && !canAdd && (

@@ -998,6 +998,23 @@ paths:
         "404":
           description: Not found
 
+  /rfqs/aog/active:
+    get:
+      operationId: getAogActiveRfqs
+      tags: [rfqs]
+      summary: Get active AOG RFQs with escalation state (Pro/Enterprise only)
+      responses:
+        "200":
+          description: Active AOG RFQs with escalation metadata
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AogActiveRfqsResponse"
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden — Pro or Enterprise plan required
+
   /seller/rfqs:
     get:
       operationId: getSellerRfqStats
@@ -3138,6 +3155,59 @@ components:
       properties:
         reason:
           type: string
+
+    AogEscalation:
+      type: object
+      required: [phase, createdAt, lastEscalatedAt]
+      properties:
+        phase:
+          type: string
+          enum: [immediate, expanded, full, critical]
+        createdAt:
+          type: string
+          format: date-time
+        lastEscalatedAt:
+          type: string
+          format: date-time
+
+    AogActiveRfq:
+      type: object
+      required: [id, partNumber, description, quantity, createdAt]
+      properties:
+        id:
+          type: integer
+        partNumber:
+          type: string
+        description:
+          type: string
+        quantity:
+          type: integer
+        aircraftApplicability:
+          type: ["string", "null"]
+        condition:
+          type: ["string", "null"]
+        urgencyReason:
+          type: ["string", "null"]
+        buyerName:
+          type: string
+        buyerCompany:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+        escalation:
+          oneOf:
+            - $ref: "#/components/schemas/AogEscalation"
+            - type: "null"
+
+    AogActiveRfqsResponse:
+      type: object
+      required: [rfqs]
+      properties:
+        rfqs:
+          type: array
+          items:
+            $ref: "#/components/schemas/AogActiveRfq"
 
     ListingAuditLog:
       type: object

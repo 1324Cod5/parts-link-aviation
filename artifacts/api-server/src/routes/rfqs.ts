@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { db, rfqsTable, rfqResponsesTable, usersTable, listingsTable } from "@workspace/db";
+import { db, rfqsTable, rfqResponsesTable, usersTable, listingsTable, aogEscalationsTable } from "@workspace/db";
 import { eq, desc, like, or, count, and, sql, inArray } from "drizzle-orm";
 import { CreateRfqBody, CreateRfqResponseBody, SubmitRfqQuoteBody, AwardRfqQuoteBody } from "@workspace/api-zod";
 import { FULL_ACCESS_PLANS } from "../lib/planEnforcement";
@@ -10,7 +10,8 @@ import {
   buildAutoQuoteSuggestion,
   fetchActiveSellers,
 } from "../lib/rfqAnalysis";
-import { notifyRfqCreated, notifyAogRfq, notifyQuoteAwarded } from "../lib/email";
+import { notifyRfqCreated, notifyQuoteAwarded } from "../lib/email";
+import { startAogEscalation, resolveAogEscalation } from "../lib/aogEscalation";
 
 const router: IRouter = Router();
 
@@ -163,13 +164,64 @@ router.post("/rfqs", async (req, res): Promise<void> => {
   };
 
   if (rfq.urgency === "aog") {
-    void notifyAogRfq(rfqPayload);
+    void startAogEscalation(rfq.id, rfqPayload);
     res.status(201).json({ ...serialized, _aogEscalation: true });
     return;
   }
 
   void notifyRfqCreated(rfqPayload);
   res.status(201).json(serialized);
+});
+
+// ─── GET /rfqs/aog/active — Pro/Enterprise: active AOG RFQs + escalation state ─
+
+router.get("/rfqs/aog/active", async (req, res): Promise<void> => {
+  const sessionUser = req.session?.user;
+  if (!sessionUser) { res.status(401).json({ error: "Not authenticated" }); return; }
+
+  const plan = sessionUser.subscriptionTier ?? "free";
+  if (!FULL_ACCESS_PLANS.has(plan)) {
+    res.status(403).json({ error: "Pro or Enterprise plan required to access AOG alerts" });
+    return;
+  }
+
+  const openAogRfqs = await db
+    .select()
+    .from(rfqsTable)
+    .where(and(eq(rfqsTable.urgency, "aog" as "aog"), eq(rfqsTable.status, "open")))
+    .orderBy(desc(rfqsTable.createdAt))
+    .limit(30);
+
+  const rfqIds = openAogRfqs.map(r => r.id);
+
+  const escalations = rfqIds.length
+    ? await db.select().from(aogEscalationsTable).where(inArray(aogEscalationsTable.rfqId, rfqIds))
+    : [];
+
+  const escMap = new Map(escalations.map(e => [e.rfqId, e]));
+
+  res.json({
+    rfqs: openAogRfqs.map(rfq => {
+      const esc = escMap.get(rfq.id);
+      return {
+        id:                   rfq.id,
+        partNumber:           rfq.partNumber,
+        description:          rfq.description,
+        quantity:             rfq.quantity,
+        aircraftApplicability: rfq.aircraftApplicability ?? null,
+        condition:            rfq.condition ?? null,
+        urgencyReason:        rfq.urgencyReason ?? null,
+        buyerName:            rfq.buyerName,
+        buyerCompany:         rfq.buyerCompany ?? null,
+        createdAt:            rfq.createdAt.toISOString(),
+        escalation: esc ? {
+          phase:            esc.phase,
+          createdAt:        esc.createdAt.toISOString(),
+          lastEscalatedAt:  esc.lastEscalatedAt.toISOString(),
+        } : null,
+      };
+    }),
+  });
 });
 
 // ─── GET /rfqs/:id ────────────────────────────────────────────────────────────
@@ -223,6 +275,10 @@ router.post("/rfqs/:id/close", async (req, res): Promise<void> => {
     .returning();
 
   if (!rfq) { res.status(404).json({ error: "RFQ not found" }); return; }
+
+  // Stop AOG escalation timers if this was an AOG RFQ
+  if (rfq.urgency === "aog") void resolveAogEscalation(id);
+
   res.json(serializeRfq(rfq, "full"));
 });
 
@@ -456,9 +512,11 @@ router.get("/rfqs/:id/matches", async (req, res): Promise<void> => {
     // Urgency alignment: AOG rfqs give bonus to aviation-verified+ sellers
     const isHighVerification =
       s.trustBadge === "aviation_verified" || s.trustBadge === "trusted_partner";
+    // AOG always gets the maximum urgency bonus regardless of verification tier —
+    // it is the highest-priority signal in the matching engine.
     const urgencyBonus =
-      rfq.urgency === "aog" && isHighVerification
-        ? urgencyScore * 0.5
+      rfq.urgency === "aog"
+        ? urgencyScore * (isHighVerification ? 0.5 : 0.35)
         : urgencyScore * 0.1;
 
     const raw = trustContrib + tierContrib + responsePerfContrib + urgencyBonus;

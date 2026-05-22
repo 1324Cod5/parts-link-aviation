@@ -5,6 +5,7 @@ import { seedTestAccounts } from "./lib/seed-test-accounts";
 import { db, usersTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { recomputeAndSave } from "./lib/trustScore";
+import { resumeAogEscalations } from "./lib/aogEscalation";
 
 const rawPort = process.env["PORT"];
 
@@ -63,6 +64,9 @@ app.listen(port, async (err) => {
   await seedAdmin();
   await seedTestAccounts();
   await initStripe();
+
+  // Re-arm AOG escalation timers for any unresolved AOG RFQs (fire-and-forget)
+  void resumeAogEscalations();
 
   // Recompute trust scores for all sellers on startup (fire-and-forget)
   void (async () => {

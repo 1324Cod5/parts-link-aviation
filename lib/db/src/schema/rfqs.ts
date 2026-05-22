@@ -1,4 +1,4 @@
-import { pgTable, serial, text, timestamp, pgEnum, integer, boolean, numeric } from "drizzle-orm/pg-core";
+import { pgTable, serial, text, timestamp, pgEnum, integer, boolean, numeric, jsonb } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { usersTable } from "./users";
@@ -46,6 +46,18 @@ export const rfqAdminActionsTable = pgTable("rfq_admin_actions", {
   reason: text("reason").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
+
+export const aogEscalationsTable = pgTable("aog_escalations", {
+  id:                 serial("id").primaryKey(),
+  rfqId:             integer("rfq_id").notNull().references(() => rfqsTable.id, { onDelete: "cascade" }),
+  phase:             text("phase").notNull().default("immediate"),
+  notifiedSellerIds: jsonb("notified_seller_ids").$type<number[]>().notNull().default([]),
+  createdAt:         timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  lastEscalatedAt:   timestamp("last_escalated_at", { withTimezone: true }).defaultNow().notNull(),
+  resolvedAt:        timestamp("resolved_at", { withTimezone: true }),
+});
+
+export type AogEscalation = typeof aogEscalationsTable.$inferSelect;
 
 export const insertRfqSchema = createInsertSchema(rfqsTable).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertRfqResponseSchema = createInsertSchema(rfqResponsesTable).omit({ id: true, createdAt: true });

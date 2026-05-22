@@ -241,6 +241,70 @@ export function certUpdateTemplate(
   return base(content, statusColor);
 }
 
+// ─── AOG Phased Escalation Alert ──────────────────────────────────────────────
+
+interface AogPhaseConfig {
+  label: string;
+  color: string;
+  note: string;
+}
+
+const AOG_PHASE_CONFIG: Record<string, AogPhaseConfig> = {
+  immediate: {
+    label: "⚡ FIRST ALERT — You are among the first 5 sellers to receive this",
+    color: RED,
+    note:  "Act immediately — you have a priority window over all other sellers.",
+  },
+  expanded: {
+    label: "⏱️ 10-MINUTE ESCALATION — AOG still unresolved",
+    color: AMBER,
+    note:  "This AOG alert has been active for 10 minutes. Immediate response required.",
+  },
+  full: {
+    label: "🚨 20-MINUTE ESCALATION — All sellers now notified",
+    color: RED,
+    note:  "Critical escalation — be the fastest responder to secure this order.",
+  },
+  critical: {
+    label: "🚨 CRITICAL — 30 minutes elapsed with no resolution",
+    color: RED,
+    note:  "Extreme urgency. This aircraft remains grounded.",
+  },
+};
+
+export function aogPhaseAlertTemplate(
+  seller: TemplateSeller,
+  rfq: RfqPayload,
+  phase: string,
+  isEnterprise: boolean,
+): string {
+  const pm = AOG_PHASE_CONFIG[phase] ?? AOG_PHASE_CONFIG.immediate;
+
+  const content = `
+    <div style="background:${RED}18;border:1px solid ${RED}44;border-radius:6px;padding:16px;margin-bottom:24px;text-align:center;">
+      <p style="margin:0 0 6px;font-size:22px;">🔴</p>
+      <p style="margin:0;font-size:20px;font-weight:700;color:${RED};">AIRCRAFT ON GROUND</p>
+      <p style="margin:6px 0 0;font-size:12px;color:${pm.color};font-weight:600;">${pm.label}</p>
+    </div>
+    ${isEnterprise ? `<div style="margin-bottom:16px;">${pill("⚡ Exclusive Enterprise Alert", AMBER + "22", AMBER)}</div>` : ""}
+    <h2 style="margin:0 0 4px;font-size:20px;color:${WHITE};">${rfq.partNumber}</h2>
+    <p style="margin:0 0 20px;color:${MUTED};font-size:14px;">${rfq.description}</p>
+
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
+      ${section("Quantity", String(rfq.quantity))}
+      ${rfq.aircraftApplicability ? section("Aircraft", rfq.aircraftApplicability) : ""}
+      ${rfq.buyerCompany ? section("Buyer Company", rfq.buyerCompany) : ""}
+      ${rfq.urgencyReason ? section("AOG Reason", rfq.urgencyReason ?? "") : ""}
+    </table>
+
+    <div style="background:${pm.color}18;border-left:3px solid ${pm.color};padding:12px 16px;border-radius:4px;margin-bottom:20px;">
+      <p style="margin:0;font-size:13px;color:${pm.color};font-weight:600;">${pm.note}</p>
+    </div>
+    ${cta("Respond to AOG RFQ →", `https://aeroparts.app/rfqs/${rfq.id}`, RED)}
+  `;
+  return base(content, RED);
+}
+
 // ─── Daily Digest ──────────────────────────────────────────────────────────────
 
 export interface DigestData {

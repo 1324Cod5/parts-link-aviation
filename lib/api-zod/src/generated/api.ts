@@ -1212,6 +1212,30 @@ export const GetRfqRecommendationsResponse = zod.object({
 
 
 /**
+ * @summary Get active AOG RFQs with escalation state (Pro/Enterprise only)
+ */
+export const GetAogActiveRfqsResponse = zod.object({
+  "rfqs": zod.array(zod.object({
+  "id": zod.number(),
+  "partNumber": zod.string(),
+  "description": zod.string(),
+  "quantity": zod.number(),
+  "aircraftApplicability": zod.string().nullish(),
+  "condition": zod.string().nullish(),
+  "urgencyReason": zod.string().nullish(),
+  "buyerName": zod.string().optional(),
+  "buyerCompany": zod.string().nullish(),
+  "createdAt": zod.coerce.date(),
+  "escalation": zod.union([zod.object({
+  "phase": zod.enum(['immediate', 'expanded', 'full', 'critical']),
+  "createdAt": zod.coerce.date(),
+  "lastEscalatedAt": zod.coerce.date()
+}),zod.null()]).optional()
+}))
+})
+
+
+/**
  * @summary Get RFQ summary stats for seller dashboard
  */
 export const GetSellerRfqStatsResponse = zod.object({

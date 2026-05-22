@@ -32,6 +32,7 @@ import type {
   AdminSellerStatusUpdate,
   AdminSetRfqUrgency200,
   AdminStats,
+  AogActiveRfqsResponse,
   AuthResponse,
   BadgeUpdate,
   BulkImportRequest,
@@ -3451,6 +3452,83 @@ export function useGetRfqRecommendations<TData = Awaited<ReturnType<typeof getRf
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getGetRfqRecommendationsQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGetAogActiveRfqsUrl = () => {
+
+
+
+
+  return `/api/rfqs/aog/active`
+}
+
+/**
+ * @summary Get active AOG RFQs with escalation state (Pro/Enterprise only)
+ */
+export const getAogActiveRfqs = async ( options?: RequestInit): Promise<AogActiveRfqsResponse> => {
+
+  return customFetch<AogActiveRfqsResponse>(getGetAogActiveRfqsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAogActiveRfqsQueryKey = () => {
+    return [
+    `/api/rfqs/aog/active`
+    ] as const;
+    }
+
+
+export const getGetAogActiveRfqsQueryOptions = <TData = Awaited<ReturnType<typeof getAogActiveRfqs>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAogActiveRfqs>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAogActiveRfqsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAogActiveRfqs>>> = ({ signal }) => getAogActiveRfqs({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAogActiveRfqs>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetAogActiveRfqsQueryResult = NonNullable<Awaited<ReturnType<typeof getAogActiveRfqs>>>
+export type GetAogActiveRfqsQueryError = ErrorType<void>
+
+
+/**
+ * @summary Get active AOG RFQs with escalation state (Pro/Enterprise only)
+ */
+
+export function useGetAogActiveRfqs<TData = Awaited<ReturnType<typeof getAogActiveRfqs>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAogActiveRfqs>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetAogActiveRfqsQueryOptions(options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 
