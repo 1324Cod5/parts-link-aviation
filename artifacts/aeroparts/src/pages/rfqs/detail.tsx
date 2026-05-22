@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useParams } from "wouter";
-import { useGetRfq, useCreateRfqResponse, useGetSellerListings, useCloseRfq, useGetSubscription } from "@workspace/api-client-react";
+import { useGetRfq, useCreateRfqResponse, useGetSellerListings, useCloseRfq, useGetSubscription, getGetSubscriptionQueryKey } from "@workspace/api-client-react";
 import { useAuth } from "@/context/AuthContext";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
@@ -60,7 +60,7 @@ export default function RfqDetailPage() {
 
   // Fetch fresh subscription status so plan checks aren't stale from login time
   const { data: subscription } = useGetSubscription({
-    query: { enabled: !!user && user.role === "seller", retry: false },
+    query: { queryKey: getGetSubscriptionQueryKey(), enabled: !!user && user.role === "seller", retry: false },
   });
   const subscriptionStatus = (subscription as any)?.subscriptionStatus as string | undefined;
   const isSubscriptionActive =

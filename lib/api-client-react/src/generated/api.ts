@@ -20,6 +20,7 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  AdminAutoSuspendHighRisk200,
   AdminInventoryPage,
   AdminListingInput,
   AdminListingUpdate,
@@ -32,6 +33,7 @@ import type {
   AdminSellerStatusUpdate,
   AdminSetRfqUrgency200,
   AdminStats,
+  AdminSuspendSellerIntelligence200,
   AogActiveRfqsResponse,
   AuthResponse,
   BadgeUpdate,
@@ -45,8 +47,11 @@ import type {
   ConversationMessagesResponse,
   ConversationsResponse,
   CreateConversationResponse,
+  DemandIntelligenceReport,
   DocumentStatusUpdate,
   DocumentsResponse,
+  FraudScanResult,
+  GetAdminDemandReportParams,
   GetAdminInventoryParams,
   GetAdminListingsParams,
   GetAdminRfqAudit200,
@@ -81,6 +86,7 @@ import type {
   RfqDetail,
   RfqInput,
   RfqMatches,
+  RfqPredictionResult,
   RfqQuoteInput,
   RfqRecommendations,
   RfqResponseInput,
@@ -5921,6 +5927,384 @@ export function useGetAdminInventoryAudit<TData = Awaited<ReturnType<typeof getA
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getGetAdminInventoryAuditQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGetAdminFraudScanUrl = () => {
+
+
+
+
+  return `/api/admin/intelligence/fraud`
+}
+
+/**
+ * @summary Run a full fraud scan across all active sellers
+ */
+export const getAdminFraudScan = async ( options?: RequestInit): Promise<FraudScanResult> => {
+
+  return customFetch<FraudScanResult>(getGetAdminFraudScanUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAdminFraudScanQueryKey = () => {
+    return [
+    `/api/admin/intelligence/fraud`
+    ] as const;
+    }
+
+
+export const getGetAdminFraudScanQueryOptions = <TData = Awaited<ReturnType<typeof getAdminFraudScan>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminFraudScan>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAdminFraudScanQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAdminFraudScan>>> = ({ signal }) => getAdminFraudScan({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAdminFraudScan>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetAdminFraudScanQueryResult = NonNullable<Awaited<ReturnType<typeof getAdminFraudScan>>>
+export type GetAdminFraudScanQueryError = ErrorType<void>
+
+
+/**
+ * @summary Run a full fraud scan across all active sellers
+ */
+
+export function useGetAdminFraudScan<TData = Awaited<ReturnType<typeof getAdminFraudScan>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminFraudScan>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetAdminFraudScanQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getAdminAutoSuspendHighRiskUrl = () => {
+
+
+
+
+  return `/api/admin/intelligence/fraud/auto-suspend`
+}
+
+/**
+ * @summary Auto-suspend all sellers at or above the critical risk threshold
+ */
+export const adminAutoSuspendHighRisk = async ( options?: RequestInit): Promise<AdminAutoSuspendHighRisk200> => {
+
+  return customFetch<AdminAutoSuspendHighRisk200>(getAdminAutoSuspendHighRiskUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getAdminAutoSuspendHighRiskMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof adminAutoSuspendHighRisk>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof adminAutoSuspendHighRisk>>, TError,void, TContext> => {
+
+const mutationKey = ['adminAutoSuspendHighRisk'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof adminAutoSuspendHighRisk>>, void> = () => {
+
+
+          return  adminAutoSuspendHighRisk(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AdminAutoSuspendHighRiskMutationResult = NonNullable<Awaited<ReturnType<typeof adminAutoSuspendHighRisk>>>
+
+    export type AdminAutoSuspendHighRiskMutationError = ErrorType<void>
+
+    /**
+ * @summary Auto-suspend all sellers at or above the critical risk threshold
+ */
+export const useAdminAutoSuspendHighRisk = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof adminAutoSuspendHighRisk>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof adminAutoSuspendHighRisk>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getAdminAutoSuspendHighRiskMutationOptions(options));
+    }
+
+export const getAdminSuspendSellerIntelligenceUrl = (sellerId: number,) => {
+
+
+
+
+  return `/api/admin/intelligence/fraud/${sellerId}/suspend`
+}
+
+/**
+ * @summary Suspend a specific seller via the intelligence panel
+ */
+export const adminSuspendSellerIntelligence = async (sellerId: number, options?: RequestInit): Promise<AdminSuspendSellerIntelligence200> => {
+
+  return customFetch<AdminSuspendSellerIntelligence200>(getAdminSuspendSellerIntelligenceUrl(sellerId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getAdminSuspendSellerIntelligenceMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof adminSuspendSellerIntelligence>>, TError,{sellerId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof adminSuspendSellerIntelligence>>, TError,{sellerId: number}, TContext> => {
+
+const mutationKey = ['adminSuspendSellerIntelligence'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof adminSuspendSellerIntelligence>>, {sellerId: number}> = (props) => {
+          const {sellerId} = props ?? {};
+
+          return  adminSuspendSellerIntelligence(sellerId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AdminSuspendSellerIntelligenceMutationResult = NonNullable<Awaited<ReturnType<typeof adminSuspendSellerIntelligence>>>
+
+    export type AdminSuspendSellerIntelligenceMutationError = ErrorType<void>
+
+    /**
+ * @summary Suspend a specific seller via the intelligence panel
+ */
+export const useAdminSuspendSellerIntelligence = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof adminSuspendSellerIntelligence>>, TError,{sellerId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof adminSuspendSellerIntelligence>>,
+        TError,
+        {sellerId: number},
+        TContext
+      > => {
+      return useMutation(getAdminSuspendSellerIntelligenceMutationOptions(options));
+    }
+
+export const getGetAdminRfqPredictionsUrl = (rfqId: number,) => {
+
+
+
+
+  return `/api/admin/intelligence/rfqs/${rfqId}/predictions`
+}
+
+/**
+ * @summary Get predicted winner rankings for a specific RFQ
+ */
+export const getAdminRfqPredictions = async (rfqId: number, options?: RequestInit): Promise<RfqPredictionResult> => {
+
+  return customFetch<RfqPredictionResult>(getGetAdminRfqPredictionsUrl(rfqId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAdminRfqPredictionsQueryKey = (rfqId: number,) => {
+    return [
+    `/api/admin/intelligence/rfqs/${rfqId}/predictions`
+    ] as const;
+    }
+
+
+export const getGetAdminRfqPredictionsQueryOptions = <TData = Awaited<ReturnType<typeof getAdminRfqPredictions>>, TError = ErrorType<void>>(rfqId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminRfqPredictions>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAdminRfqPredictionsQueryKey(rfqId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAdminRfqPredictions>>> = ({ signal }) => getAdminRfqPredictions(rfqId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(rfqId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAdminRfqPredictions>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetAdminRfqPredictionsQueryResult = NonNullable<Awaited<ReturnType<typeof getAdminRfqPredictions>>>
+export type GetAdminRfqPredictionsQueryError = ErrorType<void>
+
+
+/**
+ * @summary Get predicted winner rankings for a specific RFQ
+ */
+
+export function useGetAdminRfqPredictions<TData = Awaited<ReturnType<typeof getAdminRfqPredictions>>, TError = ErrorType<void>>(
+ rfqId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminRfqPredictions>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetAdminRfqPredictionsQueryOptions(rfqId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGetAdminDemandReportUrl = (params?: GetAdminDemandReportParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/admin/intelligence/demand?${stringifiedParams}` : `/api/admin/intelligence/demand`
+}
+
+/**
+ * @summary Get the demand intelligence report
+ */
+export const getAdminDemandReport = async (params?: GetAdminDemandReportParams, options?: RequestInit): Promise<DemandIntelligenceReport> => {
+
+  return customFetch<DemandIntelligenceReport>(getGetAdminDemandReportUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAdminDemandReportQueryKey = (params?: GetAdminDemandReportParams,) => {
+    return [
+    `/api/admin/intelligence/demand`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetAdminDemandReportQueryOptions = <TData = Awaited<ReturnType<typeof getAdminDemandReport>>, TError = ErrorType<void>>(params?: GetAdminDemandReportParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminDemandReport>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAdminDemandReportQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAdminDemandReport>>> = ({ signal }) => getAdminDemandReport(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAdminDemandReport>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetAdminDemandReportQueryResult = NonNullable<Awaited<ReturnType<typeof getAdminDemandReport>>>
+export type GetAdminDemandReportQueryError = ErrorType<void>
+
+
+/**
+ * @summary Get the demand intelligence report
+ */
+
+export function useGetAdminDemandReport<TData = Awaited<ReturnType<typeof getAdminDemandReport>>, TError = ErrorType<void>>(
+ params?: GetAdminDemandReportParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminDemandReport>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetAdminDemandReportQueryOptions(params,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

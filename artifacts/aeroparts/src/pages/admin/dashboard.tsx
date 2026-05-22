@@ -30,6 +30,11 @@ import {
   useRestoreAdminInventoryListing,
   useFeatureAdminInventoryListing,
   useGetAdminInventoryAudit,
+  useGetAdminFraudScan, getGetAdminFraudScanQueryKey,
+  useAdminAutoSuspendHighRisk,
+  useAdminSuspendSellerIntelligence,
+  useGetAdminRfqPredictions, getGetAdminRfqPredictionsQueryKey,
+  useGetAdminDemandReport, getGetAdminDemandReportQueryKey,
 } from "@workspace/api-client-react";
 import { useAuth } from "@/context/AuthContext";
 import { useQueryClient } from "@tanstack/react-query";
@@ -42,6 +47,7 @@ import {
   ArrowUpDown, Lock, Unlock, FileText, BarChart2, Trophy, Loader2,
   ChevronDown, MoreVertical, History,
   Boxes, Plus, Pencil, Trash2, Ban, RefreshCw, ChevronLeft, ChevronRight as ChevronRightIcon,
+  Brain, ShieldX, Zap, Activity, Radar, TrendingDown, CircleDot, FlameKindling,
 } from "lucide-react";
 
 // ─── helpers ────────────────────────────────────────────────────────────────
@@ -83,7 +89,7 @@ const BADGE_META: Record<string, { label: string; color: string }> = {
 
 // ─── navigation ─────────────────────────────────────────────────────────────
 
-type Section = "overview" | "sellers" | "listings" | "certifications" | "billing" | "mro" | "rfqs" | "trust" | "analytics" | "disputes" | "inventory";
+type Section = "overview" | "sellers" | "listings" | "certifications" | "billing" | "mro" | "rfqs" | "trust" | "analytics" | "disputes" | "inventory" | "intelligence";
 
 const NAV: { id: Section; label: string; icon: React.ElementType }[] = [
   { id: "overview",        label: "Overview",               icon: LayoutDashboard },
@@ -97,6 +103,7 @@ const NAV: { id: Section; label: string; icon: React.ElementType }[] = [
   { id: "trust",           label: "Trust Scores",           icon: Trophy },
   { id: "analytics",       label: "Platform Analytics",     icon: BarChart2 },
   { id: "disputes",        label: "Dispute Resolution",     icon: AlertTriangle },
+  { id: "intelligence",    label: "Market Intelligence",    icon: Brain },
 ];
 
 // ─── stat card ──────────────────────────────────────────────────────────────
@@ -2178,6 +2185,561 @@ function InventorySection() {
   );
 }
 
+// ─── section: intelligence ───────────────────────────────────────────────────
+
+type IntelTab = "fraud" | "demand" | "predictions";
+
+const RISK_META: Record<string, { label: string; color: string; bg: string }> = {
+  low:      { label: "Low",      color: "text-emerald-400", bg: "bg-emerald-500/10 border border-emerald-500/20" },
+  medium:   { label: "Medium",   color: "text-amber-400",   bg: "bg-amber-500/10 border border-amber-500/20" },
+  high:     { label: "High",     color: "text-orange-400",  bg: "bg-orange-500/10 border border-orange-500/20" },
+  critical: { label: "Critical", color: "text-red-400",     bg: "bg-red-500/10 border border-red-500/20" },
+};
+
+const FLAG_ICONS: Record<string, React.ElementType> = {
+  duplicate_listings: Boxes,
+  abnormal_pricing:   TrendingDown,
+  missing_certs:      ShieldX,
+  dispute_history:    AlertTriangle,
+  velocity_risk:      Zap,
+};
+
+function IntelligenceSection() {
+  const [tab, setTab] = useState<IntelTab>("fraud");
+  const [rfqIdInput, setRfqIdInput] = useState<string>("");
+  const [selectedRfqId, setSelectedRfqId] = useState<number | null>(null);
+  const [demandWindow, setDemandWindow] = useState<number>(30);
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  // ── Fraud scan ─────────────────────────────────────────────────────────────
+  const { data: fraudData, isLoading: fraudLoading, refetch: refetchFraud } =
+    useGetAdminFraudScan({ query: { queryKey: getGetAdminFraudScanQueryKey(), enabled: tab === "fraud" } });
+
+  const autoSuspendM = useAdminAutoSuspendHighRisk({
+    mutation: {
+      onSuccess: (data) => {
+        toast({ title: `Auto-suspended ${data.suspendedCount} seller${data.suspendedCount !== 1 ? "s" : ""}`, description: "All critical-risk sellers have been suspended." });
+        queryClient.invalidateQueries({ queryKey: getGetAdminFraudScanQueryKey() });
+        refetchFraud();
+      },
+      onError: () => toast({ title: "Auto-suspend failed", variant: "destructive" }),
+    },
+  });
+
+  const suspendSellerM = useAdminSuspendSellerIntelligence({
+    mutation: {
+      onSuccess: (_, vars) => {
+        toast({ title: `Seller #${vars.sellerId} suspended` });
+        queryClient.invalidateQueries({ queryKey: getGetAdminFraudScanQueryKey() });
+        refetchFraud();
+      },
+      onError: () => toast({ title: "Suspend failed", variant: "destructive" }),
+    },
+  });
+
+  // ── RFQ predictions ────────────────────────────────────────────────────────
+  const { data: predData, isLoading: predLoading } = useGetAdminRfqPredictions(
+    selectedRfqId ?? 0,
+    { query: { queryKey: getGetAdminRfqPredictionsQueryKey(selectedRfqId ?? 0), enabled: selectedRfqId !== null && tab === "predictions" } },
+  );
+
+  // ── Demand report ──────────────────────────────────────────────────────────
+  const { data: demandData, isLoading: demandLoading } = useGetAdminDemandReport(
+    { window: demandWindow },
+    { query: { queryKey: getGetAdminDemandReportQueryKey({ window: demandWindow }), enabled: tab === "demand" } },
+  );
+
+  const tabBtns: { id: IntelTab; label: string; icon: React.ElementType }[] = [
+    { id: "fraud",       label: "Fraud Detection",   icon: ShieldX },
+    { id: "demand",      label: "Demand Intelligence", icon: Activity },
+    { id: "predictions", label: "RFQ Predictions",   icon: Radar },
+  ];
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-lg font-semibold text-white mb-1 flex items-center gap-2">
+          <Brain className="w-5 h-5 text-primary" /> Market Intelligence System
+        </h2>
+        <p className="text-sm text-muted-foreground">Fraud detection, demand analytics, and RFQ winner predictions powered by live marketplace data.</p>
+      </div>
+
+      {/* Tab bar */}
+      <div className="flex gap-2 border-b border-border pb-0">
+        {tabBtns.map(({ id, label, icon: Icon }) => (
+          <button
+            key={id}
+            onClick={() => setTab(id)}
+            className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors ${
+              tab === id
+                ? "border-primary text-white"
+                : "border-transparent text-muted-foreground hover:text-white"
+            }`}
+          >
+            <Icon className="w-4 h-4" />{label}
+          </button>
+        ))}
+      </div>
+
+      {/* ── Fraud Detection tab ── */}
+      {tab === "fraud" && (
+        <div className="space-y-4">
+          {/* Summary cards */}
+          {fraudData && (
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              {[
+                { label: "Critical", value: fraudData.criticalCount, color: "text-red-400" },
+                { label: "High",     value: fraudData.highCount,     color: "text-orange-400" },
+                { label: "Medium",   value: fraudData.mediumCount,   color: "text-amber-400" },
+                { label: "Low",      value: fraudData.lowCount,      color: "text-emerald-400" },
+              ].map(({ label, value, color }) => (
+                <div key={label} className="bg-card border border-border rounded-lg p-4 text-center">
+                  <p className={`text-2xl font-bold font-mono ${color}`}>{value}</p>
+                  <p className="text-xs text-muted-foreground mt-1">{label} Risk</p>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="flex items-center justify-between">
+            <p className="text-xs text-muted-foreground">
+              {fraudData ? `Scanned ${fraudData.totalSellers} sellers · ${new Date(fraudData.scannedAt).toLocaleString()}` : ""}
+            </p>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={() => refetchFraud()} disabled={fraudLoading}
+                className="text-xs border-border text-muted-foreground hover:text-white gap-1.5 h-8">
+                {fraudLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+                Refresh Scan
+              </Button>
+              <Button size="sm" onClick={() => autoSuspendM.mutate()} disabled={autoSuspendM.isPending}
+                className="text-xs bg-red-600 hover:bg-red-700 text-white gap-1.5 h-8">
+                {autoSuspendM.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ShieldX className="w-3.5 h-3.5" />}
+                Auto-Suspend Critical
+              </Button>
+            </div>
+          </div>
+
+          {fraudLoading ? (
+            <div className="space-y-2">{[...Array(4)].map((_, i) => <Skeleton key={i} className="h-16" />)}</div>
+          ) : (
+            <div className="border border-border rounded-lg overflow-hidden">
+              <table className="w-full text-sm">
+                <thead className="bg-secondary/30">
+                  <tr>
+                    <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">Seller</th>
+                    <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">Risk</th>
+                    <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider hidden md:table-cell">Score</th>
+                    <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider hidden lg:table-cell">Flags</th>
+                    <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider hidden sm:table-cell">Listings</th>
+                    <th className="px-4 py-3"></th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {(fraudData?.sellers ?? []).map(seller => {
+                    const rm = RISK_META[seller.riskLevel] ?? RISK_META.low;
+                    return (
+                      <tr key={seller.sellerId} className="hover:bg-secondary/20 transition-colors">
+                        <td className="px-4 py-3">
+                          <p className="text-white font-medium text-sm leading-tight">{seller.companyName}</p>
+                          <p className="text-xs text-muted-foreground">{seller.email}</p>
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold ${rm.bg} ${rm.color}`}>
+                            {rm.label}
+                          </span>
+                          {seller.status === "suspended" && (
+                            <span className="ml-1.5 inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-secondary/50 text-muted-foreground border border-border">
+                              Suspended
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 hidden md:table-cell">
+                          <div className="flex items-center gap-2">
+                            <div className="w-16 h-1.5 bg-secondary rounded-full overflow-hidden">
+                              <div
+                                className={`h-full rounded-full ${seller.riskScore >= 80 ? "bg-red-500" : seller.riskScore >= 60 ? "bg-orange-500" : seller.riskScore >= 35 ? "bg-amber-500" : "bg-emerald-500"}`}
+                                style={{ width: `${seller.riskScore}%` }}
+                              />
+                            </div>
+                            <span className="text-xs font-mono text-white">{seller.riskScore}</span>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 hidden lg:table-cell">
+                          <div className="flex gap-1 flex-wrap">
+                            {seller.flags.map((flag, fi) => {
+                              const FIcon = FLAG_ICONS[flag.type] ?? AlertCircle;
+                              return (
+                                <span key={fi} title={flag.detail}
+                                  className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs ${
+                                    flag.severity === "high" ? "bg-red-500/15 text-red-400" :
+                                    flag.severity === "medium" ? "bg-amber-500/15 text-amber-400" :
+                                    "bg-secondary/50 text-muted-foreground"
+                                  }`}>
+                                  <FIcon className="w-3 h-3" />
+                                </span>
+                              );
+                            })}
+                            {seller.flags.length === 0 && <span className="text-xs text-muted-foreground">—</span>}
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 hidden sm:table-cell">
+                          <span className="text-xs text-white font-mono">{seller.activeListings}</span>
+                          {seller.removedListings > 0 && (
+                            <span className="text-xs text-red-400 ml-1">({seller.removedListings} removed)</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                          {seller.status !== "suspended" && seller.riskScore > 0 && (
+                            <Button
+                              size="sm" variant="ghost"
+                              className="text-xs text-red-400 hover:text-red-300 hover:bg-red-500/10 h-7 px-2"
+                              disabled={suspendSellerM.isPending}
+                              onClick={() => suspendSellerM.mutate({ sellerId: seller.sellerId })}
+                            >
+                              <Ban className="w-3.5 h-3.5 mr-1" /> Suspend
+                            </Button>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                  {!fraudLoading && (fraudData?.sellers ?? []).length === 0 && (
+                    <tr><td colSpan={6} className="px-4 py-8 text-center text-muted-foreground text-sm">No sellers found. Run a refresh scan.</td></tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── Demand Intelligence tab ── */}
+      {tab === "demand" && (
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">Time window:</span>
+              {[7, 14, 30, 60, 90].map(d => (
+                <button
+                  key={d}
+                  onClick={() => setDemandWindow(d)}
+                  className={`px-3 py-1 text-xs rounded-md border transition-colors ${demandWindow === d ? "bg-primary/15 border-primary/30 text-white" : "border-border text-muted-foreground hover:text-white"}`}
+                >
+                  {d}d
+                </button>
+              ))}
+            </div>
+            {demandData && (
+              <p className="text-xs text-muted-foreground">Generated {new Date(demandData.generatedAt).toLocaleString()}</p>
+            )}
+          </div>
+
+          {demandLoading ? (
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">{[...Array(6)].map((_, i) => <Skeleton key={i} className="h-20" />)}</div>
+          ) : demandData ? (
+            <>
+              {/* Summary KPIs */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+                {[
+                  { label: "Total RFQs",        value: demandData.summary.totalRfqs,                color: "text-white" },
+                  { label: "AOG RFQs",           value: demandData.summary.aogRfqs,                 color: "text-red-400" },
+                  { label: "Unique Parts",        value: demandData.summary.uniquePartsRequested,    color: "text-white" },
+                  { label: "Aircraft Types",      value: demandData.summary.uniqueAircraftTypes,     color: "text-blue-400" },
+                  { label: "Parts Covered",       value: demandData.summary.partsCoveredByInventory, color: "text-emerald-400" },
+                  { label: "Shortage Alerts",     value: demandData.summary.partsWithShortage,       color: "text-amber-400" },
+                ].map(({ label, value, color }) => (
+                  <div key={label} className="bg-card border border-border rounded-lg p-3 text-center">
+                    <p className={`text-xl font-bold font-mono ${color}`}>{value}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5 leading-tight">{label}</p>
+                  </div>
+                ))}
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Trending parts */}
+                <div className="border border-border rounded-lg overflow-hidden">
+                  <div className="px-4 py-3 border-b border-border bg-secondary/20 flex items-center gap-2">
+                    <TrendingUp className="w-4 h-4 text-primary" />
+                    <h3 className="text-sm font-semibold text-white">Trending Parts</h3>
+                    <span className="text-xs text-muted-foreground ml-auto">Last {demandWindow}d</span>
+                  </div>
+                  <div className="divide-y divide-border max-h-80 overflow-y-auto">
+                    {demandData.trendingParts.slice(0, 12).map((part, i) => (
+                      <div key={i} className="px-4 py-3 flex items-center gap-3 hover:bg-secondary/20">
+                        <span className="text-xs font-mono text-muted-foreground w-5 text-right flex-shrink-0">{i + 1}</span>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-mono text-white truncate">{part.partNumber}</p>
+                          <div className="flex gap-2 mt-0.5">
+                            {part.aogCount > 0 && (
+                              <span className="text-xs text-red-400 font-semibold">{part.aogCount} AOG</span>
+                            )}
+                            {part.urgentCount > 0 && (
+                              <span className="text-xs text-amber-400">{part.urgentCount} urgent</span>
+                            )}
+                            <span className="text-xs text-muted-foreground">{part.routineCount} routine</span>
+                          </div>
+                        </div>
+                        <div className="text-right flex-shrink-0">
+                          <p className="text-sm font-bold text-white">{part.rfqCount}</p>
+                          <span className={`text-xs ${
+                            part.trend === "shortage" ? "text-red-400" :
+                            part.trend === "rising"   ? "text-amber-400" :
+                            "text-muted-foreground"
+                          }`}>
+                            {part.trend === "shortage" ? "⚠ shortage" : part.trend === "rising" ? "↑ rising" : "stable"}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                    {demandData.trendingParts.length === 0 && (
+                      <p className="px-4 py-6 text-center text-sm text-muted-foreground">No RFQ data in this window.</p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Inventory shortages */}
+                <div className="border border-border rounded-lg overflow-hidden">
+                  <div className="px-4 py-3 border-b border-border bg-secondary/20 flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4 text-amber-400" />
+                    <h3 className="text-sm font-semibold text-white">Inventory Shortages</h3>
+                    <span className="text-xs text-muted-foreground ml-auto">Parts with &lt;2 listings</span>
+                  </div>
+                  <div className="divide-y divide-border max-h-80 overflow-y-auto">
+                    {demandData.inventoryShortages.slice(0, 12).map((item, i) => (
+                      <div key={i} className="px-4 py-3 flex items-center gap-3 hover:bg-secondary/20">
+                        <span className={`w-2 h-2 rounded-full flex-shrink-0 ${
+                          item.urgencyLevel === "critical" ? "bg-red-500" :
+                          item.urgencyLevel === "high"     ? "bg-amber-500" :
+                          "bg-blue-500"
+                        }`} />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-mono text-white truncate">{item.partNumber}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {item.rfqCount} RFQ{item.rfqCount !== 1 ? "s" : ""}
+                            {item.aogCount > 0 && <span className="text-red-400 ml-1">· {item.aogCount} AOG</span>}
+                            {" · "}{item.activeListings} listing{item.activeListings !== 1 ? "s" : ""}
+                          </p>
+                        </div>
+                        <span className={`text-xs font-semibold uppercase ${
+                          item.urgencyLevel === "critical" ? "text-red-400" :
+                          item.urgencyLevel === "high"     ? "text-amber-400" :
+                          "text-blue-400"
+                        }`}>{item.urgencyLevel}</span>
+                      </div>
+                    ))}
+                    {demandData.inventoryShortages.length === 0 && (
+                      <p className="px-4 py-6 text-center text-sm text-muted-foreground">No shortages detected. Inventory looks healthy.</p>
+                    )}
+                  </div>
+                </div>
+
+                {/* AOG daily spikes */}
+                <div className="border border-border rounded-lg overflow-hidden">
+                  <div className="px-4 py-3 border-b border-border bg-secondary/20 flex items-center gap-2">
+                    <FlameKindling className="w-4 h-4 text-red-400" />
+                    <h3 className="text-sm font-semibold text-white">AOG Demand Spikes</h3>
+                    <span className="text-xs text-muted-foreground ml-auto">Last 14 days</span>
+                  </div>
+                  <div className="p-4 space-y-2">
+                    {demandData.aogDailySpikes.length === 0 ? (
+                      <p className="text-sm text-muted-foreground text-center py-4">No AOG activity in this window.</p>
+                    ) : (
+                      demandData.aogDailySpikes.map((day, i) => {
+                        const maxTotal = Math.max(...demandData.aogDailySpikes.map(d => d.totalCount), 1);
+                        const pct = (day.totalCount / maxTotal) * 100;
+                        return (
+                          <div key={i} className="flex items-center gap-3">
+                            <span className="text-xs font-mono text-muted-foreground w-24 flex-shrink-0">{day.date}</span>
+                            <div className="flex-1 h-6 bg-secondary/40 rounded overflow-hidden relative">
+                              <div
+                                className="absolute inset-y-0 left-0 rounded bg-gradient-to-r from-red-600/60 to-amber-600/40"
+                                style={{ width: `${pct}%` }}
+                              />
+                              <div className="absolute inset-0 flex items-center gap-1 px-2">
+                                {day.aogCount > 0 && <span className="text-xs text-red-300 font-semibold">{day.aogCount} AOG</span>}
+                                {day.urgentCount > 0 && <span className="text-xs text-amber-300">{day.urgentCount} urgent</span>}
+                                {day.routineCount > 0 && <span className="text-xs text-muted-foreground">{day.routineCount} routine</span>}
+                              </div>
+                            </div>
+                            <span className="text-xs font-mono text-white w-6 text-right">{day.totalCount}</span>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
+
+                {/* Aircraft demand */}
+                <div className="border border-border rounded-lg overflow-hidden">
+                  <div className="px-4 py-3 border-b border-border bg-secondary/20 flex items-center gap-2">
+                    <CircleDot className="w-4 h-4 text-blue-400" />
+                    <h3 className="text-sm font-semibold text-white">Aircraft Demand Trends</h3>
+                    <span className="text-xs text-muted-foreground ml-auto">By platform</span>
+                  </div>
+                  <div className="divide-y divide-border max-h-72 overflow-y-auto">
+                    {demandData.aircraftDemandTrends.map((ac, i) => (
+                      <div key={i} className="px-4 py-3 hover:bg-secondary/20">
+                        <div className="flex items-center justify-between mb-1">
+                          <p className="text-sm font-semibold text-white truncate">{ac.aircraftType}</p>
+                          <div className="flex gap-2 flex-shrink-0 ml-2">
+                            <span className="text-xs font-bold text-white">{ac.rfqCount} RFQs</span>
+                            {ac.aogCount > 0 && <span className="text-xs text-red-400">{ac.aogCount} AOG</span>}
+                          </div>
+                        </div>
+                        <div className="flex gap-1 flex-wrap">
+                          {ac.topParts.slice(0, 4).map((pn, pi) => (
+                            <span key={pi} className="font-mono text-xs bg-secondary/50 text-muted-foreground px-1.5 py-0.5 rounded border border-border">
+                              {pn}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                    {demandData.aircraftDemandTrends.length === 0 && (
+                      <p className="px-4 py-6 text-center text-sm text-muted-foreground">No aircraft applicability data in this window.</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </>
+          ) : null}
+        </div>
+      )}
+
+      {/* ── RFQ Predictions tab ── */}
+      {tab === "predictions" && (
+        <div className="space-y-4">
+          <div className="bg-card border border-border rounded-lg p-4">
+            <p className="text-sm text-white font-medium mb-3">Select RFQ to predict winners</p>
+            <div className="flex gap-2">
+              <Input
+                type="number"
+                placeholder="Enter RFQ ID…"
+                value={rfqIdInput}
+                onChange={e => setRfqIdInput(e.target.value)}
+                className="bg-background border-border text-white text-sm max-w-40 font-mono"
+              />
+              <Button
+                size="sm"
+                onClick={() => {
+                  const id = parseInt(rfqIdInput, 10);
+                  if (!isNaN(id) && id > 0) setSelectedRfqId(id);
+                }}
+                disabled={!rfqIdInput || isNaN(parseInt(rfqIdInput, 10))}
+                className="text-sm"
+              >
+                <Radar className="w-4 h-4 mr-2" /> Predict
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground mt-2">Ranks all active sellers using trust score, win rate, pricing accuracy, and response speed.</p>
+          </div>
+
+          {predLoading && <div className="space-y-2">{[...Array(5)].map((_, i) => <Skeleton key={i} className="h-20" />)}</div>}
+
+          {predData && !predLoading && (
+            <div className="space-y-4">
+              <div className="flex items-center gap-4 flex-wrap">
+                <div className="bg-card border border-border rounded-lg px-4 py-2 flex items-center gap-3">
+                  <div>
+                    <p className="text-xs text-muted-foreground">RFQ #{predData.rfqId}</p>
+                    <p className="text-sm font-mono text-white font-bold">{predData.partNumber}</p>
+                  </div>
+                  <div className="border-l border-border pl-3">
+                    <p className="text-xs text-muted-foreground">Urgency</p>
+                    <span className={`text-xs font-semibold uppercase ${predData.urgency === "aog" ? "text-red-400" : predData.urgency === "urgent" ? "text-amber-400" : "text-muted-foreground"}`}>
+                      {predData.urgency}
+                    </span>
+                  </div>
+                  {predData.condition && (
+                    <div className="border-l border-border pl-3">
+                      <p className="text-xs text-muted-foreground">Condition</p>
+                      <p className="text-xs text-white">{predData.condition}</p>
+                    </div>
+                  )}
+                  <div className="border-l border-border pl-3">
+                    <p className="text-xs text-muted-foreground">Eligible sellers</p>
+                    <p className="text-sm font-bold text-white">{predData.eligibleSellers}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="border border-border rounded-lg overflow-hidden">
+                <table className="w-full text-sm">
+                  <thead className="bg-secondary/30">
+                    <tr>
+                      <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider w-8">#</th>
+                      <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">Seller</th>
+                      <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">Score</th>
+                      <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider hidden md:table-cell">Trust / Win Rate</th>
+                      <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider hidden lg:table-cell">Breakdown</th>
+                      <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider hidden sm:table-cell">Inventory</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {predData.predictions.map(pred => (
+                      <tr key={pred.sellerId} className={`hover:bg-secondary/20 transition-colors ${pred.rank === 1 ? "bg-primary/5" : ""}`}>
+                        <td className="px-4 py-3">
+                          <span className={`text-sm font-bold font-mono ${pred.rank === 1 ? "text-primary" : pred.rank <= 3 ? "text-amber-400" : "text-muted-foreground"}`}>
+                            {pred.rank === 1 ? "★" : pred.rank}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3">
+                          <p className="text-white font-medium text-sm leading-tight">{pred.companyName}</p>
+                          <p className="text-xs text-muted-foreground">{pred.plan} plan</p>
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-2">
+                            <div className="w-16 h-1.5 bg-secondary rounded-full overflow-hidden">
+                              <div className="h-full rounded-full bg-primary" style={{ width: `${pred.predictedScore}%` }} />
+                            </div>
+                            <span className="text-sm font-bold font-mono text-white">{pred.predictedScore}</span>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 hidden md:table-cell">
+                          <p className="text-xs text-white">Trust: <span className="font-mono font-semibold">{pred.trustScore}</span></p>
+                          <p className="text-xs text-muted-foreground">Win rate: <span className="text-white">{(pred.winRate * 100).toFixed(0)}%</span> ({pred.wins}/{pred.totalQuotes})</p>
+                        </td>
+                        <td className="px-4 py-3 hidden lg:table-cell">
+                          <div className="grid grid-cols-3 gap-x-2 gap-y-0.5 text-xs">
+                            {[
+                              ["Trust",   pred.scoreBreakdown.trustScorePoints, 30],
+                              ["Win%",    pred.scoreBreakdown.winRatePoints, 25],
+                              ["Pricing", pred.scoreBreakdown.pricingAccuracyPoints, 20],
+                              ["Speed",   pred.scoreBreakdown.responseSpeedPoints, 15],
+                              ["Plan",    pred.scoreBreakdown.planTierPoints, 10],
+                              ["Match",   pred.scoreBreakdown.inventoryMatchBonus, 5],
+                            ].map(([label, val, max]) => (
+                              <div key={label as string} className="flex items-center gap-1">
+                                <span className="text-muted-foreground w-10">{label}</span>
+                                <span className="font-mono text-white">{val}/{max}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 hidden sm:table-cell">
+                          {pred.hasMatchingListing ? (
+                            <span className="text-xs bg-emerald-500/15 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded">In stock</span>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">—</span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                    {predData.predictions.length === 0 && (
+                      <tr><td colSpan={6} className="px-4 py-8 text-center text-sm text-muted-foreground">No eligible sellers found.</td></tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── main admin shell ────────────────────────────────────────────────────────
 
 export default function AdminDashboard() {
@@ -2187,7 +2749,7 @@ export default function AdminDashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { data: stats } = useGetAdminStats({ query: { queryKey: getGetAdminStatsQueryKey() } });
 
-  const VALID_SECTIONS = new Set<string>(["overview", "sellers", "listings", "certifications", "billing", "mro", "rfqs", "trust", "analytics", "disputes"]);
+  const VALID_SECTIONS = new Set<string>(["overview", "sellers", "listings", "certifications", "billing", "mro", "rfqs", "trust", "analytics", "disputes", "intelligence"]);
   const section: Section = (sectionParam && VALID_SECTIONS.has(sectionParam) ? sectionParam : "overview") as Section;
 
   function navTo(id: Section) {
@@ -2321,6 +2883,7 @@ export default function AdminDashboard() {
           {section === "trust"          && <TrustSection />}
           {section === "analytics"      && <AnalyticsSection />}
           {section === "disputes"       && <DisputesSection />}
+          {section === "intelligence"   && <IntelligenceSection />}
         </main>
       </div>
     </div>

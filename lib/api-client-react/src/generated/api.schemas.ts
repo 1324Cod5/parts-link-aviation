@@ -1616,6 +1616,186 @@ export interface ListingAuditLog {
   admin: ListingAuditLogAdmin;
 }
 
+export type RiskFlagType = typeof RiskFlagType[keyof typeof RiskFlagType];
+
+
+export const RiskFlagType = {
+  duplicate_listings: 'duplicate_listings',
+  abnormal_pricing: 'abnormal_pricing',
+  missing_certs: 'missing_certs',
+  dispute_history: 'dispute_history',
+  velocity_risk: 'velocity_risk',
+} as const;
+
+export type RiskFlagSeverity = typeof RiskFlagSeverity[keyof typeof RiskFlagSeverity];
+
+
+export const RiskFlagSeverity = {
+  low: 'low',
+  medium: 'medium',
+  high: 'high',
+} as const;
+
+export interface RiskFlag {
+  type: RiskFlagType;
+  severity: RiskFlagSeverity;
+  detail: string;
+  score: number;
+}
+
+export type SellerRiskProfileRiskLevel = typeof SellerRiskProfileRiskLevel[keyof typeof SellerRiskProfileRiskLevel];
+
+
+export const SellerRiskProfileRiskLevel = {
+  low: 'low',
+  medium: 'medium',
+  high: 'high',
+  critical: 'critical',
+} as const;
+
+export interface SellerRiskProfile {
+  sellerId: number;
+  email: string;
+  companyName: string;
+  status: string;
+  plan: string;
+  trustScore: number;
+  riskScore: number;
+  riskLevel: SellerRiskProfileRiskLevel;
+  flags: RiskFlag[];
+  activeListings: number;
+  removedListings: number;
+  duplicateGroups: number;
+  abnormalPricingCount: number;
+  missingCertCount: number;
+  createdAt: string;
+}
+
+export interface FraudScanResult {
+  scannedAt: string;
+  totalSellers: number;
+  criticalCount: number;
+  highCount: number;
+  mediumCount: number;
+  lowCount: number;
+  autoSuspended: number;
+  sellers: SellerRiskProfile[];
+}
+
+export interface PredictedSellerBreakdown {
+  trustScorePoints: number;
+  winRatePoints: number;
+  pricingAccuracyPoints: number;
+  responseSpeedPoints: number;
+  planTierPoints: number;
+  inventoryMatchBonus: number;
+}
+
+export interface PredictedSeller {
+  sellerId: number;
+  companyName: string;
+  email: string;
+  plan: string;
+  trustScore: number;
+  trustBadge: string;
+  predictedScore: number;
+  scoreBreakdown: PredictedSellerBreakdown;
+  winRate: number;
+  totalQuotes: number;
+  wins: number;
+  /** @nullable */
+  avgResponseTimeHours?: number | null;
+  /** @nullable */
+  avgQuotedPrice?: number | null;
+  hasMatchingListing: boolean;
+  rank: number;
+}
+
+export interface RfqPredictionResult {
+  rfqId: number;
+  partNumber: string;
+  urgency: string;
+  /** @nullable */
+  condition?: string | null;
+  /** @nullable */
+  aircraftApplicability?: string | null;
+  predictedAt: string;
+  eligibleSellers: number;
+  predictions: PredictedSeller[];
+}
+
+export type TrendingPartTrend = typeof TrendingPartTrend[keyof typeof TrendingPartTrend];
+
+
+export const TrendingPartTrend = {
+  rising: 'rising',
+  stable: 'stable',
+  shortage: 'shortage',
+} as const;
+
+export interface TrendingPart {
+  partNumber: string;
+  rfqCount: number;
+  aogCount: number;
+  urgentCount: number;
+  routineCount: number;
+  activeListings: number;
+  coverageRatio: number;
+  trend: TrendingPartTrend;
+}
+
+export interface AogDayPoint {
+  date: string;
+  aogCount: number;
+  urgentCount: number;
+  routineCount: number;
+  totalCount: number;
+}
+
+export interface AircraftDemandTrend {
+  aircraftType: string;
+  rfqCount: number;
+  aogCount: number;
+  topParts: string[];
+}
+
+export type InventoryShortageUrgencyLevel = typeof InventoryShortageUrgencyLevel[keyof typeof InventoryShortageUrgencyLevel];
+
+
+export const InventoryShortageUrgencyLevel = {
+  critical: 'critical',
+  high: 'high',
+  medium: 'medium',
+} as const;
+
+export interface InventoryShortage {
+  partNumber: string;
+  rfqCount: number;
+  aogCount: number;
+  activeListings: number;
+  lastRequested: string;
+  urgencyLevel: InventoryShortageUrgencyLevel;
+}
+
+export interface DemandIntelligenceSummary {
+  totalRfqs: number;
+  aogRfqs: number;
+  uniquePartsRequested: number;
+  uniqueAircraftTypes: number;
+  partsCoveredByInventory: number;
+  partsWithShortage: number;
+}
+
+export interface DemandIntelligenceReport {
+  generatedAt: string;
+  windowDays: number;
+  trendingParts: TrendingPart[];
+  aogDailySpikes: AogDayPoint[];
+  aircraftDemandTrends: AircraftDemandTrend[];
+  inventoryShortages: InventoryShortage[];
+  summary: DemandIntelligenceSummary;
+}
+
 export type ChangePassword200 = {
   ok: boolean;
 };
@@ -1818,4 +1998,25 @@ export const GetAdminInventoryFeatured = {
   true: 'true',
   false: 'false',
 } as const;
+
+export type AdminAutoSuspendHighRisk200 = {
+  success: boolean;
+  suspendedCount: number;
+  suspendedIds: number[];
+};
+
+export type AdminSuspendSellerIntelligence200 = {
+  success: boolean;
+  sellerId: number;
+  action: string;
+};
+
+export type GetAdminDemandReportParams = {
+/**
+ * Rolling window in days (7–90)
+ * @minimum 7
+ * @maximum 90
+ */
+window?: number;
+};
 

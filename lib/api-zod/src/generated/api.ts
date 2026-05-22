@@ -2303,3 +2303,163 @@ export const GetAdminInventoryAuditResponseItem = zod.object({
 export const GetAdminInventoryAuditResponse = zod.array(GetAdminInventoryAuditResponseItem)
 
 
+/**
+ * @summary Run a full fraud scan across all active sellers
+ */
+export const GetAdminFraudScanResponse = zod.object({
+  "scannedAt": zod.coerce.date(),
+  "totalSellers": zod.number(),
+  "criticalCount": zod.number(),
+  "highCount": zod.number(),
+  "mediumCount": zod.number(),
+  "lowCount": zod.number(),
+  "autoSuspended": zod.number(),
+  "sellers": zod.array(zod.object({
+  "sellerId": zod.number(),
+  "email": zod.string(),
+  "companyName": zod.string(),
+  "status": zod.string(),
+  "plan": zod.string(),
+  "trustScore": zod.number(),
+  "riskScore": zod.number(),
+  "riskLevel": zod.enum(['low', 'medium', 'high', 'critical']),
+  "flags": zod.array(zod.object({
+  "type": zod.enum(['duplicate_listings', 'abnormal_pricing', 'missing_certs', 'dispute_history', 'velocity_risk']),
+  "severity": zod.enum(['low', 'medium', 'high']),
+  "detail": zod.string(),
+  "score": zod.number()
+})),
+  "activeListings": zod.number(),
+  "removedListings": zod.number(),
+  "duplicateGroups": zod.number(),
+  "abnormalPricingCount": zod.number(),
+  "missingCertCount": zod.number(),
+  "createdAt": zod.coerce.date()
+}))
+})
+
+
+/**
+ * @summary Auto-suspend all sellers at or above the critical risk threshold
+ */
+export const AdminAutoSuspendHighRiskResponse = zod.object({
+  "success": zod.boolean(),
+  "suspendedCount": zod.number(),
+  "suspendedIds": zod.array(zod.number())
+})
+
+
+/**
+ * @summary Suspend a specific seller via the intelligence panel
+ */
+export const AdminSuspendSellerIntelligenceParams = zod.object({
+  "sellerId": zod.coerce.number()
+})
+
+export const AdminSuspendSellerIntelligenceResponse = zod.object({
+  "success": zod.boolean(),
+  "sellerId": zod.number(),
+  "action": zod.string()
+})
+
+
+/**
+ * @summary Get predicted winner rankings for a specific RFQ
+ */
+export const GetAdminRfqPredictionsParams = zod.object({
+  "rfqId": zod.coerce.number()
+})
+
+export const GetAdminRfqPredictionsResponse = zod.object({
+  "rfqId": zod.number(),
+  "partNumber": zod.string(),
+  "urgency": zod.string(),
+  "condition": zod.string().nullish(),
+  "aircraftApplicability": zod.string().nullish(),
+  "predictedAt": zod.coerce.date(),
+  "eligibleSellers": zod.number(),
+  "predictions": zod.array(zod.object({
+  "sellerId": zod.number(),
+  "companyName": zod.string(),
+  "email": zod.string(),
+  "plan": zod.string(),
+  "trustScore": zod.number(),
+  "trustBadge": zod.string(),
+  "predictedScore": zod.number(),
+  "scoreBreakdown": zod.object({
+  "trustScorePoints": zod.number(),
+  "winRatePoints": zod.number(),
+  "pricingAccuracyPoints": zod.number(),
+  "responseSpeedPoints": zod.number(),
+  "planTierPoints": zod.number(),
+  "inventoryMatchBonus": zod.number()
+}),
+  "winRate": zod.number(),
+  "totalQuotes": zod.number(),
+  "wins": zod.number(),
+  "avgResponseTimeHours": zod.number().nullish(),
+  "avgQuotedPrice": zod.number().nullish(),
+  "hasMatchingListing": zod.boolean(),
+  "rank": zod.number()
+}))
+})
+
+
+/**
+ * @summary Get the demand intelligence report
+ */
+export const getAdminDemandReportQueryWindowDefault = 30;
+export const getAdminDemandReportQueryWindowMin = 7;
+export const getAdminDemandReportQueryWindowMax = 90;
+
+
+
+export const GetAdminDemandReportQueryParams = zod.object({
+  "window": zod.coerce.number().min(getAdminDemandReportQueryWindowMin).max(getAdminDemandReportQueryWindowMax).default(getAdminDemandReportQueryWindowDefault).describe('Rolling window in days (7–90)')
+})
+
+export const GetAdminDemandReportResponse = zod.object({
+  "generatedAt": zod.coerce.date(),
+  "windowDays": zod.number(),
+  "trendingParts": zod.array(zod.object({
+  "partNumber": zod.string(),
+  "rfqCount": zod.number(),
+  "aogCount": zod.number(),
+  "urgentCount": zod.number(),
+  "routineCount": zod.number(),
+  "activeListings": zod.number(),
+  "coverageRatio": zod.number(),
+  "trend": zod.enum(['rising', 'stable', 'shortage'])
+})),
+  "aogDailySpikes": zod.array(zod.object({
+  "date": zod.string(),
+  "aogCount": zod.number(),
+  "urgentCount": zod.number(),
+  "routineCount": zod.number(),
+  "totalCount": zod.number()
+})),
+  "aircraftDemandTrends": zod.array(zod.object({
+  "aircraftType": zod.string(),
+  "rfqCount": zod.number(),
+  "aogCount": zod.number(),
+  "topParts": zod.array(zod.string())
+})),
+  "inventoryShortages": zod.array(zod.object({
+  "partNumber": zod.string(),
+  "rfqCount": zod.number(),
+  "aogCount": zod.number(),
+  "activeListings": zod.number(),
+  "lastRequested": zod.coerce.date(),
+  "urgencyLevel": zod.enum(['critical', 'high', 'medium'])
+})),
+  "summary": zod.object({
+  "totalRfqs": zod.number(),
+  "aogRfqs": zod.number(),
+  "uniquePartsRequested": zod.number(),
+  "uniqueAircraftTypes": zod.number(),
+  "partsCoveredByInventory": zod.number(),
+  "partsWithShortage": zod.number()
+})
+})
+
+

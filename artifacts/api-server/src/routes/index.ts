@@ -15,6 +15,7 @@ import rfqsRouter from "./rfqs";
 import mroRouter from "./mro";
 import messagesRouter from "./messages";
 import debugRouter from "./debug";
+import intelligenceRouter from "./intelligence";
 
 const router: IRouter = Router();
 
@@ -33,6 +34,7 @@ router.use(subscriptionRouter);
 router.use(rfqsRouter);
 router.use(mroRouter);
 router.use(messagesRouter);
+router.use(intelligenceRouter);
 router.use(debugRouter);
 
 export default router;

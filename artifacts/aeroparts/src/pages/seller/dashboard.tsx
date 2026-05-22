@@ -16,7 +16,7 @@ import {
   useGetConversationMessages, getGetConversationMessagesQueryKey,
   useSendMessage,
   getGetConversationsUnreadCountQueryKey,
-  useGetSubscription,
+  useGetSubscription, getGetSubscriptionQueryKey,
 } from "@workspace/api-client-react";
 import { useAuth } from "@/context/AuthContext";
 import { useQueryClient } from "@tanstack/react-query";
@@ -172,7 +172,7 @@ export default function SellerDashboard() {
   const [openConvId, setOpenConvId] = useState<number | null>(null);
 
   // Subscription status — must be called before any conditional returns (rules of hooks)
-  const { data: subscription } = useGetSubscription({ query: { retry: false } });
+  const { data: subscription } = useGetSubscription({ query: { queryKey: getGetSubscriptionQueryKey(), retry: false } });
 
   const handleDelete = (id: number, partNumber: string) => {
     if (!confirm(`Delete listing ${partNumber}? This cannot be undone.`)) return;

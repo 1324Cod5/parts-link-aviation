@@ -11,7 +11,7 @@ import {
   ArrowLeft, Upload, FileSpreadsheet, Download, CheckCircle2, XCircle,
   AlertTriangle, Loader2, ChevronRight, Package, Lock, Zap, RefreshCw,
 } from "lucide-react";
-import { useGetSubscription } from "@workspace/api-client-react";
+import { useGetSubscription, getGetSubscriptionQueryKey } from "@workspace/api-client-react";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -81,7 +81,7 @@ export default function BulkUpload() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   // Subscription status — must be called before any conditional returns (rules of hooks)
-  const { data: subscription } = useGetSubscription({ query: { retry: false } });
+  const { data: subscription } = useGetSubscription({ query: { queryKey: getGetSubscriptionQueryKey(), retry: false } });
 
   // ─── Auth guard ──────────────────────────────────────────────────────────────
 

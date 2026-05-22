@@ -1823,6 +1823,127 @@ paths:
         "403":
           description: Forbidden
 
+  /admin/intelligence/fraud:
+    get:
+      operationId: getAdminFraudScan
+      tags: [admin]
+      summary: Run a full fraud scan across all active sellers
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FraudScanResult"
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+
+  /admin/intelligence/fraud/auto-suspend:
+    post:
+      operationId: adminAutoSuspendHighRisk
+      tags: [admin]
+      summary: Auto-suspend all sellers at or above the critical risk threshold
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, suspendedCount, suspendedIds]
+                properties:
+                  success:
+                    type: boolean
+                  suspendedCount:
+                    type: integer
+                  suspendedIds:
+                    type: array
+                    items:
+                      type: integer
+        "401":
+          description: Unauthorized
+
+  /admin/intelligence/fraud/{sellerId}/suspend:
+    post:
+      operationId: adminSuspendSellerIntelligence
+      tags: [admin]
+      summary: Suspend a specific seller via the intelligence panel
+      parameters:
+        - name: sellerId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, sellerId, action]
+                properties:
+                  success:
+                    type: boolean
+                  sellerId:
+                    type: integer
+                  action:
+                    type: string
+        "401":
+          description: Unauthorized
+        "404":
+          description: Seller not found
+
+  /admin/intelligence/rfqs/{rfqId}/predictions:
+    get:
+      operationId: getAdminRfqPredictions
+      tags: [admin]
+      summary: Get predicted winner rankings for a specific RFQ
+      parameters:
+        - name: rfqId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RfqPredictionResult"
+        "401":
+          description: Unauthorized
+        "404":
+          description: RFQ not found
+
+  /admin/intelligence/demand:
+    get:
+      operationId: getAdminDemandReport
+      tags: [admin]
+      summary: Get the demand intelligence report
+      parameters:
+        - name: window
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 7
+            maximum: 90
+            default: 30
+          description: Rolling window in days (7–90)
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DemandIntelligenceReport"
+        "401":
+          description: Unauthorized
+
 components:
   schemas:
     UploadImagesResponse:
@@ -3566,3 +3687,273 @@ components:
               type: ["string", "null"]
             name:
               type: ["string", "null"]
+
+    RiskFlag:
+      type: object
+      required: [type, severity, detail, score]
+      properties:
+        type:
+          type: string
+          enum: [duplicate_listings, abnormal_pricing, missing_certs, dispute_history, velocity_risk]
+        severity:
+          type: string
+          enum: [low, medium, high]
+        detail:
+          type: string
+        score:
+          type: integer
+
+    SellerRiskProfile:
+      type: object
+      required: [sellerId, email, companyName, status, plan, trustScore, riskScore, riskLevel, flags, activeListings, removedListings, duplicateGroups, abnormalPricingCount, missingCertCount, createdAt]
+      properties:
+        sellerId:
+          type: integer
+        email:
+          type: string
+        companyName:
+          type: string
+        status:
+          type: string
+        plan:
+          type: string
+        trustScore:
+          type: integer
+        riskScore:
+          type: integer
+        riskLevel:
+          type: string
+          enum: [low, medium, high, critical]
+        flags:
+          type: array
+          items:
+            $ref: "#/components/schemas/RiskFlag"
+        activeListings:
+          type: integer
+        removedListings:
+          type: integer
+        duplicateGroups:
+          type: integer
+        abnormalPricingCount:
+          type: integer
+        missingCertCount:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+
+    FraudScanResult:
+      type: object
+      required: [scannedAt, totalSellers, criticalCount, highCount, mediumCount, lowCount, autoSuspended, sellers]
+      properties:
+        scannedAt:
+          type: string
+          format: date-time
+        totalSellers:
+          type: integer
+        criticalCount:
+          type: integer
+        highCount:
+          type: integer
+        mediumCount:
+          type: integer
+        lowCount:
+          type: integer
+        autoSuspended:
+          type: integer
+        sellers:
+          type: array
+          items:
+            $ref: "#/components/schemas/SellerRiskProfile"
+
+    PredictedSellerBreakdown:
+      type: object
+      required: [trustScorePoints, winRatePoints, pricingAccuracyPoints, responseSpeedPoints, planTierPoints, inventoryMatchBonus]
+      properties:
+        trustScorePoints:
+          type: integer
+        winRatePoints:
+          type: integer
+        pricingAccuracyPoints:
+          type: integer
+        responseSpeedPoints:
+          type: integer
+        planTierPoints:
+          type: integer
+        inventoryMatchBonus:
+          type: integer
+
+    PredictedSeller:
+      type: object
+      required: [sellerId, companyName, email, plan, trustScore, trustBadge, predictedScore, scoreBreakdown, winRate, totalQuotes, wins, hasMatchingListing, rank]
+      properties:
+        sellerId:
+          type: integer
+        companyName:
+          type: string
+        email:
+          type: string
+        plan:
+          type: string
+        trustScore:
+          type: integer
+        trustBadge:
+          type: string
+        predictedScore:
+          type: integer
+        scoreBreakdown:
+          $ref: "#/components/schemas/PredictedSellerBreakdown"
+        winRate:
+          type: number
+        totalQuotes:
+          type: integer
+        wins:
+          type: integer
+        avgResponseTimeHours:
+          type: ["number", "null"]
+        avgQuotedPrice:
+          type: ["number", "null"]
+        hasMatchingListing:
+          type: boolean
+        rank:
+          type: integer
+
+    RfqPredictionResult:
+      type: object
+      required: [rfqId, partNumber, urgency, predictedAt, eligibleSellers, predictions]
+      properties:
+        rfqId:
+          type: integer
+        partNumber:
+          type: string
+        urgency:
+          type: string
+        condition:
+          type: ["string", "null"]
+        aircraftApplicability:
+          type: ["string", "null"]
+        predictedAt:
+          type: string
+          format: date-time
+        eligibleSellers:
+          type: integer
+        predictions:
+          type: array
+          items:
+            $ref: "#/components/schemas/PredictedSeller"
+
+    TrendingPart:
+      type: object
+      required: [partNumber, rfqCount, aogCount, urgentCount, routineCount, activeListings, coverageRatio, trend]
+      properties:
+        partNumber:
+          type: string
+        rfqCount:
+          type: integer
+        aogCount:
+          type: integer
+        urgentCount:
+          type: integer
+        routineCount:
+          type: integer
+        activeListings:
+          type: integer
+        coverageRatio:
+          type: number
+        trend:
+          type: string
+          enum: [rising, stable, shortage]
+
+    AogDayPoint:
+      type: object
+      required: [date, aogCount, urgentCount, routineCount, totalCount]
+      properties:
+        date:
+          type: string
+        aogCount:
+          type: integer
+        urgentCount:
+          type: integer
+        routineCount:
+          type: integer
+        totalCount:
+          type: integer
+
+    AircraftDemandTrend:
+      type: object
+      required: [aircraftType, rfqCount, aogCount, topParts]
+      properties:
+        aircraftType:
+          type: string
+        rfqCount:
+          type: integer
+        aogCount:
+          type: integer
+        topParts:
+          type: array
+          items:
+            type: string
+
+    InventoryShortage:
+      type: object
+      required: [partNumber, rfqCount, aogCount, activeListings, lastRequested, urgencyLevel]
+      properties:
+        partNumber:
+          type: string
+        rfqCount:
+          type: integer
+        aogCount:
+          type: integer
+        activeListings:
+          type: integer
+        lastRequested:
+          type: string
+          format: date-time
+        urgencyLevel:
+          type: string
+          enum: [critical, high, medium]
+
+    DemandIntelligenceSummary:
+      type: object
+      required: [totalRfqs, aogRfqs, uniquePartsRequested, uniqueAircraftTypes, partsCoveredByInventory, partsWithShortage]
+      properties:
+        totalRfqs:
+          type: integer
+        aogRfqs:
+          type: integer
+        uniquePartsRequested:
+          type: integer
+        uniqueAircraftTypes:
+          type: integer
+        partsCoveredByInventory:
+          type: integer
+        partsWithShortage:
+          type: integer
+
+    DemandIntelligenceReport:
+      type: object
+      required: [generatedAt, windowDays, trendingParts, aogDailySpikes, aircraftDemandTrends, inventoryShortages, summary]
+      properties:
+        generatedAt:
+          type: string
+          format: date-time
+        windowDays:
+          type: integer
+        trendingParts:
+          type: array
+          items:
+            $ref: "#/components/schemas/TrendingPart"
+        aogDailySpikes:
+          type: array
+          items:
+            $ref: "#/components/schemas/AogDayPoint"
+        aircraftDemandTrends:
+          type: array
+          items:
+            $ref: "#/components/schemas/AircraftDemandTrend"
+        inventoryShortages:
+          type: array
+          items:
+            $ref: "#/components/schemas/InventoryShortage"
+        summary:
+          $ref: "#/components/schemas/DemandIntelligenceSummary"
