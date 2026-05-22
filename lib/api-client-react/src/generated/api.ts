@@ -42,6 +42,9 @@ import type {
   ChangePasswordInput,
   CheckoutSessionInput,
   CheckoutSessionResponse,
+  ConversationMessagesResponse,
+  ConversationsResponse,
+  CreateConversationResponse,
   DocumentStatusUpdate,
   DocumentsResponse,
   GetAdminInventoryParams,
@@ -71,6 +74,7 @@ import type {
   OkResponse,
   Permissions,
   PortalSessionResponse,
+  PostMessageBody,
   RegisterInput,
   Rfq,
   RfqAwardInput,
@@ -85,11 +89,14 @@ import type {
   SellerAnalytics,
   SellerRfqStats,
   SellerStats,
+  SendMessageResponse,
   ServiceQuoteRequest,
   ServiceQuoteRequestInput,
+  StartConversationBody,
   SubscriptionInfo,
   SubscriptionProductsResponse,
   SuspendListingBody,
+  UnreadCountResponse,
   UploadDocumentsResponse,
   UploadImagesResponse,
   User
@@ -3540,6 +3547,450 @@ export function useGetAogActiveRfqs<TData = Awaited<ReturnType<typeof getAogActi
 
 
 
+
+export const getCreateConversationUrl = () => {
+
+
+
+
+  return `/api/conversations`
+}
+
+/**
+ * @summary Create a new buyer-seller conversation (no auth required — buyer-initiated)
+ */
+export const createConversation = async (startConversationBody: StartConversationBody, options?: RequestInit): Promise<CreateConversationResponse> => {
+
+  return customFetch<CreateConversationResponse>(getCreateConversationUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      startConversationBody,)
+  }
+);}
+
+
+
+
+export const getCreateConversationMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createConversation>>, TError,{data: BodyType<StartConversationBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createConversation>>, TError,{data: BodyType<StartConversationBody>}, TContext> => {
+
+const mutationKey = ['createConversation'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createConversation>>, {data: BodyType<StartConversationBody>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createConversation(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateConversationMutationResult = NonNullable<Awaited<ReturnType<typeof createConversation>>>
+    export type CreateConversationMutationBody = BodyType<StartConversationBody>
+    export type CreateConversationMutationError = ErrorType<void>
+
+    /**
+ * @summary Create a new buyer-seller conversation (no auth required — buyer-initiated)
+ */
+export const useCreateConversation = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createConversation>>, TError,{data: BodyType<StartConversationBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createConversation>>,
+        TError,
+        {data: BodyType<StartConversationBody>},
+        TContext
+      > => {
+      return useMutation(getCreateConversationMutationOptions(options));
+    }
+
+export const getGetConversationsUrl = () => {
+
+
+
+
+  return `/api/conversations`
+}
+
+/**
+ * @summary Get all conversations for the authenticated seller
+ */
+export const getConversations = async ( options?: RequestInit): Promise<ConversationsResponse> => {
+
+  return customFetch<ConversationsResponse>(getGetConversationsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetConversationsQueryKey = () => {
+    return [
+    `/api/conversations`
+    ] as const;
+    }
+
+
+export const getGetConversationsQueryOptions = <TData = Awaited<ReturnType<typeof getConversations>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getConversations>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetConversationsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getConversations>>> = ({ signal }) => getConversations({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getConversations>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetConversationsQueryResult = NonNullable<Awaited<ReturnType<typeof getConversations>>>
+export type GetConversationsQueryError = ErrorType<void>
+
+
+/**
+ * @summary Get all conversations for the authenticated seller
+ */
+
+export function useGetConversations<TData = Awaited<ReturnType<typeof getConversations>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getConversations>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetConversationsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGetConversationsUnreadCountUrl = () => {
+
+
+
+
+  return `/api/conversations/unread-count`
+}
+
+/**
+ * @summary Get unread message count for authenticated seller
+ */
+export const getConversationsUnreadCount = async ( options?: RequestInit): Promise<UnreadCountResponse> => {
+
+  return customFetch<UnreadCountResponse>(getGetConversationsUnreadCountUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetConversationsUnreadCountQueryKey = () => {
+    return [
+    `/api/conversations/unread-count`
+    ] as const;
+    }
+
+
+export const getGetConversationsUnreadCountQueryOptions = <TData = Awaited<ReturnType<typeof getConversationsUnreadCount>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getConversationsUnreadCount>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetConversationsUnreadCountQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getConversationsUnreadCount>>> = ({ signal }) => getConversationsUnreadCount({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getConversationsUnreadCount>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetConversationsUnreadCountQueryResult = NonNullable<Awaited<ReturnType<typeof getConversationsUnreadCount>>>
+export type GetConversationsUnreadCountQueryError = ErrorType<void>
+
+
+/**
+ * @summary Get unread message count for authenticated seller
+ */
+
+export function useGetConversationsUnreadCount<TData = Awaited<ReturnType<typeof getConversationsUnreadCount>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getConversationsUnreadCount>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetConversationsUnreadCountQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGetConversationMessagesUrl = (id: number,) => {
+
+
+
+
+  return `/api/conversations/${id}/messages`
+}
+
+/**
+ * @summary Get messages in a conversation (seller auth required)
+ */
+export const getConversationMessages = async (id: number, options?: RequestInit): Promise<ConversationMessagesResponse> => {
+
+  return customFetch<ConversationMessagesResponse>(getGetConversationMessagesUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetConversationMessagesQueryKey = (id: number,) => {
+    return [
+    `/api/conversations/${id}/messages`
+    ] as const;
+    }
+
+
+export const getGetConversationMessagesQueryOptions = <TData = Awaited<ReturnType<typeof getConversationMessages>>, TError = ErrorType<void>>(id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getConversationMessages>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetConversationMessagesQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getConversationMessages>>> = ({ signal }) => getConversationMessages(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getConversationMessages>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetConversationMessagesQueryResult = NonNullable<Awaited<ReturnType<typeof getConversationMessages>>>
+export type GetConversationMessagesQueryError = ErrorType<void>
+
+
+/**
+ * @summary Get messages in a conversation (seller auth required)
+ */
+
+export function useGetConversationMessages<TData = Awaited<ReturnType<typeof getConversationMessages>>, TError = ErrorType<void>>(
+ id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getConversationMessages>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetConversationMessagesQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getSendMessageUrl = (id: number,) => {
+
+
+
+
+  return `/api/conversations/${id}/messages`
+}
+
+/**
+ * @summary Send a message in a conversation (seller auth or buyer email verification)
+ */
+export const sendMessage = async (id: number,
+    postMessageBody: PostMessageBody, options?: RequestInit): Promise<SendMessageResponse> => {
+
+  return customFetch<SendMessageResponse>(getSendMessageUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      postMessageBody,)
+  }
+);}
+
+
+
+
+export const getSendMessageMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof sendMessage>>, TError,{id: number;data: BodyType<PostMessageBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof sendMessage>>, TError,{id: number;data: BodyType<PostMessageBody>}, TContext> => {
+
+const mutationKey = ['sendMessage'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof sendMessage>>, {id: number;data: BodyType<PostMessageBody>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  sendMessage(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SendMessageMutationResult = NonNullable<Awaited<ReturnType<typeof sendMessage>>>
+    export type SendMessageMutationBody = BodyType<PostMessageBody>
+    export type SendMessageMutationError = ErrorType<void>
+
+    /**
+ * @summary Send a message in a conversation (seller auth or buyer email verification)
+ */
+export const useSendMessage = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof sendMessage>>, TError,{id: number;data: BodyType<PostMessageBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof sendMessage>>,
+        TError,
+        {id: number;data: BodyType<PostMessageBody>},
+        TContext
+      > => {
+      return useMutation(getSendMessageMutationOptions(options));
+    }
+
+export const getMarkConversationReadUrl = (id: number,) => {
+
+
+
+
+  return `/api/conversations/${id}/read`
+}
+
+/**
+ * @summary Mark all buyer messages in a conversation as read
+ */
+export const markConversationRead = async (id: number, options?: RequestInit): Promise<void> => {
+
+  return customFetch<void>(getMarkConversationReadUrl(id),
+  {
+    ...options,
+    method: 'PATCH'
+
+
+  }
+);}
+
+
+
+
+export const getMarkConversationReadMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof markConversationRead>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof markConversationRead>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['markConversationRead'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof markConversationRead>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  markConversationRead(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type MarkConversationReadMutationResult = NonNullable<Awaited<ReturnType<typeof markConversationRead>>>
+
+    export type MarkConversationReadMutationError = ErrorType<void>
+
+    /**
+ * @summary Mark all buyer messages in a conversation as read
+ */
+export const useMarkConversationRead = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof markConversationRead>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof markConversationRead>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+      return useMutation(getMarkConversationReadMutationOptions(options));
+    }
 
 export const getGetSellerRfqStatsUrl = () => {
 

@@ -7,8 +7,9 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-  useGetListing, getGetListingQueryKey, useCreateInquiry,
+  useGetListing, getGetListingQueryKey,
   useGetListingDocuments, getGetListingDocumentsQueryKey,
+  useCreateConversation,
 } from "@workspace/api-client-react";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -62,31 +63,41 @@ export default function ListingDetail() {
   const { data: docsData } = useGetListingDocuments(Number(id), {
     query: { enabled: !!id, queryKey: getGetListingDocumentsQueryKey(Number(id)) },
   });
-  const [inquiryForm, setInquiryForm] = useState({
-    buyerName: "", buyerEmail: "", buyerPhone: "", buyerCompany: "", message: ""
+  const [msgForm, setMsgForm] = useState({
+    buyerName: "", buyerEmail: "", buyerCompany: "", message: "",
   });
-  const [inquirySent, setInquirySent] = useState(false);
+  const [messageSent, setMessageSent] = useState(false);
 
   const { data: listing, isLoading } = useGetListing(Number(id), {
     query: { enabled: !!id, queryKey: getGetListingQueryKey(Number(id)) },
   });
 
-  const inquiryMutation = useCreateInquiry();
+  const convMutation = useCreateConversation();
 
-  const handleInquiry = async (e: React.FormEvent) => {
+  const handleMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!listing) return;
-    inquiryMutation.mutate(
-      { id: listing.id, data: inquiryForm },
+    if (!listing?.sellerId) return;
+    convMutation.mutate(
+      {
+        data: {
+          sellerId: listing.sellerId,
+          listingId: listing.id,
+          buyerName: msgForm.buyerName,
+          buyerEmail: msgForm.buyerEmail,
+          buyerCompany: msgForm.buyerCompany || null,
+          subject: `Re: ${listing.partNumber}`,
+          initialMessage: msgForm.message,
+        },
+      },
       {
         onSuccess: () => {
-          setInquirySent(true);
-          toast({ title: "Inquiry sent", description: "The seller will be in touch shortly." });
+          setMessageSent(true);
+          toast({ title: "Message sent", description: "The seller will respond to your email shortly." });
         },
         onError: () => {
-          toast({ title: "Error", description: "Could not send inquiry. Please try again.", variant: "destructive" });
+          toast({ title: "Error", description: "Could not send message. Please try again.", variant: "destructive" });
         },
-      }
+      },
     );
   };
 
@@ -290,52 +301,48 @@ export default function ListingDetail() {
               </div>
             )}
 
-            {/* Contact Form */}
+            {/* Contact / Message Form */}
             <div className="bg-card border border-border rounded-md p-5">
               <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4 flex items-center gap-2">
-                <Mail className="h-4 w-4" /> Contact Seller
+                <Mail className="h-4 w-4" /> Message Seller
               </h2>
-              {inquirySent ? (
+              {messageSent ? (
                 <div className="text-center py-6">
                   <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-3">
                     <Mail className="h-5 w-5 text-primary" />
                   </div>
-                  <p className="text-white font-medium">Inquiry Sent</p>
-                  <p className="text-sm text-muted-foreground mt-1">The seller will contact you shortly.</p>
+                  <p className="text-white font-medium">Message Sent</p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    The seller will reply to your email shortly.
+                  </p>
                 </div>
               ) : (
-                <form onSubmit={handleInquiry} className="space-y-3">
+                <form onSubmit={handleMessage} className="space-y-3">
                   <Input
                     placeholder="Your Name *"
-                    value={inquiryForm.buyerName}
-                    onChange={e => setInquiryForm(f => ({ ...f, buyerName: e.target.value }))}
+                    value={msgForm.buyerName}
+                    onChange={e => setMsgForm(f => ({ ...f, buyerName: e.target.value }))}
                     required
                     className="text-sm"
                   />
                   <Input
                     type="email"
                     placeholder="Email Address *"
-                    value={inquiryForm.buyerEmail}
-                    onChange={e => setInquiryForm(f => ({ ...f, buyerEmail: e.target.value }))}
+                    value={msgForm.buyerEmail}
+                    onChange={e => setMsgForm(f => ({ ...f, buyerEmail: e.target.value }))}
                     required
                     className="text-sm"
                   />
                   <Input
-                    placeholder="Phone Number"
-                    value={inquiryForm.buyerPhone}
-                    onChange={e => setInquiryForm(f => ({ ...f, buyerPhone: e.target.value }))}
-                    className="text-sm"
-                  />
-                  <Input
                     placeholder="Company Name"
-                    value={inquiryForm.buyerCompany}
-                    onChange={e => setInquiryForm(f => ({ ...f, buyerCompany: e.target.value }))}
+                    value={msgForm.buyerCompany}
+                    onChange={e => setMsgForm(f => ({ ...f, buyerCompany: e.target.value }))}
                     className="text-sm"
                   />
                   <Textarea
                     placeholder="Your message — include any technical requirements, quantity, or delivery schedule..."
-                    value={inquiryForm.message}
-                    onChange={e => setInquiryForm(f => ({ ...f, message: e.target.value }))}
+                    value={msgForm.message}
+                    onChange={e => setMsgForm(f => ({ ...f, message: e.target.value }))}
                     required
                     rows={4}
                     className="text-sm resize-none"
@@ -343,12 +350,12 @@ export default function ListingDetail() {
                   <Button
                     type="submit"
                     className="w-full"
-                    disabled={inquiryMutation.isPending}
+                    disabled={convMutation.isPending}
                   >
-                    {inquiryMutation.isPending ? "Sending..." : "Send Inquiry"}
+                    {convMutation.isPending ? "Sending..." : "Send Message"}
                   </Button>
                   <p className="text-xs text-muted-foreground text-center">
-                    Your contact details are shared only with this seller.
+                    Your details are shared only with this verified seller.
                   </p>
                 </form>
               )}

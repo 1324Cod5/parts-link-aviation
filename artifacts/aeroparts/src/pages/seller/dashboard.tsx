@@ -1,7 +1,9 @@
+import { useState } from "react";
 import { Link, useLocation } from "wouter";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Textarea } from "@/components/ui/textarea";
 import { BadgeIndicator } from "@/components/ui/badge-indicator";
 import {
   useGetSellerListings, getGetSellerListingsQueryKey,
@@ -10,12 +12,99 @@ import {
   useGetMyMroProfile, getGetMyMroProfileQueryKey,
   useDeleteListing,
   useGetAogActiveRfqs, getGetAogActiveRfqsQueryKey,
+  useGetConversations, getGetConversationsQueryKey,
+  useGetConversationMessages, getGetConversationMessagesQueryKey,
+  useSendMessage,
+  getGetConversationsUnreadCountQueryKey,
 } from "@workspace/api-client-react";
 import { useAuth } from "@/context/AuthContext";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Edit2, Trash2, Package, FileCheck2, MessageSquare, ShieldCheck, Zap, Building2, AlertTriangle, ClipboardList, Wrench, Shield, FileSpreadsheet, Lock, Radio, ArrowRight, Clock } from "lucide-react";
 import { TrustBadge, TrustScoreBar, TRUST_BADGE_META } from "@/components/ui/trust-badge";
+
+// ─── Conversation Thread Sub-Component ────────────────────────────────────────
+
+function ConversationThread({ id, onReplied }: { id: number; onReplied?: () => void }) {
+  const [reply, setReply] = useState("");
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  const { data, isLoading, refetch } = useGetConversationMessages(id, {
+    query: { queryKey: getGetConversationMessagesQueryKey(id) },
+  });
+
+  const sendMutation = useSendMessage();
+
+  const handleReply = () => {
+    if (!reply.trim()) return;
+    sendMutation.mutate(
+      { id, data: { content: reply } },
+      {
+        onSuccess: () => {
+          setReply("");
+          void refetch();
+          void queryClient.invalidateQueries({ queryKey: getGetConversationsUnreadCountQueryKey() });
+          onReplied?.();
+        },
+        onError: () => toast({ title: "Failed to send reply", variant: "destructive" }),
+      },
+    );
+  };
+
+  if (isLoading) {
+    return (
+      <div className="p-4 bg-secondary/10 border-t border-border/30">
+        <Skeleton className="h-24 w-full" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-secondary/10 border-t border-border/30">
+      {/* Messages */}
+      <div className="max-h-72 overflow-y-auto p-4 space-y-3">
+        {data?.messages.length === 0 && (
+          <p className="text-xs text-muted-foreground text-center">No messages yet.</p>
+        )}
+        {data?.messages.map(msg => (
+          <div key={msg.id} className={`flex ${msg.senderType === "seller" ? "justify-end" : "justify-start"}`}>
+            <div className={`max-w-[80%] rounded p-2.5 text-sm ${
+              msg.senderType === "seller"
+                ? "bg-primary/20 border border-primary/30"
+                : "bg-card border border-border"
+            }`}>
+              <p className="text-[10px] text-muted-foreground mb-1">
+                {msg.senderType === "buyer" ? "Buyer" : "You"} · {new Date(msg.createdAt).toLocaleDateString()}
+              </p>
+              <p className="text-white/90 leading-relaxed whitespace-pre-wrap">{msg.content}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Reply box */}
+      <div className="px-4 pb-4 flex gap-2 border-t border-border/20 pt-3">
+        <Textarea
+          value={reply}
+          onChange={e => setReply(e.target.value)}
+          placeholder="Write your reply…"
+          rows={2}
+          className="text-sm resize-none flex-1"
+          onKeyDown={e => { if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) handleReply(); }}
+        />
+        <Button
+          onClick={handleReply}
+          disabled={!reply.trim() || sendMutation.isPending}
+          size="sm"
+          className="self-end h-9 px-4"
+        >
+          {sendMutation.isPending ? "Sending…" : "Send"}
+        </Button>
+      </div>
+    </div>
+  );
+}
 
 function formatPrice(price: number | null) {
   if (price == null) return "POA";
@@ -72,6 +161,14 @@ export default function SellerDashboard() {
     query: { queryKey: getGetAogActiveRfqsQueryKey(), refetchInterval: 60_000, retry: false },
   });
   const aogRfqs = aogData?.rfqs ?? [];
+
+  // Conversations — poll every 60 s for new messages
+  const { data: convsData, isLoading: convsLoading } = useGetConversations({
+    query: { queryKey: getGetConversationsQueryKey(), refetchInterval: 60_000, retry: false },
+  });
+  const convs = convsData?.conversations ?? [];
+  const totalUnread = convs.reduce((s, c) => s + (c.unreadCount ?? 0), 0);
+  const [openConvId, setOpenConvId] = useState<number | null>(null);
 
   const handleDelete = (id: number, partNumber: string) => {
     if (!confirm(`Delete listing ${partNumber}? This cannot be undone.`)) return;
@@ -446,6 +543,87 @@ export default function SellerDashboard() {
                 List MRO Services
               </Button>
             </Link>
+          )}
+        </div>
+
+        {/* ─── Messages / Conversations Panel ─────────────────────────── */}
+        <div className="bg-card border border-border rounded-md mb-6">
+          <div className="p-5 border-b border-border flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <MessageSquare className="h-4 w-4 text-muted-foreground" />
+              <h2 className="font-semibold text-white">Messages</h2>
+              {totalUnread > 0 && (
+                <span className="h-5 min-w-[1.25rem] flex items-center justify-center rounded-full bg-blue-500 text-[10px] font-bold text-white px-1">
+                  {totalUnread > 99 ? "99+" : totalUnread}
+                </span>
+              )}
+            </div>
+            <span className="text-sm text-muted-foreground">
+              {convs.length} conversation{convs.length !== 1 ? "s" : ""}
+            </span>
+          </div>
+
+          {convsLoading ? (
+            <div className="p-5 space-y-3">
+              {Array.from({ length: 2 }).map((_, i) => <Skeleton key={i} className="h-14 w-full" />)}
+            </div>
+          ) : convs.length === 0 ? (
+            <div className="p-8 text-center">
+              <MessageSquare className="h-8 w-8 text-muted-foreground/30 mx-auto mb-2" />
+              <p className="text-muted-foreground text-sm">
+                No messages yet. Buyers can contact you from your listings.
+              </p>
+            </div>
+          ) : (
+            <div className="divide-y divide-border/50">
+              {convs.map(conv => (
+                <div key={conv.id}>
+                  <button
+                    className="w-full text-left px-5 py-4 hover:bg-secondary/20 transition-colors flex items-start gap-3"
+                    onClick={() => setOpenConvId(openConvId === conv.id ? null : conv.id)}
+                  >
+                    <div className={`mt-1.5 flex-shrink-0 h-2 w-2 rounded-full ${(conv.unreadCount ?? 0) > 0 ? "bg-blue-500" : "bg-transparent border border-border"}`} />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-0.5">
+                        <span className="font-medium text-white text-sm">{conv.buyerName}</span>
+                        {conv.buyerCompany && (
+                          <span className="text-xs text-muted-foreground">· {conv.buyerCompany}</span>
+                        )}
+                        {(conv.unreadCount ?? 0) > 0 && (
+                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-blue-500/20 text-blue-400">
+                            {conv.unreadCount} new
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-muted-foreground font-mono truncate">
+                        {conv.subject ?? "(no subject)"}
+                      </p>
+                      {conv.lastMessage && (
+                        <p className="text-xs text-muted-foreground/60 truncate mt-0.5">{conv.lastMessage}</p>
+                      )}
+                      {plan === "free" && (
+                        <p className="text-xs text-amber-400/80 mt-1 flex items-center gap-1">
+                          <Lock className="h-2.5 w-2.5" /> Upgrade to see buyer email
+                        </p>
+                      )}
+                      {conv.buyerEmail && plan !== "free" && (
+                        <p className="text-xs text-muted-foreground/60 mt-0.5">{conv.buyerEmail}</p>
+                      )}
+                    </div>
+                    <div className="flex-shrink-0 text-xs text-muted-foreground/60 whitespace-nowrap">
+                      {new Date(conv.updatedAt).toLocaleDateString()}
+                    </div>
+                  </button>
+
+                  {openConvId === conv.id && (
+                    <ConversationThread
+                      id={conv.id}
+                      onReplied={() => queryClient.invalidateQueries({ queryKey: getGetConversationsQueryKey() })}
+                    />
+                  )}
+                </div>
+              ))}
+            </div>
           )}
         </div>
 

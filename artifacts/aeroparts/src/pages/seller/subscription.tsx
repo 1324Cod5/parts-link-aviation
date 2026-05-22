@@ -10,7 +10,7 @@ import {
   useCreatePortalSession,
   useCancelSubscription,
 } from "@workspace/api-client-react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, useQuery, useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import {
   ArrowLeft, Zap, Building2, Package, Check, AlertTriangle,
@@ -64,6 +64,36 @@ export default function SubscriptionManagement() {
       },
     });
   };
+
+  const NOTIF_KEY = ["seller-msg-notif-prefs"] as const;
+  const { data: notifData, isLoading: notifLoading } = useQuery({
+    queryKey: NOTIF_KEY,
+    queryFn: async () => {
+      const res = await fetch("/api/seller/notifications/message-alerts", { credentials: "include" });
+      if (!res.ok) return { emailOnMessage: true };
+      return res.json() as Promise<{ emailOnMessage: boolean }>;
+    },
+    enabled: !!user,
+  });
+  const emailOnMessage = notifData?.emailOnMessage ?? true;
+
+  const notifMutation = useMutation({
+    mutationFn: async (value: boolean) => {
+      const res = await fetch("/api/seller/notifications/message-alerts", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ emailOnMessage: value }),
+      });
+      if (!res.ok) throw new Error("Failed to update");
+      return res.json();
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: NOTIF_KEY });
+      toast({ title: "Notification preference saved" });
+    },
+    onError: () => toast({ title: "Failed to save preference", variant: "destructive" }),
+  });
 
   const handleCancel = () => {
     if (!confirm("Cancel your subscription? You'll keep access until the end of the current billing period.")) return;
@@ -305,6 +335,37 @@ export default function SubscriptionManagement() {
             </Link>
           </div>
         )}
+        {/* Notification Settings */}
+        <div className="bg-card border border-border rounded-md p-6 mb-5">
+          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">
+            Notification Settings
+          </h2>
+          {notifLoading ? (
+            <Skeleton className="h-10 w-full" />
+          ) : (
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <p className="text-white text-sm font-medium">Email on new message</p>
+                <p className="text-muted-foreground text-xs mt-0.5">
+                  Receive an email alert when a buyer sends you a message
+                </p>
+              </div>
+              <button
+                onClick={() => notifMutation.mutate(!emailOnMessage)}
+                disabled={notifMutation.isPending}
+                aria-label={emailOnMessage ? "Disable email on message" : "Enable email on message"}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background ${
+                  emailOnMessage ? "bg-primary" : "bg-secondary border border-border"
+                }`}
+              >
+                <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                  emailOnMessage ? "translate-x-6" : "translate-x-1"
+                }`} />
+              </button>
+            </div>
+          )}
+        </div>
+
       </div>
     </MainLayout>
   );

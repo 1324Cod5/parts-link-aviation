@@ -1,10 +1,24 @@
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
+import {
+  useGetConversationsUnreadCount,
+  getGetConversationsUnreadCountQueryKey,
+} from "@workspace/api-client-react";
 
 export function Navbar() {
   const { user, logout } = useAuth();
   const [location] = useLocation();
+
+  const { data: unreadData } = useGetConversationsUnreadCount({
+    query: {
+      queryKey: getGetConversationsUnreadCountQueryKey(),
+      enabled: !!user && user.role === "seller",
+      refetchInterval: 30_000,
+      retry: false,
+    },
+  });
+  const unreadCount = unreadData?.count ?? 0;
 
   return (
     <nav className="border-b border-border bg-background sticky top-0 z-50">
@@ -27,8 +41,13 @@ export function Navbar() {
               Pricing
             </Link>
             {user?.role === 'seller' && (
-              <Link href="/seller/dashboard" className={`text-sm font-medium transition-colors hover:text-primary ${location.startsWith('/seller') ? 'text-primary' : 'text-muted-foreground'}`}>
+              <Link href="/seller/dashboard" className={`relative text-sm font-medium transition-colors hover:text-primary ${location.startsWith('/seller') ? 'text-primary' : 'text-muted-foreground'}`}>
                 Dashboard
+                {unreadCount > 0 && (
+                  <span className="absolute -top-2 -right-3.5 h-4 min-w-[1rem] flex items-center justify-center rounded-full bg-blue-500 text-[9px] font-bold text-white px-1 leading-none">
+                    {unreadCount > 99 ? "99+" : unreadCount}
+                  </span>
+                )}
               </Link>
             )}
             {user?.role === 'admin' && (

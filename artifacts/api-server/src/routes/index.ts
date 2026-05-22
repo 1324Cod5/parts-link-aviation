@@ -13,6 +13,7 @@ import adminInventoryRouter from "./admin-inventory";
 import subscriptionRouter from "./subscription";
 import rfqsRouter from "./rfqs";
 import mroRouter from "./mro";
+import messagesRouter from "./messages";
 import debugRouter from "./debug";
 
 const router: IRouter = Router();
@@ -31,6 +32,7 @@ router.use(adminInventoryRouter);
 router.use(subscriptionRouter);
 router.use(rfqsRouter);
 router.use(mroRouter);
+router.use(messagesRouter);
 router.use(debugRouter);
 
 export default router;

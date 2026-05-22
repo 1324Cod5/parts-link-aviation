@@ -241,6 +241,73 @@ export function certUpdateTemplate(
   return base(content, statusColor);
 }
 
+// ─── New Message Alert (seller notification) ──────────────────────────────────
+
+export interface MessageConversationInfo {
+  id: number;
+  buyerName: string;
+  buyerEmail: string;
+  buyerCompany: string | null;
+  subject: string | null;
+  rfqId: number | null;
+  listingId: number | null;
+}
+
+export function newMessageAlertTemplate(
+  seller: TemplateSeller,
+  conv: MessageConversationInfo,
+  messageContent: string,
+): string {
+  const context = conv.rfqId
+    ? `RFQ #${conv.rfqId}`
+    : conv.listingId
+      ? `Listing #${conv.listingId}`
+      : "General inquiry";
+
+  const content = `
+    <h2 style="margin:0 0 4px;font-size:20px;color:${WHITE};">New Message</h2>
+    <p style="margin:0 0 20px;color:${MUTED};font-size:14px;">A buyer has sent you a message on AeroParts Marketplace.</p>
+
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:20px;">
+      ${section("From", conv.buyerName)}
+      ${conv.buyerCompany ? section("Company", conv.buyerCompany) : ""}
+      ${section("Re", context)}
+      ${conv.subject ? section("Subject", conv.subject) : ""}
+    </table>
+
+    <div style="background:${CARD};border:1px solid ${BORDER};border-radius:6px;padding:16px;margin-bottom:24px;">
+      <p style="margin:0 0 8px;font-size:11px;text-transform:uppercase;color:${MUTED};letter-spacing:0.05em;">Message</p>
+      <p style="margin:0;color:${WHITE};font-size:14px;line-height:1.6;">${messageContent.replace(/\n/g, "<br>")}</p>
+    </div>
+
+    ${cta("View & Reply →", "https://aeroparts.app/seller/dashboard", BLUE)}
+  `;
+  return base(content, BLUE);
+}
+
+// ─── Seller Reply to Buyer ─────────────────────────────────────────────────────
+
+export function sellerReplyTemplate(
+  buyerName: string,
+  sellerCompany: string,
+  messageContent: string,
+): string {
+  const content = `
+    <h2 style="margin:0 0 4px;font-size:20px;color:${WHITE};">Reply from ${sellerCompany}</h2>
+    <p style="margin:0 0 20px;color:${MUTED};font-size:14px;">The seller has responded to your inquiry on AeroParts Marketplace.</p>
+
+    <div style="background:${CARD};border:1px solid ${BORDER};border-radius:6px;padding:16px;margin-bottom:24px;">
+      <p style="margin:0 0 8px;font-size:11px;text-transform:uppercase;color:${MUTED};letter-spacing:0.05em;">Message from ${sellerCompany}</p>
+      <p style="margin:0;color:${WHITE};font-size:14px;line-height:1.6;">${messageContent.replace(/\n/g, "<br>")}</p>
+    </div>
+
+    <p style="color:${MUTED};font-size:12px;text-align:center;margin:0;">
+      This message was sent via AeroParts Marketplace in response to your inquiry.
+    </p>
+  `;
+  return base(content, BLUE);
+}
+
 // ─── AOG Phased Escalation Alert ──────────────────────────────────────────────
 
 interface AogPhaseConfig {

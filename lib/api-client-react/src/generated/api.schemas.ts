@@ -1424,6 +1424,111 @@ export interface AogActiveRfqsResponse {
   rfqs: AogActiveRfq[];
 }
 
+export interface ConversationSummary {
+  id: number;
+  /** @nullable */
+  rfqId?: number | null;
+  /** @nullable */
+  listingId?: number | null;
+  sellerId: number;
+  buyerName: string;
+  /** @nullable */
+  buyerEmail?: string | null;
+  /** @nullable */
+  buyerCompany?: string | null;
+  /** @nullable */
+  subject: string | null;
+  isResolved: boolean;
+  unreadCount: number;
+  /** @nullable */
+  lastMessage?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ConversationDetail {
+  id: number;
+  /** @nullable */
+  rfqId?: number | null;
+  /** @nullable */
+  listingId?: number | null;
+  sellerId: number;
+  buyerName: string;
+  /** @nullable */
+  buyerEmail?: string | null;
+  /** @nullable */
+  buyerCompany?: string | null;
+  /** @nullable */
+  subject?: string | null;
+  isResolved: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type ConversationMessageSenderType = typeof ConversationMessageSenderType[keyof typeof ConversationMessageSenderType];
+
+
+export const ConversationMessageSenderType = {
+  buyer: 'buyer',
+  seller: 'seller',
+} as const;
+
+export interface ConversationMessage {
+  id: number;
+  conversationId: number;
+  senderType: ConversationMessageSenderType;
+  /** @nullable */
+  senderId?: number | null;
+  content: string;
+  isRead: boolean;
+  createdAt: string;
+}
+
+export interface StartConversationBody {
+  sellerId: number;
+  buyerName: string;
+  buyerEmail: string;
+  /** @nullable */
+  buyerCompany?: string | null;
+  /** @nullable */
+  rfqId?: number | null;
+  /** @nullable */
+  listingId?: number | null;
+  /** @nullable */
+  subject?: string | null;
+  /** @minLength 1 */
+  initialMessage: string;
+}
+
+export interface CreateConversationResponse {
+  conversation: ConversationDetail;
+  message: ConversationMessage;
+}
+
+export interface ConversationsResponse {
+  conversations: ConversationSummary[];
+}
+
+export interface ConversationMessagesResponse {
+  conversation: ConversationDetail;
+  messages: ConversationMessage[];
+}
+
+export interface PostMessageBody {
+  /** @minLength 1 */
+  content: string;
+  /** @nullable */
+  buyerEmail?: string | null;
+}
+
+export interface SendMessageResponse {
+  message: ConversationMessage;
+}
+
+export interface UnreadCountResponse {
+  count: number;
+}
+
 export type ListingAuditLogMetadata = { [key: string]: unknown } | null;
 
 export type ListingAuditLogAdmin = {

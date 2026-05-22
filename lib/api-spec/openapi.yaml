@@ -1015,6 +1015,128 @@ paths:
         "403":
           description: Forbidden — Pro or Enterprise plan required
 
+  /conversations:
+    post:
+      operationId: createConversation
+      tags: [conversations]
+      summary: Create a new buyer-seller conversation (no auth required — buyer-initiated)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StartConversationBody"
+      responses:
+        "201":
+          description: Conversation created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreateConversationResponse"
+        "400":
+          description: Bad request
+        "404":
+          description: Seller not found
+    get:
+      operationId: getConversations
+      tags: [conversations]
+      summary: Get all conversations for the authenticated seller
+      responses:
+        "200":
+          description: Conversations list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ConversationsResponse"
+        "401":
+          description: Unauthorized
+
+  /conversations/unread-count:
+    get:
+      operationId: getConversationsUnreadCount
+      tags: [conversations]
+      summary: Get unread message count for authenticated seller
+      responses:
+        "200":
+          description: Unread count
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UnreadCountResponse"
+        "401":
+          description: Unauthorized
+
+  /conversations/{id}/messages:
+    get:
+      operationId: getConversationMessages
+      tags: [conversations]
+      summary: Get messages in a conversation (seller auth required)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Messages in conversation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ConversationMessagesResponse"
+        "401":
+          description: Unauthorized
+        "404":
+          description: Not found
+    post:
+      operationId: sendMessage
+      tags: [conversations]
+      summary: Send a message in a conversation (seller auth or buyer email verification)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PostMessageBody"
+      responses:
+        "201":
+          description: Message sent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SendMessageResponse"
+        "400":
+          description: Bad request
+        "403":
+          description: Forbidden
+        "404":
+          description: Not found
+
+  /conversations/{id}/read:
+    patch:
+      operationId: markConversationRead
+      tags: [conversations]
+      summary: Mark all buyer messages in a conversation as read
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+        "401":
+          description: Unauthorized
+        "404":
+          description: Not found
+
   /seller/rfqs:
     get:
       operationId: getSellerRfqStats
@@ -3208,6 +3330,165 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/AogActiveRfq"
+
+    ConversationSummary:
+      type: object
+      required: [id, sellerId, buyerName, subject, isResolved, unreadCount, createdAt, updatedAt]
+      properties:
+        id:
+          type: integer
+        rfqId:
+          type: ["integer", "null"]
+        listingId:
+          type: ["integer", "null"]
+        sellerId:
+          type: integer
+        buyerName:
+          type: string
+        buyerEmail:
+          type: ["string", "null"]
+        buyerCompany:
+          type: ["string", "null"]
+        subject:
+          type: ["string", "null"]
+        isResolved:
+          type: boolean
+        unreadCount:
+          type: integer
+        lastMessage:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    ConversationDetail:
+      type: object
+      required: [id, sellerId, buyerName, isResolved, createdAt, updatedAt]
+      properties:
+        id:
+          type: integer
+        rfqId:
+          type: ["integer", "null"]
+        listingId:
+          type: ["integer", "null"]
+        sellerId:
+          type: integer
+        buyerName:
+          type: string
+        buyerEmail:
+          type: ["string", "null"]
+        buyerCompany:
+          type: ["string", "null"]
+        subject:
+          type: ["string", "null"]
+        isResolved:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    ConversationMessage:
+      type: object
+      required: [id, conversationId, senderType, content, isRead, createdAt]
+      properties:
+        id:
+          type: integer
+        conversationId:
+          type: integer
+        senderType:
+          type: string
+          enum: [buyer, seller]
+        senderId:
+          type: ["integer", "null"]
+        content:
+          type: string
+        isRead:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+
+    StartConversationBody:
+      type: object
+      required: [sellerId, buyerName, buyerEmail, initialMessage]
+      properties:
+        sellerId:
+          type: integer
+        buyerName:
+          type: string
+        buyerEmail:
+          type: string
+          format: email
+        buyerCompany:
+          type: ["string", "null"]
+        rfqId:
+          type: ["integer", "null"]
+        listingId:
+          type: ["integer", "null"]
+        subject:
+          type: ["string", "null"]
+        initialMessage:
+          type: string
+          minLength: 1
+
+    CreateConversationResponse:
+      type: object
+      required: [conversation, message]
+      properties:
+        conversation:
+          $ref: "#/components/schemas/ConversationDetail"
+        message:
+          $ref: "#/components/schemas/ConversationMessage"
+
+    ConversationsResponse:
+      type: object
+      required: [conversations]
+      properties:
+        conversations:
+          type: array
+          items:
+            $ref: "#/components/schemas/ConversationSummary"
+
+    ConversationMessagesResponse:
+      type: object
+      required: [conversation, messages]
+      properties:
+        conversation:
+          $ref: "#/components/schemas/ConversationDetail"
+        messages:
+          type: array
+          items:
+            $ref: "#/components/schemas/ConversationMessage"
+
+    PostMessageBody:
+      type: object
+      required: [content]
+      properties:
+        content:
+          type: string
+          minLength: 1
+        buyerEmail:
+          type: ["string", "null"]
+
+    SendMessageResponse:
+      type: object
+      required: [message]
+      properties:
+        message:
+          $ref: "#/components/schemas/ConversationMessage"
+
+    UnreadCountResponse:
+      type: object
+      required: [count]
+      properties:
+        count:
+          type: integer
 
     ListingAuditLog:
       type: object

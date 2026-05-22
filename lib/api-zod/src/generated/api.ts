@@ -1236,6 +1236,111 @@ export const GetAogActiveRfqsResponse = zod.object({
 
 
 /**
+ * @summary Create a new buyer-seller conversation (no auth required — buyer-initiated)
+ */
+
+
+
+export const CreateConversationBody = zod.object({
+  "sellerId": zod.number(),
+  "buyerName": zod.string(),
+  "buyerEmail": zod.string().email(),
+  "buyerCompany": zod.string().nullish(),
+  "rfqId": zod.number().nullish(),
+  "listingId": zod.number().nullish(),
+  "subject": zod.string().nullish(),
+  "initialMessage": zod.string().min(1)
+})
+
+
+/**
+ * @summary Get all conversations for the authenticated seller
+ */
+export const GetConversationsResponse = zod.object({
+  "conversations": zod.array(zod.object({
+  "id": zod.number(),
+  "rfqId": zod.number().nullish(),
+  "listingId": zod.number().nullish(),
+  "sellerId": zod.number(),
+  "buyerName": zod.string(),
+  "buyerEmail": zod.string().nullish(),
+  "buyerCompany": zod.string().nullish(),
+  "subject": zod.string().nullable(),
+  "isResolved": zod.boolean(),
+  "unreadCount": zod.number(),
+  "lastMessage": zod.string().nullish(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+}))
+})
+
+
+/**
+ * @summary Get unread message count for authenticated seller
+ */
+export const GetConversationsUnreadCountResponse = zod.object({
+  "count": zod.number()
+})
+
+
+/**
+ * @summary Get messages in a conversation (seller auth required)
+ */
+export const GetConversationMessagesParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const GetConversationMessagesResponse = zod.object({
+  "conversation": zod.object({
+  "id": zod.number(),
+  "rfqId": zod.number().nullish(),
+  "listingId": zod.number().nullish(),
+  "sellerId": zod.number(),
+  "buyerName": zod.string(),
+  "buyerEmail": zod.string().nullish(),
+  "buyerCompany": zod.string().nullish(),
+  "subject": zod.string().nullish(),
+  "isResolved": zod.boolean(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+}),
+  "messages": zod.array(zod.object({
+  "id": zod.number(),
+  "conversationId": zod.number(),
+  "senderType": zod.enum(['buyer', 'seller']),
+  "senderId": zod.number().nullish(),
+  "content": zod.string(),
+  "isRead": zod.boolean(),
+  "createdAt": zod.coerce.date()
+}))
+})
+
+
+/**
+ * @summary Send a message in a conversation (seller auth or buyer email verification)
+ */
+export const SendMessageParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+
+
+
+export const SendMessageBody = zod.object({
+  "content": zod.string().min(1),
+  "buyerEmail": zod.string().nullish()
+})
+
+
+/**
+ * @summary Mark all buyer messages in a conversation as read
+ */
+export const MarkConversationReadParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+
+/**
  * @summary Get RFQ summary stats for seller dashboard
  */
 export const GetSellerRfqStatsResponse = zod.object({

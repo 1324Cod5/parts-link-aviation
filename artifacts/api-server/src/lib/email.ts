@@ -12,10 +12,13 @@ import {
   rfqAlertTemplate,
   aogAlertTemplate,
   aogPhaseAlertTemplate,
+  newMessageAlertTemplate,
+  sellerReplyTemplate,
   quoteAwardedTemplate,
   certUpdateTemplate,
   dailyDigestTemplate,
   type DigestData,
+  type MessageConversationInfo,
 } from "./emailTemplates";
 
 // ─── Client ───────────────────────────────────────────────────────────────────
@@ -220,6 +223,57 @@ export async function sendAogPhaseAlert(
     );
     await send(s.email, subject, html);
   }
+}
+
+// ─── Messaging alerts ────────────────────────────────────────────────────────
+
+/**
+ * Notify a seller when a buyer sends them a new message.
+ * Respects the seller's emailOnMessage notification preference.
+ */
+export async function sendNewMessageAlert(
+  sellerId: number,
+  conv: MessageConversationInfo,
+  messageContent: string,
+): Promise<void> {
+  const [seller] = await db
+    .select({
+      id:           usersTable.id,
+      email:        usersTable.email,
+      contactName:  usersTable.contactName,
+      companyName:  usersTable.companyName,
+      emailEnabled: notificationPreferencesTable.emailEnabled,
+      emailOnMessage: notificationPreferencesTable.emailOnMessage,
+    })
+    .from(usersTable)
+    .leftJoin(notificationPreferencesTable, eq(notificationPreferencesTable.userId, usersTable.id))
+    .where(eq(usersTable.id, sellerId));
+
+  if (!seller) return;
+  if (seller.emailEnabled === false || seller.emailOnMessage === false) return;
+
+  const subject = conv.subject
+    ? `New message: ${conv.subject}`
+    : `New message from ${conv.buyerName}`;
+
+  const html = newMessageAlertTemplate(
+    { id: seller.id, email: seller.email, contactName: seller.contactName, companyName: seller.companyName },
+    conv,
+    messageContent,
+  );
+  await send(seller.email, subject, html);
+}
+
+/**
+ * Notify a buyer when the seller replies to their message.
+ */
+export async function sendBuyerReplyAlert(
+  conv: MessageConversationInfo,
+  messageContent: string,
+  sellerCompany: string,
+): Promise<void> {
+  const html = sellerReplyTemplate(conv.buyerName, sellerCompany, messageContent);
+  await send(conv.buyerEmail, `Reply from ${sellerCompany} — AeroParts`, html);
 }
 
 export interface QuoteAwardedPayload {
