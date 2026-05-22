@@ -16,6 +16,7 @@ import mroRouter from "./mro";
 import messagesRouter from "./messages";
 import debugRouter from "./debug";
 import intelligenceRouter from "./intelligence";
+import vendorVerificationRouter from "./vendor-verification";
 
 const router: IRouter = Router();
 
@@ -35,6 +36,7 @@ router.use(rfqsRouter);
 router.use(mroRouter);
 router.use(messagesRouter);
 router.use(intelligenceRouter);
+router.use(vendorVerificationRouter);
 router.use(debugRouter);
 
 export default router;

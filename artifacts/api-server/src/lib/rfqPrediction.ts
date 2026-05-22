@@ -9,6 +9,7 @@ export interface PredictedSeller {
   companyName: string;
   email: string;
   plan: string;
+  sellerType: string;
   trustScore: number;
   trustBadge: string;
   predictedScore: number;
@@ -19,6 +20,7 @@ export interface PredictedSeller {
     responseSpeedPoints: number;
     planTierPoints: number;
     inventoryMatchBonus: number;
+    verifiedVendorBonus: number;
   };
   winRate: number;
   totalQuotes: number;
@@ -90,6 +92,7 @@ export async function predictRfqWinners(rfqId: number): Promise<RfqPredictionRes
       companyName: usersTable.companyName,
       email: usersTable.email,
       plan: usersTable.plan,
+      sellerType: usersTable.sellerType,
       trustScore: usersTable.trustScore,
       trustBadge: usersTable.trustBadge,
     })
@@ -138,15 +141,16 @@ export async function predictRfqWinners(rfqId: number): Promise<RfqPredictionRes
       avgResponseTimeHours: null, avgQuotedPrice: null, pricingAccuracy: null,
     };
 
-    const trustScorePoints  = Math.round((seller.trustScore / 100) * WEIGHTS.trustScore);
-    const winRatePoints      = Math.round(stats.winRate * WEIGHTS.winRate);
-    const pricingPoints      = Math.round((stats.pricingAccuracy ?? 0.5) * WEIGHTS.pricingAccuracy);
-    const speedPoints        = responseSpeedPoints(stats.avgResponseTimeHours);
-    const planPoints         = PLAN_TIER_SCORE[seller.plan] ?? 0;
-    const inventoryBonus     = sellersWithInventory.has(seller.id) ? 5 : 0;
+    const trustScorePoints    = Math.round((seller.trustScore / 100) * WEIGHTS.trustScore);
+    const winRatePoints        = Math.round(stats.winRate * WEIGHTS.winRate);
+    const pricingPoints        = Math.round((stats.pricingAccuracy ?? 0.5) * WEIGHTS.pricingAccuracy);
+    const speedPoints          = responseSpeedPoints(stats.avgResponseTimeHours);
+    const planPoints           = PLAN_TIER_SCORE[seller.plan] ?? 0;
+    const inventoryBonus       = sellersWithInventory.has(seller.id) ? 5 : 0;
+    const verifiedVendorBonus  = seller.sellerType === "verified_vendor" ? 8 : 0;
 
     const predictedScore = Math.min(100,
-      trustScorePoints + winRatePoints + pricingPoints + speedPoints + planPoints + inventoryBonus
+      trustScorePoints + winRatePoints + pricingPoints + speedPoints + planPoints + inventoryBonus + verifiedVendorBonus
     );
 
     return {
@@ -154,6 +158,7 @@ export async function predictRfqWinners(rfqId: number): Promise<RfqPredictionRes
       companyName: seller.companyName,
       email: seller.email,
       plan: seller.plan,
+      sellerType: seller.sellerType,
       trustScore: seller.trustScore,
       trustBadge: seller.trustBadge,
       predictedScore,
@@ -164,6 +169,7 @@ export async function predictRfqWinners(rfqId: number): Promise<RfqPredictionRes
         responseSpeedPoints: speedPoints,
         planTierPoints: planPoints,
         inventoryMatchBonus: inventoryBonus,
+        verifiedVendorBonus,
       },
       winRate: stats.winRate,
       totalQuotes: stats.totalQuotes,

@@ -4,6 +4,8 @@ import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
 export const userRoleEnum = pgEnum("user_role", ["buyer", "seller", "admin", "super_admin"]);
+export const sellerTypeEnum = pgEnum("seller_type", ["private", "verified_vendor"]);
+export const vendorVerifStatusEnum = pgEnum("vendor_verif_status", ["pending", "approved", "rejected"]);
 export const userPlanEnum = pgEnum("user_plan", ["free", "pro", "enterprise", "mro_verified", "mro_premium"]);
 export const userStatusEnum = pgEnum("user_status", ["active", "suspended"]);
 export const subscriptionStatusEnum = pgEnum("subscription_status", [
@@ -25,6 +27,7 @@ export const usersTable = pgTable("users", {
   contactName: text("contact_name").notNull(),
   phone: text("phone"),
   country: text("country"),
+  sellerType: sellerTypeEnum("seller_type").notNull().default("private"),
   plan: userPlanEnum("plan").notNull().default("free"),
   planExpiresAt: timestamp("plan_expires_at"),
   status: userStatusEnum("status").notNull().default("active"),
@@ -52,3 +55,18 @@ export const usersTable = pgTable("users", {
 export const insertUserSchema = createInsertSchema(usersTable).omit({ id: true, createdAt: true, updatedAt: true });
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof usersTable.$inferSelect;
+
+export const vendorVerificationRequestsTable = pgTable("vendor_verification_requests", {
+  id: serial("id").primaryKey(),
+  sellerId: integer("seller_id").notNull().references(() => usersTable.id),
+  status: vendorVerifStatusEnum("status").notNull().default("pending"),
+  certificationUrl: text("certification_url"),
+  businessName: text("business_name"),
+  notes: text("notes"),
+  reviewedBy: integer("reviewed_by"),
+  reviewNote: text("review_note"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  reviewedAt: timestamp("reviewed_at"),
+});
+
+export type VendorVerificationRequest = typeof vendorVerificationRequestsTable.$inferSelect;

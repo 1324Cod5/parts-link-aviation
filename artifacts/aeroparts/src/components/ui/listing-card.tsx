@@ -2,6 +2,7 @@ import { Link } from "wouter";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { BadgeIndicator } from "./badge-indicator";
 import { TrustBadge } from "./trust-badge";
+import { SellerTypeBadge } from "./seller-type-badge";
 import type { Listing } from "@workspace/api-client-react";
 
 interface ListingCardProps {
@@ -73,7 +74,8 @@ export function ListingCard({ listing }: ListingCardProps) {
           <div className="font-mono font-medium text-primary">
             {formatPrice(listing.price)}
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap justify-end">
+            <SellerTypeBadge sellerType={(listing.seller as any)?.sellerType} />
             {listing.seller?.trustBadge && listing.seller.trustBadge !== "unverified" && (
               <TrustBadge badge={listing.seller.trustBadge} />
             )}

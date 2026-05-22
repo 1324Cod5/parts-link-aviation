@@ -35,6 +35,9 @@ import {
   useAdminSuspendSellerIntelligence,
   useGetAdminRfqPredictions, getGetAdminRfqPredictionsQueryKey,
   useGetAdminDemandReport, getGetAdminDemandReportQueryKey,
+  useGetAdminVendorVerifications, getGetAdminVendorVerificationsQueryKey,
+  useAdminApproveVendorVerification,
+  useAdminRejectVendorVerification,
 } from "@workspace/api-client-react";
 import { useAuth } from "@/context/AuthContext";
 import { useQueryClient } from "@tanstack/react-query";
@@ -48,6 +51,7 @@ import {
   ChevronDown, MoreVertical, History,
   Boxes, Plus, Pencil, Trash2, Ban, RefreshCw, ChevronLeft, ChevronRight as ChevronRightIcon,
   Brain, ShieldX, Zap, Activity, Radar, TrendingDown, CircleDot, FlameKindling,
+  BadgeCheck, UserX, FileCheck, Store,
 } from "lucide-react";
 
 // ─── helpers ────────────────────────────────────────────────────────────────
@@ -89,7 +93,7 @@ const BADGE_META: Record<string, { label: string; color: string }> = {
 
 // ─── navigation ─────────────────────────────────────────────────────────────
 
-type Section = "overview" | "sellers" | "listings" | "certifications" | "billing" | "mro" | "rfqs" | "trust" | "analytics" | "disputes" | "inventory" | "intelligence";
+type Section = "overview" | "sellers" | "listings" | "certifications" | "billing" | "mro" | "rfqs" | "trust" | "analytics" | "disputes" | "inventory" | "intelligence" | "vendors";
 
 const NAV: { id: Section; label: string; icon: React.ElementType }[] = [
   { id: "overview",        label: "Overview",               icon: LayoutDashboard },
@@ -104,6 +108,7 @@ const NAV: { id: Section; label: string; icon: React.ElementType }[] = [
   { id: "analytics",       label: "Platform Analytics",     icon: BarChart2 },
   { id: "disputes",        label: "Dispute Resolution",     icon: AlertTriangle },
   { id: "intelligence",    label: "Market Intelligence",    icon: Brain },
+  { id: "vendors",         label: "Vendor Verification",    icon: ShieldCheck },
 ];
 
 // ─── stat card ──────────────────────────────────────────────────────────────
@@ -2740,6 +2745,220 @@ function IntelligenceSection() {
   );
 }
 
+// ─── section: vendor verification ───────────────────────────────────────────
+
+function VendorVerificationSection() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  const [reviewNote, setReviewNote] = useState<Record<number, string>>({});
+  const [expanded, setExpanded] = useState<number | null>(null);
+
+  const { data, isLoading, refetch } = useGetAdminVendorVerifications({
+    query: { queryKey: getGetAdminVendorVerificationsQueryKey() },
+  });
+
+  const approveMutation = useAdminApproveVendorVerification();
+  const rejectMutation = useAdminRejectVendorVerification();
+
+  function handleApprove(id: number) {
+    approveMutation.mutate(
+      { id, data: { reviewNote: reviewNote[id] || undefined } },
+      {
+        onSuccess: () => {
+          toast({ title: "Vendor approved", description: "Seller has been promoted to Verified Vendor." });
+          void queryClient.invalidateQueries({ queryKey: getGetAdminVendorVerificationsQueryKey() });
+          setReviewNote(n => { const c = { ...n }; delete c[id]; return c; });
+        },
+        onError: () => toast({ title: "Failed to approve", variant: "destructive" }),
+      },
+    );
+  }
+
+  function handleReject(id: number) {
+    if (!reviewNote[id]?.trim()) {
+      toast({ title: "Review note required", description: "Please provide a reason for rejection.", variant: "destructive" });
+      return;
+    }
+    rejectMutation.mutate(
+      { id, data: { reviewNote: reviewNote[id] } },
+      {
+        onSuccess: () => {
+          toast({ title: "Request rejected", description: "Seller has been notified." });
+          void queryClient.invalidateQueries({ queryKey: getGetAdminVendorVerificationsQueryKey() });
+          setReviewNote(n => { const c = { ...n }; delete c[id]; return c; });
+        },
+        onError: () => toast({ title: "Failed to reject", variant: "destructive" }),
+      },
+    );
+  }
+
+  const requests = (data as any)?.requests ?? [];
+  const pendingCount = (data as any)?.pendingCount ?? 0;
+
+  const STATUS_STYLE: Record<string, { color: string; bg: string; label: string }> = {
+    pending:  { color: "text-amber-400",  bg: "bg-amber-500/10 border-amber-500/30",  label: "Pending" },
+    approved: { color: "text-emerald-400", bg: "bg-emerald-500/10 border-emerald-500/30", label: "Approved" },
+    rejected: { color: "text-red-400",    bg: "bg-red-500/10 border-red-500/30",      label: "Rejected" },
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-xl font-bold text-white flex items-center gap-2">
+            <BadgeCheck className="h-5 w-5 text-emerald-400" />
+            Vendor Verification Requests
+          </h2>
+          <p className="text-sm text-muted-foreground mt-1">
+            Review and approve sellers applying for Verified Vendor status
+          </p>
+        </div>
+        <div className="flex items-center gap-3">
+          {pendingCount > 0 && (
+            <span className="px-3 py-1 rounded-full text-xs font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30">
+              {pendingCount} pending
+            </span>
+          )}
+          <Button variant="outline" size="sm" onClick={() => refetch()} className="h-8 gap-1.5">
+            <RefreshCw className="h-3.5 w-3.5" /> Refresh
+          </Button>
+        </div>
+      </div>
+
+      {/* Info card */}
+      <div className="bg-card border border-border rounded-lg p-4 flex items-start gap-3">
+        <FileCheck className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+        <div className="text-sm text-muted-foreground">
+          <span className="text-white font-medium">Verified Vendor</span> status gives sellers a green badge on all listings, higher search ranking, and an +8 pt boost in RFQ prediction scoring.
+          Certification URL is submitted by the seller when applying.
+        </div>
+      </div>
+
+      {/* Request list */}
+      {isLoading ? (
+        <div className="space-y-3">
+          {[1, 2, 3].map(i => <Skeleton key={i} className="h-20 w-full" />)}
+        </div>
+      ) : requests.length === 0 ? (
+        <div className="bg-card border border-border rounded-lg p-12 text-center">
+          <Store className="h-10 w-10 text-muted-foreground/30 mx-auto mb-3" />
+          <p className="text-muted-foreground">No verification requests yet.</p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {requests.map((r: any) => {
+            const s = STATUS_STYLE[r.status] ?? STATUS_STYLE.pending;
+            const isOpen = expanded === r.id;
+            return (
+              <div key={r.id} className="bg-card border border-border rounded-lg overflow-hidden">
+                {/* Row header */}
+                <button
+                  className="w-full text-left p-4 flex items-center gap-4 hover:bg-secondary/20 transition-colors"
+                  onClick={() => setExpanded(isOpen ? null : r.id)}
+                >
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-semibold text-white">{r.seller?.companyName ?? `Seller #${r.sellerId}`}</span>
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium border ${s.bg} ${s.color}`}>
+                        {s.label}
+                      </span>
+                      {r.seller?.plan && (
+                        <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-secondary/50 text-muted-foreground">{r.seller.plan}</span>
+                      )}
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-0.5 flex gap-3">
+                      <span>{r.seller?.email}</span>
+                      <span>Applied {new Date(r.createdAt).toLocaleDateString()}</span>
+                      {r.businessName && <span>"{r.businessName}"</span>}
+                    </div>
+                  </div>
+                  <ChevronRightIcon className={`h-4 w-4 text-muted-foreground transition-transform ${isOpen ? "rotate-90" : ""}`} />
+                </button>
+
+                {/* Expanded details */}
+                {isOpen && (
+                  <div className="border-t border-border p-4 space-y-4">
+                    {/* Submission details */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Business Name</p>
+                        <p className="text-white">{r.businessName ?? "—"}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Certification URL</p>
+                        {r.certificationUrl ? (
+                          <a href={r.certificationUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline truncate block font-mono text-xs">
+                            {r.certificationUrl}
+                          </a>
+                        ) : (
+                          <span className="text-muted-foreground">Not provided</span>
+                        )}
+                      </div>
+                      {r.notes && (
+                        <div className="col-span-2">
+                          <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Seller Notes</p>
+                          <p className="text-white/80 text-sm">{r.notes}</p>
+                        </div>
+                      )}
+                      {r.reviewNote && (
+                        <div className="col-span-2">
+                          <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Review Note</p>
+                          <p className="text-white/80 text-sm">{r.reviewNote}</p>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Actions — only for pending */}
+                    {r.status === "pending" && (
+                      <div className="border-t border-border/50 pt-4 space-y-3">
+                        <div>
+                          <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1.5">Review Note (required for rejection)</p>
+                          <textarea
+                            className="w-full rounded-md border border-border bg-secondary/20 text-sm text-white p-2 resize-none focus:outline-none focus:ring-1 focus:ring-primary"
+                            rows={2}
+                            placeholder="Optional note for approval; required for rejection…"
+                            value={reviewNote[r.id] ?? ""}
+                            onChange={e => setReviewNote(n => ({ ...n, [r.id]: e.target.value }))}
+                          />
+                        </div>
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            className="gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white"
+                            onClick={() => handleApprove(r.id)}
+                            disabled={approveMutation.isPending}
+                          >
+                            <BadgeCheck className="h-3.5 w-3.5" /> Approve
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="gap-1.5 border-red-500/50 text-red-400 hover:bg-red-500/10"
+                            onClick={() => handleReject(r.id)}
+                            disabled={rejectMutation.isPending}
+                          >
+                            <UserX className="h-3.5 w-3.5" /> Reject
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                    {r.status !== "pending" && r.reviewedAt && (
+                      <p className="text-xs text-muted-foreground border-t border-border/50 pt-3">
+                        Reviewed on {new Date(r.reviewedAt).toLocaleString()}
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── main admin shell ────────────────────────────────────────────────────────
 
 export default function AdminDashboard() {
@@ -2749,7 +2968,7 @@ export default function AdminDashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { data: stats } = useGetAdminStats({ query: { queryKey: getGetAdminStatsQueryKey() } });
 
-  const VALID_SECTIONS = new Set<string>(["overview", "sellers", "listings", "certifications", "billing", "mro", "rfqs", "trust", "analytics", "disputes", "intelligence"]);
+  const VALID_SECTIONS = new Set<string>(["overview", "sellers", "listings", "certifications", "billing", "mro", "rfqs", "trust", "analytics", "disputes", "intelligence", "vendors"]);
   const section: Section = (sectionParam && VALID_SECTIONS.has(sectionParam) ? sectionParam : "overview") as Section;
 
   function navTo(id: Section) {
@@ -2884,6 +3103,7 @@ export default function AdminDashboard() {
           {section === "analytics"      && <AnalyticsSection />}
           {section === "disputes"       && <DisputesSection />}
           {section === "intelligence"   && <IntelligenceSection />}
+          {section === "vendors"        && <VendorVerificationSection />}
         </main>
       </div>
     </div>

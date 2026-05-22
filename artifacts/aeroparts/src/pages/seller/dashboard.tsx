@@ -21,8 +21,13 @@ import {
 import { useAuth } from "@/context/AuthContext";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Edit2, Trash2, Package, FileCheck2, MessageSquare, ShieldCheck, Zap, Building2, AlertTriangle, ClipboardList, Wrench, Shield, FileSpreadsheet, Lock, Radio, ArrowRight, Clock } from "lucide-react";
+import { Plus, Edit2, Trash2, Package, FileCheck2, MessageSquare, ShieldCheck, Zap, Building2, AlertTriangle, ClipboardList, Wrench, Shield, FileSpreadsheet, Lock, Radio, ArrowRight, Clock, BadgeCheck, Send } from "lucide-react";
 import { TrustBadge, TrustScoreBar, TRUST_BADGE_META } from "@/components/ui/trust-badge";
+import { SellerTypeBadge } from "@/components/ui/seller-type-badge";
+import {
+  useGetSellerVendorVerification, getGetSellerVendorVerificationQueryKey,
+  useSubmitVendorVerification,
+} from "@workspace/api-client-react";
 
 // ─── Conversation Thread Sub-Component ────────────────────────────────────────
 
@@ -174,6 +179,36 @@ export default function SellerDashboard() {
   // Subscription status — must be called before any conditional returns (rules of hooks)
   const { data: subscription } = useGetSubscription({ query: { queryKey: getGetSubscriptionQueryKey(), retry: false } });
 
+  // Vendor verification
+  const { data: verifRequest, isLoading: verifLoading } = useGetSellerVendorVerification({
+    query: { queryKey: getGetSellerVendorVerificationQueryKey(), retry: false },
+  });
+  const submitVerifMutation = useSubmitVendorVerification();
+  const [verifForm, setVerifForm] = useState({ businessName: "", certificationUrl: "", notes: "" });
+  const [showVerifForm, setShowVerifForm] = useState(false);
+
+  const handleSubmitVerif = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!verifForm.businessName.trim()) return;
+    submitVerifMutation.mutate(
+      {
+        data: {
+          businessName: verifForm.businessName,
+          certificationUrl: verifForm.certificationUrl || undefined,
+          notes: verifForm.notes || undefined,
+        },
+      },
+      {
+        onSuccess: () => {
+          toast({ title: "Application submitted", description: "Your vendor verification request is under review." });
+          queryClient.invalidateQueries({ queryKey: getGetSellerVendorVerificationQueryKey() });
+          setShowVerifForm(false);
+        },
+        onError: () => toast({ title: "Failed to submit", variant: "destructive" }),
+      },
+    );
+  };
+
   const handleDelete = (id: number, partNumber: string) => {
     if (!confirm(`Delete listing ${partNumber}? This cannot be undone.`)) return;
     deleteMutation.mutate({ id }, {
@@ -292,6 +327,134 @@ export default function SellerDashboard() {
                 Manage
               </Button>
             </Link>
+          </div>
+        )}
+
+        {/* ─── Vendor Verification Panel ───────────────────────────────── */}
+        {!verifLoading && (
+          <div className={`mb-6 rounded-md border p-4 ${
+            (verifRequest as any)?.status === "approved"
+              ? "border-emerald-500/30 bg-emerald-500/5"
+              : (verifRequest as any)?.status === "rejected"
+                ? "border-red-500/30 bg-red-500/5"
+                : (verifRequest as any)?.status === "pending"
+                  ? "border-amber-500/30 bg-amber-500/5"
+                  : "border-border bg-card"
+          }`}>
+            {/* Approved */}
+            {(verifRequest as any)?.status === "approved" && (
+              <div className="flex items-center gap-3">
+                <BadgeCheck className="h-5 w-5 text-emerald-400 flex-shrink-0" />
+                <div className="flex-1">
+                  <p className="text-sm font-semibold text-emerald-400">Verified Vendor</p>
+                  <p className="text-xs text-emerald-400/70 mt-0.5">Your business is verified. All your listings display the Verified Vendor badge.</p>
+                </div>
+                <SellerTypeBadge sellerType="verified_vendor" />
+              </div>
+            )}
+            {/* Pending */}
+            {(verifRequest as any)?.status === "pending" && (
+              <div className="flex items-center gap-3">
+                <Clock className="h-5 w-5 text-amber-400 flex-shrink-0" />
+                <div>
+                  <p className="text-sm font-semibold text-amber-400">Verification Under Review</p>
+                  <p className="text-xs text-amber-400/70 mt-0.5">Your application is being reviewed by our team. We'll process it shortly.</p>
+                </div>
+              </div>
+            )}
+            {/* Rejected */}
+            {(verifRequest as any)?.status === "rejected" && (
+              <div className="space-y-3">
+                <div className="flex items-start gap-3">
+                  <AlertTriangle className="h-5 w-5 text-red-400 flex-shrink-0 mt-0.5" />
+                  <div className="flex-1">
+                    <p className="text-sm font-semibold text-red-400">Verification Rejected</p>
+                    {(verifRequest as any)?.reviewNote && (
+                      <p className="text-xs text-red-400/70 mt-0.5">Reason: {(verifRequest as any).reviewNote}</p>
+                    )}
+                  </div>
+                  <Button size="sm" variant="outline" className="text-xs border-border h-8" onClick={() => setShowVerifForm(true)}>
+                    Reapply
+                  </Button>
+                </div>
+                {showVerifForm && (
+                  <form onSubmit={handleSubmitVerif} className="border-t border-border/50 pt-3 space-y-2">
+                    <input
+                      className="w-full rounded-md border border-border bg-secondary/20 text-sm text-white px-3 py-2 focus:outline-none focus:ring-1 focus:ring-primary"
+                      placeholder="Business name *"
+                      value={verifForm.businessName}
+                      onChange={e => setVerifForm(f => ({ ...f, businessName: e.target.value }))}
+                      required
+                    />
+                    <input
+                      className="w-full rounded-md border border-border bg-secondary/20 text-sm text-white px-3 py-2 focus:outline-none focus:ring-1 focus:ring-primary"
+                      placeholder="Certification URL (optional)"
+                      value={verifForm.certificationUrl}
+                      onChange={e => setVerifForm(f => ({ ...f, certificationUrl: e.target.value }))}
+                    />
+                    <textarea
+                      className="w-full rounded-md border border-border bg-secondary/20 text-sm text-white px-3 py-2 resize-none focus:outline-none focus:ring-1 focus:ring-primary"
+                      placeholder="Additional notes (optional)"
+                      rows={2}
+                      value={verifForm.notes}
+                      onChange={e => setVerifForm(f => ({ ...f, notes: e.target.value }))}
+                    />
+                    <Button type="submit" size="sm" disabled={submitVerifMutation.isPending} className="gap-1.5">
+                      <Send className="h-3.5 w-3.5" /> Submit Application
+                    </Button>
+                  </form>
+                )}
+              </div>
+            )}
+            {/* Not applied */}
+            {!verifRequest && (
+              <div className="space-y-3">
+                <div className="flex items-start gap-3">
+                  <ShieldCheck className="h-5 w-5 text-muted-foreground flex-shrink-0 mt-0.5" />
+                  <div className="flex-1">
+                    <p className="text-sm font-semibold text-white">Apply for Verified Vendor Status</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Get a green verified badge on all listings, higher search ranking, and priority in RFQ matching.
+                    </p>
+                  </div>
+                  {!showVerifForm && (
+                    <Button size="sm" variant="outline" className="text-xs border-emerald-500/50 text-emerald-400 hover:bg-emerald-500/10 h-8 gap-1.5 flex-shrink-0" onClick={() => setShowVerifForm(true)}>
+                      <BadgeCheck className="h-3.5 w-3.5" /> Apply
+                    </Button>
+                  )}
+                </div>
+                {showVerifForm && (
+                  <form onSubmit={handleSubmitVerif} className="border-t border-border/50 pt-3 space-y-2">
+                    <input
+                      className="w-full rounded-md border border-border bg-secondary/20 text-sm text-white px-3 py-2 focus:outline-none focus:ring-1 focus:ring-primary"
+                      placeholder="Business name *"
+                      value={verifForm.businessName}
+                      onChange={e => setVerifForm(f => ({ ...f, businessName: e.target.value }))}
+                      required
+                    />
+                    <input
+                      className="w-full rounded-md border border-border bg-secondary/20 text-sm text-white px-3 py-2 focus:outline-none focus:ring-1 focus:ring-primary"
+                      placeholder="Certification URL (e.g. FAA cert page)"
+                      value={verifForm.certificationUrl}
+                      onChange={e => setVerifForm(f => ({ ...f, certificationUrl: e.target.value }))}
+                    />
+                    <textarea
+                      className="w-full rounded-md border border-border bg-secondary/20 text-sm text-white px-3 py-2 resize-none focus:outline-none focus:ring-1 focus:ring-primary"
+                      placeholder="Tell us about your business and certifications…"
+                      rows={2}
+                      value={verifForm.notes}
+                      onChange={e => setVerifForm(f => ({ ...f, notes: e.target.value }))}
+                    />
+                    <div className="flex gap-2">
+                      <Button type="submit" size="sm" disabled={submitVerifMutation.isPending} className="gap-1.5">
+                        <Send className="h-3.5 w-3.5" /> Submit Application
+                      </Button>
+                      <Button type="button" size="sm" variant="ghost" onClick={() => setShowVerifForm(false)}>Cancel</Button>
+                    </div>
+                  </form>
+                )}
+              </div>
+            )}
           </div>
         )}
 

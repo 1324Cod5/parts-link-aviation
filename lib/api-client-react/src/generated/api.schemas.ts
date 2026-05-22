@@ -5,6 +5,10 @@
  * AeroParts Marketplace API
  * OpenAPI spec version: 0.1.0
  */
+export interface VendorReviewInput {
+  reviewNote?: string;
+}
+
 export interface UploadImagesResponse {
   /** Server-hosted URLs for the uploaded images */
   urls: string[];
@@ -1796,6 +1800,58 @@ export interface DemandIntelligenceReport {
   summary: DemandIntelligenceSummary;
 }
 
+export type VendorVerificationRequestStatus = typeof VendorVerificationRequestStatus[keyof typeof VendorVerificationRequestStatus];
+
+
+export const VendorVerificationRequestStatus = {
+  pending: 'pending',
+  approved: 'approved',
+  rejected: 'rejected',
+} as const;
+
+export type VendorVerificationRequestSeller = {
+  id?: number;
+  companyName?: string;
+  email?: string;
+  /** @nullable */
+  country?: string | null;
+  sellerType?: string;
+  plan?: string;
+  trustBadge?: string;
+};
+
+export interface VendorVerificationRequest {
+  id: number;
+  sellerId: number;
+  status: VendorVerificationRequestStatus;
+  /** @nullable */
+  certificationUrl?: string | null;
+  /** @nullable */
+  businessName?: string | null;
+  /** @nullable */
+  notes?: string | null;
+  /** @nullable */
+  reviewedBy?: number | null;
+  /** @nullable */
+  reviewNote?: string | null;
+  createdAt: string;
+  /** @nullable */
+  reviewedAt?: string | null;
+  seller?: VendorVerificationRequestSeller;
+}
+
+export interface SubmitVendorVerificationInput {
+  businessName: string;
+  certificationUrl?: string;
+  notes?: string;
+}
+
+export interface VendorVerificationListResponse {
+  total: number;
+  pendingCount: number;
+  requests: VendorVerificationRequest[];
+}
+
 export type ChangePassword200 = {
   ok: boolean;
 };
@@ -2018,5 +2074,16 @@ export type GetAdminDemandReportParams = {
  * @maximum 90
  */
 window?: number;
+};
+
+export type AdminApproveVendorVerification200 = {
+  success: boolean;
+  sellerId: number;
+  sellerType: string;
+};
+
+export type AdminRejectVendorVerification200 = {
+  success: boolean;
+  sellerId: number;
 };
 

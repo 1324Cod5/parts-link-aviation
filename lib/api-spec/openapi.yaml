@@ -1944,8 +1944,152 @@ paths:
         "401":
           description: Unauthorized
 
+
+  /seller/vendor-verification:
+    get:
+      operationId: getSellerVendorVerification
+      tags: [seller]
+      summary: Get own vendor verification request status
+      responses:
+        "200":
+          description: Current verification request or null
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: "#/components/schemas/VendorVerificationRequest"
+                  - type: "null"
+        "401":
+          description: Not authenticated
+    post:
+      operationId: submitVendorVerification
+      tags: [seller]
+      summary: Submit a vendor verification request
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SubmitVendorVerificationInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VendorVerificationRequest"
+        "400":
+          description: Invalid input
+        "401":
+          description: Not authenticated
+        "409":
+          description: Pending request already exists
+
+  /admin/vendor-verification:
+    get:
+      operationId: getAdminVendorVerifications
+      tags: [admin]
+      summary: List all vendor verification requests
+      responses:
+        "200":
+          description: All requests
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VendorVerificationListResponse"
+        "401":
+          description: Not authenticated
+        "403":
+          description: Admin required
+
+  /admin/vendor-verification/{id}/approve:
+    post:
+      operationId: adminApproveVendorVerification
+      tags: [admin]
+      summary: Approve a vendor verification request
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VendorReviewInput"
+      responses:
+        "200":
+          description: Approved
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, sellerId, sellerType]
+                properties:
+                  success:
+                    type: boolean
+                  sellerId:
+                    type: integer
+                  sellerType:
+                    type: string
+        "401":
+          description: Not authenticated
+        "403":
+          description: Admin required
+        "404":
+          description: Request not found
+        "409":
+          description: Already reviewed
+
+  /admin/vendor-verification/{id}/reject:
+    post:
+      operationId: adminRejectVendorVerification
+      tags: [admin]
+      summary: Reject a vendor verification request
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VendorReviewInput"
+      responses:
+        "200":
+          description: Rejected
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, sellerId]
+                properties:
+                  success:
+                    type: boolean
+                  sellerId:
+                    type: integer
+        "401":
+          description: Not authenticated
+        "403":
+          description: Admin required
+        "404":
+          description: Request not found
+        "409":
+          description: Already reviewed
+
 components:
   schemas:
+    VendorReviewInput:
+      type: object
+      properties:
+        reviewNote:
+          type: string
+
     UploadImagesResponse:
       type: object
       required: [urls]
@@ -3957,3 +4101,74 @@ components:
             $ref: "#/components/schemas/InventoryShortage"
         summary:
           $ref: "#/components/schemas/DemandIntelligenceSummary"
+
+
+    VendorVerificationRequest:
+      type: object
+      required: [id, sellerId, status, createdAt]
+      properties:
+        id:
+          type: integer
+        sellerId:
+          type: integer
+        status:
+          type: string
+          enum: [pending, approved, rejected]
+        certificationUrl:
+          type: ["string", "null"]
+        businessName:
+          type: ["string", "null"]
+        notes:
+          type: ["string", "null"]
+        reviewedBy:
+          type: ["integer", "null"]
+        reviewNote:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+        reviewedAt:
+          type: ["string", "null"]
+          format: date-time
+        seller:
+          type: object
+          properties:
+            id:
+              type: integer
+            companyName:
+              type: string
+            email:
+              type: string
+            country:
+              type: ["string", "null"]
+            sellerType:
+              type: string
+            plan:
+              type: string
+            trustBadge:
+              type: string
+
+    SubmitVendorVerificationInput:
+      type: object
+      required: [businessName]
+      properties:
+        businessName:
+          type: string
+        certificationUrl:
+          type: string
+          format: uri
+        notes:
+          type: string
+
+    VendorVerificationListResponse:
+      type: object
+      required: [total, pendingCount, requests]
+      properties:
+        total:
+          type: integer
+        pendingCount:
+          type: integer
+        requests:
+          type: array
+          items:
+            $ref: "#/components/schemas/VendorVerificationRequest"

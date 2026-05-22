@@ -17,6 +17,7 @@ import {
   CheckCircle2, XCircle, Clock, Download,
 } from "lucide-react";
 import { TrustBadge, TrustScoreBar } from "@/components/ui/trust-badge";
+import { SellerTypeBadge } from "@/components/ui/seller-type-badge";
 
 const DOC_TYPE_LABELS: Record<string, string> = {
   faa_8130_3: "FAA Form 8130-3",
@@ -287,6 +288,10 @@ export default function ListingDetail() {
                       {listing.seller.phone}
                     </div>
                   )}
+                  {/* Seller type */}
+                  <div className="pt-2 border-t border-border/50">
+                    <SellerTypeBadge sellerType={(listing.seller as any).sellerType} size="md" />
+                  </div>
                   {/* Trust score */}
                   {listing.seller.trustBadge && (
                     <div className="pt-2 border-t border-border/50 space-y-2">

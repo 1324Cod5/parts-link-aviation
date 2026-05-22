@@ -19,17 +19,20 @@ import { recomputeAndSave } from "../lib/trustScore";
 
 const router: IRouter = Router();
 
-// Priority sort: enterprise/mro_premium first, then pro/mro_verified, then free.
-// Also respects subscription status — lapsed accounts lose their priority.
+// Priority sort: verified_vendor first, then enterprise/mro_premium, then pro/mro_verified, then free.
+// Lapsed subscriptions drop to lowest priority.
 const PLAN_ORDER_SQL = sql<number>`
   CASE
-    WHEN ${usersTable.subscriptionStatus} IN ('cancelled', 'suspended') THEN 2
+    WHEN ${usersTable.subscriptionStatus} IN ('cancelled', 'suspended') THEN 4
     WHEN ${usersTable.subscriptionStatus} = 'past_due'
          AND ${usersTable.gracePeriodEnd} IS NOT NULL
-         AND ${usersTable.gracePeriodEnd} < NOW() THEN 2
-    WHEN ${usersTable.plan} IN ('enterprise', 'mro_premium') THEN 0
-    WHEN ${usersTable.plan} IN ('pro', 'mro_verified') THEN 1
-    ELSE 2
+         AND ${usersTable.gracePeriodEnd} < NOW() THEN 4
+    WHEN ${usersTable.sellerType} = 'verified_vendor'
+         AND ${usersTable.plan} IN ('enterprise', 'mro_premium') THEN 0
+    WHEN ${usersTable.sellerType} = 'verified_vendor' THEN 1
+    WHEN ${usersTable.plan} IN ('enterprise', 'mro_premium') THEN 2
+    WHEN ${usersTable.plan} IN ('pro', 'mro_verified') THEN 3
+    ELSE 4
   END`;
 
 function serializeDoc(d: any) {
@@ -75,6 +78,7 @@ function serializeListing(listing: any, seller: any, documents?: any[]) {
           plan: seller.plan,
           trustScore: seller.trustScore ?? 0,
           trustBadge: seller.trustBadge ?? "unverified",
+          sellerType: seller.sellerType ?? "private",
         }
       : undefined,
     createdAt: listing.createdAt.toISOString(),

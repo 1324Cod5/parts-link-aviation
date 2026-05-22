@@ -2463,3 +2463,104 @@ export const GetAdminDemandReportResponse = zod.object({
 })
 
 
+/**
+ * @summary Get own vendor verification request status
+ */
+export const GetSellerVendorVerificationResponse = zod.union([zod.object({
+  "id": zod.number(),
+  "sellerId": zod.number(),
+  "status": zod.enum(['pending', 'approved', 'rejected']),
+  "certificationUrl": zod.string().nullish(),
+  "businessName": zod.string().nullish(),
+  "notes": zod.string().nullish(),
+  "reviewedBy": zod.number().nullish(),
+  "reviewNote": zod.string().nullish(),
+  "createdAt": zod.coerce.date(),
+  "reviewedAt": zod.coerce.date().nullish(),
+  "seller": zod.object({
+  "id": zod.number().optional(),
+  "companyName": zod.string().optional(),
+  "email": zod.string().optional(),
+  "country": zod.string().nullish(),
+  "sellerType": zod.string().optional(),
+  "plan": zod.string().optional(),
+  "trustBadge": zod.string().optional()
+}).optional()
+}),zod.null()])
+
+
+/**
+ * @summary Submit a vendor verification request
+ */
+export const SubmitVendorVerificationBody = zod.object({
+  "businessName": zod.string(),
+  "certificationUrl": zod.string().url().optional(),
+  "notes": zod.string().optional()
+})
+
+
+/**
+ * @summary List all vendor verification requests
+ */
+export const GetAdminVendorVerificationsResponse = zod.object({
+  "total": zod.number(),
+  "pendingCount": zod.number(),
+  "requests": zod.array(zod.object({
+  "id": zod.number(),
+  "sellerId": zod.number(),
+  "status": zod.enum(['pending', 'approved', 'rejected']),
+  "certificationUrl": zod.string().nullish(),
+  "businessName": zod.string().nullish(),
+  "notes": zod.string().nullish(),
+  "reviewedBy": zod.number().nullish(),
+  "reviewNote": zod.string().nullish(),
+  "createdAt": zod.coerce.date(),
+  "reviewedAt": zod.coerce.date().nullish(),
+  "seller": zod.object({
+  "id": zod.number().optional(),
+  "companyName": zod.string().optional(),
+  "email": zod.string().optional(),
+  "country": zod.string().nullish(),
+  "sellerType": zod.string().optional(),
+  "plan": zod.string().optional(),
+  "trustBadge": zod.string().optional()
+}).optional()
+}))
+})
+
+
+/**
+ * @summary Approve a vendor verification request
+ */
+export const AdminApproveVendorVerificationParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const AdminApproveVendorVerificationBody = zod.object({
+  "reviewNote": zod.string().optional()
+})
+
+export const AdminApproveVendorVerificationResponse = zod.object({
+  "success": zod.boolean(),
+  "sellerId": zod.number(),
+  "sellerType": zod.string()
+})
+
+
+/**
+ * @summary Reject a vendor verification request
+ */
+export const AdminRejectVendorVerificationParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const AdminRejectVendorVerificationBody = zod.object({
+  "reviewNote": zod.string().optional()
+})
+
+export const AdminRejectVendorVerificationResponse = zod.object({
+  "success": zod.boolean(),
+  "sellerId": zod.number()
+})
+
+

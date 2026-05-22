@@ -20,10 +20,12 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  AdminApproveVendorVerification200,
   AdminAutoSuspendHighRisk200,
   AdminInventoryPage,
   AdminListingInput,
   AdminListingUpdate,
+  AdminRejectVendorVerification200,
   AdminRfqAction200,
   AdminRfqActionInput,
   AdminRfqUrgencyInput,
@@ -99,6 +101,7 @@ import type {
   ServiceQuoteRequest,
   ServiceQuoteRequestInput,
   StartConversationBody,
+  SubmitVendorVerificationInput,
   SubscriptionInfo,
   SubscriptionProductsResponse,
   SuspendListingBody,
@@ -106,7 +109,10 @@ import type {
   UnreadCountResponse,
   UploadDocumentsResponse,
   UploadImagesResponse,
-  User
+  User,
+  VendorReviewInput,
+  VendorVerificationListResponse,
+  VendorVerificationRequest
 } from './api.schemas';
 
 import { customFetch } from '../custom-fetch';
@@ -6316,4 +6322,373 @@ export function useGetAdminDemandReport<TData = Awaited<ReturnType<typeof getAdm
 
 
 
+
+export const getGetSellerVendorVerificationUrl = () => {
+
+
+
+
+  return `/api/seller/vendor-verification`
+}
+
+/**
+ * @summary Get own vendor verification request status
+ */
+export const getSellerVendorVerification = async ( options?: RequestInit): Promise<VendorVerificationRequest | null> => {
+
+  return customFetch<VendorVerificationRequest | null>(getGetSellerVendorVerificationUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetSellerVendorVerificationQueryKey = () => {
+    return [
+    `/api/seller/vendor-verification`
+    ] as const;
+    }
+
+
+export const getGetSellerVendorVerificationQueryOptions = <TData = Awaited<ReturnType<typeof getSellerVendorVerification>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getSellerVendorVerification>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetSellerVendorVerificationQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getSellerVendorVerification>>> = ({ signal }) => getSellerVendorVerification({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getSellerVendorVerification>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetSellerVendorVerificationQueryResult = NonNullable<Awaited<ReturnType<typeof getSellerVendorVerification>>>
+export type GetSellerVendorVerificationQueryError = ErrorType<void>
+
+
+/**
+ * @summary Get own vendor verification request status
+ */
+
+export function useGetSellerVendorVerification<TData = Awaited<ReturnType<typeof getSellerVendorVerification>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getSellerVendorVerification>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetSellerVendorVerificationQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getSubmitVendorVerificationUrl = () => {
+
+
+
+
+  return `/api/seller/vendor-verification`
+}
+
+/**
+ * @summary Submit a vendor verification request
+ */
+export const submitVendorVerification = async (submitVendorVerificationInput: SubmitVendorVerificationInput, options?: RequestInit): Promise<VendorVerificationRequest> => {
+
+  return customFetch<VendorVerificationRequest>(getSubmitVendorVerificationUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      submitVendorVerificationInput,)
+  }
+);}
+
+
+
+
+export const getSubmitVendorVerificationMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof submitVendorVerification>>, TError,{data: BodyType<SubmitVendorVerificationInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof submitVendorVerification>>, TError,{data: BodyType<SubmitVendorVerificationInput>}, TContext> => {
+
+const mutationKey = ['submitVendorVerification'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof submitVendorVerification>>, {data: BodyType<SubmitVendorVerificationInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  submitVendorVerification(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SubmitVendorVerificationMutationResult = NonNullable<Awaited<ReturnType<typeof submitVendorVerification>>>
+    export type SubmitVendorVerificationMutationBody = BodyType<SubmitVendorVerificationInput>
+    export type SubmitVendorVerificationMutationError = ErrorType<void>
+
+    /**
+ * @summary Submit a vendor verification request
+ */
+export const useSubmitVendorVerification = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof submitVendorVerification>>, TError,{data: BodyType<SubmitVendorVerificationInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof submitVendorVerification>>,
+        TError,
+        {data: BodyType<SubmitVendorVerificationInput>},
+        TContext
+      > => {
+      return useMutation(getSubmitVendorVerificationMutationOptions(options));
+    }
+
+export const getGetAdminVendorVerificationsUrl = () => {
+
+
+
+
+  return `/api/admin/vendor-verification`
+}
+
+/**
+ * @summary List all vendor verification requests
+ */
+export const getAdminVendorVerifications = async ( options?: RequestInit): Promise<VendorVerificationListResponse> => {
+
+  return customFetch<VendorVerificationListResponse>(getGetAdminVendorVerificationsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAdminVendorVerificationsQueryKey = () => {
+    return [
+    `/api/admin/vendor-verification`
+    ] as const;
+    }
+
+
+export const getGetAdminVendorVerificationsQueryOptions = <TData = Awaited<ReturnType<typeof getAdminVendorVerifications>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminVendorVerifications>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAdminVendorVerificationsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAdminVendorVerifications>>> = ({ signal }) => getAdminVendorVerifications({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAdminVendorVerifications>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetAdminVendorVerificationsQueryResult = NonNullable<Awaited<ReturnType<typeof getAdminVendorVerifications>>>
+export type GetAdminVendorVerificationsQueryError = ErrorType<void>
+
+
+/**
+ * @summary List all vendor verification requests
+ */
+
+export function useGetAdminVendorVerifications<TData = Awaited<ReturnType<typeof getAdminVendorVerifications>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminVendorVerifications>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetAdminVendorVerificationsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getAdminApproveVendorVerificationUrl = (id: number,) => {
+
+
+
+
+  return `/api/admin/vendor-verification/${id}/approve`
+}
+
+/**
+ * @summary Approve a vendor verification request
+ */
+export const adminApproveVendorVerification = async (id: number,
+    vendorReviewInput?: VendorReviewInput, options?: RequestInit): Promise<AdminApproveVendorVerification200> => {
+
+  return customFetch<AdminApproveVendorVerification200>(getAdminApproveVendorVerificationUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      vendorReviewInput,)
+  }
+);}
+
+
+
+
+export const getAdminApproveVendorVerificationMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof adminApproveVendorVerification>>, TError,{id: number;data?: BodyType<VendorReviewInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof adminApproveVendorVerification>>, TError,{id: number;data?: BodyType<VendorReviewInput>}, TContext> => {
+
+const mutationKey = ['adminApproveVendorVerification'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof adminApproveVendorVerification>>, {id: number;data?: BodyType<VendorReviewInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  adminApproveVendorVerification(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AdminApproveVendorVerificationMutationResult = NonNullable<Awaited<ReturnType<typeof adminApproveVendorVerification>>>
+    export type AdminApproveVendorVerificationMutationBody = BodyType<VendorReviewInput> | undefined
+    export type AdminApproveVendorVerificationMutationError = ErrorType<void>
+
+    /**
+ * @summary Approve a vendor verification request
+ */
+export const useAdminApproveVendorVerification = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof adminApproveVendorVerification>>, TError,{id: number;data?: BodyType<VendorReviewInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof adminApproveVendorVerification>>,
+        TError,
+        {id: number;data?: BodyType<VendorReviewInput>},
+        TContext
+      > => {
+      return useMutation(getAdminApproveVendorVerificationMutationOptions(options));
+    }
+
+export const getAdminRejectVendorVerificationUrl = (id: number,) => {
+
+
+
+
+  return `/api/admin/vendor-verification/${id}/reject`
+}
+
+/**
+ * @summary Reject a vendor verification request
+ */
+export const adminRejectVendorVerification = async (id: number,
+    vendorReviewInput?: VendorReviewInput, options?: RequestInit): Promise<AdminRejectVendorVerification200> => {
+
+  return customFetch<AdminRejectVendorVerification200>(getAdminRejectVendorVerificationUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      vendorReviewInput,)
+  }
+);}
+
+
+
+
+export const getAdminRejectVendorVerificationMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof adminRejectVendorVerification>>, TError,{id: number;data?: BodyType<VendorReviewInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof adminRejectVendorVerification>>, TError,{id: number;data?: BodyType<VendorReviewInput>}, TContext> => {
+
+const mutationKey = ['adminRejectVendorVerification'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof adminRejectVendorVerification>>, {id: number;data?: BodyType<VendorReviewInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  adminRejectVendorVerification(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AdminRejectVendorVerificationMutationResult = NonNullable<Awaited<ReturnType<typeof adminRejectVendorVerification>>>
+    export type AdminRejectVendorVerificationMutationBody = BodyType<VendorReviewInput> | undefined
+    export type AdminRejectVendorVerificationMutationError = ErrorType<void>
+
+    /**
+ * @summary Reject a vendor verification request
+ */
+export const useAdminRejectVendorVerification = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof adminRejectVendorVerification>>, TError,{id: number;data?: BodyType<VendorReviewInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof adminRejectVendorVerification>>,
+        TError,
+        {id: number;data?: BodyType<VendorReviewInput>},
+        TContext
+      > => {
+      return useMutation(getAdminRejectVendorVerificationMutationOptions(options));
+    }
 
