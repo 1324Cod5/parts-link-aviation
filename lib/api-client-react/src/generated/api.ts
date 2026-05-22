@@ -20,6 +20,9 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  AdminInventoryPage,
+  AdminListingInput,
+  AdminListingUpdate,
   AdminRfqAction200,
   AdminRfqActionInput,
   AdminRfqUrgencyInput,
@@ -40,6 +43,7 @@ import type {
   CheckoutSessionResponse,
   DocumentStatusUpdate,
   DocumentsResponse,
+  GetAdminInventoryParams,
   GetAdminListingsParams,
   GetAdminRfqAudit200,
   GetAdminRfqsParams,
@@ -51,6 +55,7 @@ import type {
   InquiryInput,
   LimitReachedError,
   Listing,
+  ListingAuditLog,
   ListingDocument,
   ListingInput,
   ListingUpdate,
@@ -83,6 +88,7 @@ import type {
   ServiceQuoteRequestInput,
   SubscriptionInfo,
   SubscriptionProductsResponse,
+  SuspendListingBody,
   UploadDocumentsResponse,
   UploadImagesResponse,
   User
@@ -4661,4 +4667,667 @@ export const useAdminSetMroStatus = <TError = ErrorType<void>,
       > => {
       return useMutation(getAdminSetMroStatusMutationOptions(options));
     }
+
+export const getGetAdminInventoryUrl = (params?: GetAdminInventoryParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/admin/inventory?${stringifiedParams}` : `/api/admin/inventory`
+}
+
+/**
+ * @summary Admin paginated listing inventory with filters
+ */
+export const getAdminInventory = async (params?: GetAdminInventoryParams, options?: RequestInit): Promise<AdminInventoryPage> => {
+
+  return customFetch<AdminInventoryPage>(getGetAdminInventoryUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAdminInventoryQueryKey = (params?: GetAdminInventoryParams,) => {
+    return [
+    `/api/admin/inventory`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetAdminInventoryQueryOptions = <TData = Awaited<ReturnType<typeof getAdminInventory>>, TError = ErrorType<void>>(params?: GetAdminInventoryParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminInventory>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAdminInventoryQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAdminInventory>>> = ({ signal }) => getAdminInventory(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAdminInventory>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetAdminInventoryQueryResult = NonNullable<Awaited<ReturnType<typeof getAdminInventory>>>
+export type GetAdminInventoryQueryError = ErrorType<void>
+
+
+/**
+ * @summary Admin paginated listing inventory with filters
+ */
+
+export function useGetAdminInventory<TData = Awaited<ReturnType<typeof getAdminInventory>>, TError = ErrorType<void>>(
+ params?: GetAdminInventoryParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminInventory>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetAdminInventoryQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getCreateAdminInventoryListingUrl = () => {
+
+
+
+
+  return `/api/admin/inventory`
+}
+
+/**
+ * @summary Admin create a listing
+ */
+export const createAdminInventoryListing = async (adminListingInput: AdminListingInput, options?: RequestInit): Promise<Listing> => {
+
+  return customFetch<Listing>(getCreateAdminInventoryListingUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      adminListingInput,)
+  }
+);}
+
+
+
+
+export const getCreateAdminInventoryListingMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createAdminInventoryListing>>, TError,{data: BodyType<AdminListingInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createAdminInventoryListing>>, TError,{data: BodyType<AdminListingInput>}, TContext> => {
+
+const mutationKey = ['createAdminInventoryListing'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createAdminInventoryListing>>, {data: BodyType<AdminListingInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createAdminInventoryListing(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateAdminInventoryListingMutationResult = NonNullable<Awaited<ReturnType<typeof createAdminInventoryListing>>>
+    export type CreateAdminInventoryListingMutationBody = BodyType<AdminListingInput>
+    export type CreateAdminInventoryListingMutationError = ErrorType<void>
+
+    /**
+ * @summary Admin create a listing
+ */
+export const useCreateAdminInventoryListing = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createAdminInventoryListing>>, TError,{data: BodyType<AdminListingInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createAdminInventoryListing>>,
+        TError,
+        {data: BodyType<AdminListingInput>},
+        TContext
+      > => {
+      return useMutation(getCreateAdminInventoryListingMutationOptions(options));
+    }
+
+export const getGetAdminInventoryItemUrl = (id: number,) => {
+
+
+
+
+  return `/api/admin/inventory/${id}`
+}
+
+/**
+ * @summary Admin get single listing
+ */
+export const getAdminInventoryItem = async (id: number, options?: RequestInit): Promise<Listing> => {
+
+  return customFetch<Listing>(getGetAdminInventoryItemUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAdminInventoryItemQueryKey = (id: number,) => {
+    return [
+    `/api/admin/inventory/${id}`
+    ] as const;
+    }
+
+
+export const getGetAdminInventoryItemQueryOptions = <TData = Awaited<ReturnType<typeof getAdminInventoryItem>>, TError = ErrorType<void>>(id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminInventoryItem>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAdminInventoryItemQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAdminInventoryItem>>> = ({ signal }) => getAdminInventoryItem(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAdminInventoryItem>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetAdminInventoryItemQueryResult = NonNullable<Awaited<ReturnType<typeof getAdminInventoryItem>>>
+export type GetAdminInventoryItemQueryError = ErrorType<void>
+
+
+/**
+ * @summary Admin get single listing
+ */
+
+export function useGetAdminInventoryItem<TData = Awaited<ReturnType<typeof getAdminInventoryItem>>, TError = ErrorType<void>>(
+ id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminInventoryItem>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetAdminInventoryItemQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getUpdateAdminInventoryListingUrl = (id: number,) => {
+
+
+
+
+  return `/api/admin/inventory/${id}`
+}
+
+/**
+ * @summary Admin edit any listing field
+ */
+export const updateAdminInventoryListing = async (id: number,
+    adminListingUpdate: AdminListingUpdate, options?: RequestInit): Promise<Listing> => {
+
+  return customFetch<Listing>(getUpdateAdminInventoryListingUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      adminListingUpdate,)
+  }
+);}
+
+
+
+
+export const getUpdateAdminInventoryListingMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateAdminInventoryListing>>, TError,{id: number;data: BodyType<AdminListingUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateAdminInventoryListing>>, TError,{id: number;data: BodyType<AdminListingUpdate>}, TContext> => {
+
+const mutationKey = ['updateAdminInventoryListing'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateAdminInventoryListing>>, {id: number;data: BodyType<AdminListingUpdate>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  updateAdminInventoryListing(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateAdminInventoryListingMutationResult = NonNullable<Awaited<ReturnType<typeof updateAdminInventoryListing>>>
+    export type UpdateAdminInventoryListingMutationBody = BodyType<AdminListingUpdate>
+    export type UpdateAdminInventoryListingMutationError = ErrorType<void>
+
+    /**
+ * @summary Admin edit any listing field
+ */
+export const useUpdateAdminInventoryListing = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateAdminInventoryListing>>, TError,{id: number;data: BodyType<AdminListingUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateAdminInventoryListing>>,
+        TError,
+        {id: number;data: BodyType<AdminListingUpdate>},
+        TContext
+      > => {
+      return useMutation(getUpdateAdminInventoryListingMutationOptions(options));
+    }
+
+export const getDeleteAdminInventoryListingUrl = (id: number,) => {
+
+
+
+
+  return `/api/admin/inventory/${id}`
+}
+
+/**
+ * @summary Admin soft-delete a listing
+ */
+export const deleteAdminInventoryListing = async (id: number, options?: RequestInit): Promise<OkResponse> => {
+
+  return customFetch<OkResponse>(getDeleteAdminInventoryListingUrl(id),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+export const getDeleteAdminInventoryListingMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteAdminInventoryListing>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteAdminInventoryListing>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['deleteAdminInventoryListing'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteAdminInventoryListing>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  deleteAdminInventoryListing(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteAdminInventoryListingMutationResult = NonNullable<Awaited<ReturnType<typeof deleteAdminInventoryListing>>>
+
+    export type DeleteAdminInventoryListingMutationError = ErrorType<void>
+
+    /**
+ * @summary Admin soft-delete a listing
+ */
+export const useDeleteAdminInventoryListing = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteAdminInventoryListing>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deleteAdminInventoryListing>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+      return useMutation(getDeleteAdminInventoryListingMutationOptions(options));
+    }
+
+export const getSuspendAdminInventoryListingUrl = (id: number,) => {
+
+
+
+
+  return `/api/admin/inventory/${id}/suspend`
+}
+
+/**
+ * @summary Admin suspend a listing
+ */
+export const suspendAdminInventoryListing = async (id: number,
+    suspendListingBody?: SuspendListingBody, options?: RequestInit): Promise<Listing> => {
+
+  return customFetch<Listing>(getSuspendAdminInventoryListingUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      suspendListingBody,)
+  }
+);}
+
+
+
+
+export const getSuspendAdminInventoryListingMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof suspendAdminInventoryListing>>, TError,{id: number;data?: BodyType<SuspendListingBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof suspendAdminInventoryListing>>, TError,{id: number;data?: BodyType<SuspendListingBody>}, TContext> => {
+
+const mutationKey = ['suspendAdminInventoryListing'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof suspendAdminInventoryListing>>, {id: number;data?: BodyType<SuspendListingBody>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  suspendAdminInventoryListing(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SuspendAdminInventoryListingMutationResult = NonNullable<Awaited<ReturnType<typeof suspendAdminInventoryListing>>>
+    export type SuspendAdminInventoryListingMutationBody = BodyType<SuspendListingBody> | undefined
+    export type SuspendAdminInventoryListingMutationError = ErrorType<void>
+
+    /**
+ * @summary Admin suspend a listing
+ */
+export const useSuspendAdminInventoryListing = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof suspendAdminInventoryListing>>, TError,{id: number;data?: BodyType<SuspendListingBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof suspendAdminInventoryListing>>,
+        TError,
+        {id: number;data?: BodyType<SuspendListingBody>},
+        TContext
+      > => {
+      return useMutation(getSuspendAdminInventoryListingMutationOptions(options));
+    }
+
+export const getRestoreAdminInventoryListingUrl = (id: number,) => {
+
+
+
+
+  return `/api/admin/inventory/${id}/restore`
+}
+
+/**
+ * @summary Admin restore a suspended listing to active
+ */
+export const restoreAdminInventoryListing = async (id: number, options?: RequestInit): Promise<Listing> => {
+
+  return customFetch<Listing>(getRestoreAdminInventoryListingUrl(id),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getRestoreAdminInventoryListingMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof restoreAdminInventoryListing>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof restoreAdminInventoryListing>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['restoreAdminInventoryListing'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof restoreAdminInventoryListing>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  restoreAdminInventoryListing(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RestoreAdminInventoryListingMutationResult = NonNullable<Awaited<ReturnType<typeof restoreAdminInventoryListing>>>
+
+    export type RestoreAdminInventoryListingMutationError = ErrorType<void>
+
+    /**
+ * @summary Admin restore a suspended listing to active
+ */
+export const useRestoreAdminInventoryListing = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof restoreAdminInventoryListing>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof restoreAdminInventoryListing>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+      return useMutation(getRestoreAdminInventoryListingMutationOptions(options));
+    }
+
+export const getFeatureAdminInventoryListingUrl = (id: number,) => {
+
+
+
+
+  return `/api/admin/inventory/${id}/feature`
+}
+
+/**
+ * @summary Admin toggle featured flag on a listing
+ */
+export const featureAdminInventoryListing = async (id: number, options?: RequestInit): Promise<Listing> => {
+
+  return customFetch<Listing>(getFeatureAdminInventoryListingUrl(id),
+  {
+    ...options,
+    method: 'PATCH'
+
+
+  }
+);}
+
+
+
+
+export const getFeatureAdminInventoryListingMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof featureAdminInventoryListing>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof featureAdminInventoryListing>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['featureAdminInventoryListing'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof featureAdminInventoryListing>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  featureAdminInventoryListing(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type FeatureAdminInventoryListingMutationResult = NonNullable<Awaited<ReturnType<typeof featureAdminInventoryListing>>>
+
+    export type FeatureAdminInventoryListingMutationError = ErrorType<void>
+
+    /**
+ * @summary Admin toggle featured flag on a listing
+ */
+export const useFeatureAdminInventoryListing = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof featureAdminInventoryListing>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof featureAdminInventoryListing>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+      return useMutation(getFeatureAdminInventoryListingMutationOptions(options));
+    }
+
+export const getGetAdminInventoryAuditUrl = (id: number,) => {
+
+
+
+
+  return `/api/admin/inventory/${id}/audit`
+}
+
+/**
+ * @summary Admin get audit log for a listing
+ */
+export const getAdminInventoryAudit = async (id: number, options?: RequestInit): Promise<ListingAuditLog[]> => {
+
+  return customFetch<ListingAuditLog[]>(getGetAdminInventoryAuditUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAdminInventoryAuditQueryKey = (id: number,) => {
+    return [
+    `/api/admin/inventory/${id}/audit`
+    ] as const;
+    }
+
+
+export const getGetAdminInventoryAuditQueryOptions = <TData = Awaited<ReturnType<typeof getAdminInventoryAudit>>, TError = ErrorType<void>>(id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminInventoryAudit>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAdminInventoryAuditQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAdminInventoryAudit>>> = ({ signal }) => getAdminInventoryAudit(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAdminInventoryAudit>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetAdminInventoryAuditQueryResult = NonNullable<Awaited<ReturnType<typeof getAdminInventoryAudit>>>
+export type GetAdminInventoryAuditQueryError = ErrorType<void>
+
+
+/**
+ * @summary Admin get audit log for a listing
+ */
+
+export function useGetAdminInventoryAudit<TData = Awaited<ReturnType<typeof getAdminInventoryAudit>>, TError = ErrorType<void>>(
+ id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminInventoryAudit>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetAdminInventoryAuditQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
 

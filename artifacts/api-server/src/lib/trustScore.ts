@@ -103,7 +103,10 @@ export async function computeTrustScore(userId: number): Promise<TrustScoreBreak
 
   // ── Dispute penalty (0 to –25) ────────────────────────────────────────────
   const [removedRow] = await db.select({ n: count() }).from(listingsTable)
-    .where(and(eq(listingsTable.sellerId, userId), eq(listingsTable.status, "removed")));
+    .where(and(
+      eq(listingsTable.sellerId, userId),
+      sql`${listingsTable.status} IN ('removed', 'deleted')`,
+    ));
   const removedCount = Number(removedRow?.n ?? 0);
   const disputePenalty = Math.max(-25, removedCount * -10);
 

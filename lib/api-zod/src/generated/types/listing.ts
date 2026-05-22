@@ -31,6 +31,11 @@ export interface Listing {
   traceHistory?: string | null;
   badge: ListingBadge;
   status: ListingStatus;
+  featured?: boolean;
+  /** @nullable */
+  deletedAt?: string | null;
+  /** @nullable */
+  deletedBy?: number | null;
   sellerId: number;
   seller?: Seller;
   createdAt: string;

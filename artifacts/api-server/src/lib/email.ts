@@ -135,6 +135,7 @@ export interface RfqPayload {
   condition: string | null;
   buyerCompany: string | null;
   createdAt: string;
+  urgencyReason?: string | null;
 }
 
 /**

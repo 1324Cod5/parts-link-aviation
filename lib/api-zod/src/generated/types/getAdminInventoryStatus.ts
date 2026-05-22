@@ -6,10 +6,10 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export type GetAdminListingsStatus = typeof GetAdminListingsStatus[keyof typeof GetAdminListingsStatus];
+export type GetAdminInventoryStatus = typeof GetAdminInventoryStatus[keyof typeof GetAdminInventoryStatus];
 
 
-export const GetAdminListingsStatus = {
+export const GetAdminInventoryStatus = {
   active: 'active',
   removed: 'removed',
   suspended: 'suspended',

@@ -3,8 +3,9 @@ import multer, { type FileFilterCallback } from "multer";
 import path from "path";
 import fs from "fs";
 import crypto from "crypto";
-import { db, listingDocumentsTable } from "@workspace/db";
+import { db, listingDocumentsTable, listingsTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
+import { notifyCertUpdate } from "../lib/email";
 
 // ─── Storage ──────────────────────────────────────────────────────────────────
 
@@ -172,6 +173,22 @@ router.patch(
       .returning();
 
     if (!updated) { res.status(404).json({ error: "Document not found" }); return; }
+
+    if (verificationStatus === "approved" || verificationStatus === "rejected") {
+      const [listing] = await db
+        .select({ sellerId: listingsTable.sellerId, partNumber: listingsTable.partNumber })
+        .from(listingsTable)
+        .where(eq(listingsTable.id, updated.listingId));
+      if (listing) {
+        void notifyCertUpdate(listing.sellerId, {
+          listingId: updated.listingId,
+          partNumber: listing.partNumber,
+          documentType: updated.documentType ?? "document",
+          verificationStatus,
+          reviewNote: updated.reviewNote ?? null,
+        });
+      }
+    }
 
     res.json(serializeDoc(updated));
   },

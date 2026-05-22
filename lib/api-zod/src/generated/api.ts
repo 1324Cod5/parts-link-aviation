@@ -200,7 +200,10 @@ export const GetFeaturedListingsResponseItem = zod.object({
 })).optional(),
   "traceHistory": zod.string().nullish(),
   "badge": zod.enum(['pending_verification', 'documentation_reviewed', 'verified']),
-  "status": zod.enum(['active', 'removed']),
+  "status": zod.enum(['active', 'removed', 'suspended', 'pending_review', 'deleted']),
+  "featured": zod.boolean().optional(),
+  "deletedAt": zod.string().nullish(),
+  "deletedBy": zod.number().nullish(),
   "sellerId": zod.number(),
   "seller": zod.object({
   "id": zod.number(),
@@ -267,7 +270,10 @@ export const GetListingsResponse = zod.object({
 })).optional(),
   "traceHistory": zod.string().nullish(),
   "badge": zod.enum(['pending_verification', 'documentation_reviewed', 'verified']),
-  "status": zod.enum(['active', 'removed']),
+  "status": zod.enum(['active', 'removed', 'suspended', 'pending_review', 'deleted']),
+  "featured": zod.boolean().optional(),
+  "deletedAt": zod.string().nullish(),
+  "deletedBy": zod.number().nullish(),
   "sellerId": zod.number(),
   "seller": zod.object({
   "id": zod.number(),
@@ -343,7 +349,10 @@ export const GetListingResponse = zod.object({
 })).optional(),
   "traceHistory": zod.string().nullish(),
   "badge": zod.enum(['pending_verification', 'documentation_reviewed', 'verified']),
-  "status": zod.enum(['active', 'removed']),
+  "status": zod.enum(['active', 'removed', 'suspended', 'pending_review', 'deleted']),
+  "featured": zod.boolean().optional(),
+  "deletedAt": zod.string().nullish(),
+  "deletedBy": zod.number().nullish(),
   "sellerId": zod.number(),
   "seller": zod.object({
   "id": zod.number(),
@@ -411,7 +420,10 @@ export const UpdateListingResponse = zod.object({
 })).optional(),
   "traceHistory": zod.string().nullish(),
   "badge": zod.enum(['pending_verification', 'documentation_reviewed', 'verified']),
-  "status": zod.enum(['active', 'removed']),
+  "status": zod.enum(['active', 'removed', 'suspended', 'pending_review', 'deleted']),
+  "featured": zod.boolean().optional(),
+  "deletedAt": zod.string().nullish(),
+  "deletedBy": zod.number().nullish(),
   "sellerId": zod.number(),
   "seller": zod.object({
   "id": zod.number(),
@@ -476,7 +488,10 @@ export const UpdateListingBadgeResponse = zod.object({
 })).optional(),
   "traceHistory": zod.string().nullish(),
   "badge": zod.enum(['pending_verification', 'documentation_reviewed', 'verified']),
-  "status": zod.enum(['active', 'removed']),
+  "status": zod.enum(['active', 'removed', 'suspended', 'pending_review', 'deleted']),
+  "featured": zod.boolean().optional(),
+  "deletedAt": zod.string().nullish(),
+  "deletedBy": zod.number().nullish(),
   "sellerId": zod.number(),
   "seller": zod.object({
   "id": zod.number(),
@@ -617,7 +632,10 @@ export const GetSellerListingsResponseItem = zod.object({
 })).optional(),
   "traceHistory": zod.string().nullish(),
   "badge": zod.enum(['pending_verification', 'documentation_reviewed', 'verified']),
-  "status": zod.enum(['active', 'removed']),
+  "status": zod.enum(['active', 'removed', 'suspended', 'pending_review', 'deleted']),
+  "featured": zod.boolean().optional(),
+  "deletedAt": zod.string().nullish(),
+  "deletedBy": zod.number().nullish(),
   "sellerId": zod.number(),
   "seller": zod.object({
   "id": zod.number(),
@@ -721,7 +739,7 @@ export const UpdateDocumentStatusResponse = zod.object({
  */
 export const GetAdminListingsQueryParams = zod.object({
   "badge": zod.enum(['pending_verification', 'documentation_reviewed', 'verified']).optional(),
-  "status": zod.enum(['active', 'removed']).optional()
+  "status": zod.enum(['active', 'removed', 'suspended', 'pending_review', 'deleted']).optional()
 })
 
 export const GetAdminListingsResponseItem = zod.object({
@@ -749,7 +767,10 @@ export const GetAdminListingsResponseItem = zod.object({
 })).optional(),
   "traceHistory": zod.string().nullish(),
   "badge": zod.enum(['pending_verification', 'documentation_reviewed', 'verified']),
-  "status": zod.enum(['active', 'removed']),
+  "status": zod.enum(['active', 'removed', 'suspended', 'pending_review', 'deleted']),
+  "featured": zod.boolean().optional(),
+  "deletedAt": zod.string().nullish(),
+  "deletedBy": zod.number().nullish(),
   "sellerId": zod.number(),
   "seller": zod.object({
   "id": zod.number(),
@@ -799,7 +820,10 @@ export const GetAdminListingResponse = zod.object({
 })).optional(),
   "traceHistory": zod.string().nullish(),
   "badge": zod.enum(['pending_verification', 'documentation_reviewed', 'verified']),
-  "status": zod.enum(['active', 'removed']),
+  "status": zod.enum(['active', 'removed', 'suspended', 'pending_review', 'deleted']),
+  "featured": zod.boolean().optional(),
+  "deletedAt": zod.string().nullish(),
+  "deletedBy": zod.number().nullish(),
   "sellerId": zod.number(),
   "seller": zod.object({
   "id": zod.number(),
@@ -1693,5 +1717,408 @@ export const AdminSetMroStatusResponse = zod.object({
   "featured": zod.boolean().optional(),
   "createdAt": zod.string()
 })
+
+
+/**
+ * @summary Admin paginated listing inventory with filters
+ */
+export const GetAdminInventoryQueryParams = zod.object({
+  "page": zod.coerce.number().optional(),
+  "limit": zod.coerce.number().optional(),
+  "status": zod.enum(['active', 'removed', 'suspended', 'pending_review', 'deleted']).optional(),
+  "badge": zod.enum(['pending_verification', 'documentation_reviewed', 'verified']).optional(),
+  "featured": zod.enum(['true', 'false']).optional(),
+  "q": zod.coerce.string().optional()
+})
+
+export const GetAdminInventoryResponse = zod.object({
+  "listings": zod.array(zod.object({
+  "id": zod.number(),
+  "partNumber": zod.string(),
+  "description": zod.string(),
+  "aircraftApplicability": zod.string().nullish(),
+  "manufacturer": zod.string(),
+  "condition": zod.enum(['new', 'overhauled', 'serviceable', 'as_removed', 'repaired']),
+  "saleType": zod.enum(['outright', 'exchange', 'both']),
+  "quantity": zod.number(),
+  "price": zod.number().nullable(),
+  "certificationDocs": zod.array(zod.string()).optional(),
+  "photos": zod.array(zod.string()).optional(),
+  "documents": zod.array(zod.object({
+  "id": zod.number(),
+  "listingId": zod.number(),
+  "fileName": zod.string(),
+  "documentType": zod.enum(['faa_8130_3', 'easa_form_1', 'tcca_form_1', 'overhaul_report', 'test_report', 'coa', 'other']),
+  "fileUrl": zod.string(),
+  "verificationStatus": zod.enum(['pending', 'approved', 'rejected']),
+  "reviewNote": zod.string().nullish(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+})).optional(),
+  "traceHistory": zod.string().nullish(),
+  "badge": zod.enum(['pending_verification', 'documentation_reviewed', 'verified']),
+  "status": zod.enum(['active', 'removed', 'suspended', 'pending_review', 'deleted']),
+  "featured": zod.boolean().optional(),
+  "deletedAt": zod.string().nullish(),
+  "deletedBy": zod.number().nullish(),
+  "sellerId": zod.number(),
+  "seller": zod.object({
+  "id": zod.number(),
+  "companyName": zod.string(),
+  "contactName": zod.string(),
+  "email": zod.string().optional(),
+  "phone": zod.string().nullish(),
+  "country": zod.string().nullable(),
+  "trustScore": zod.number().optional(),
+  "trustBadge": zod.enum(['unverified', 'document_verified', 'aviation_verified', 'trusted_partner']).optional()
+}).optional(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string().optional()
+})),
+  "total": zod.number(),
+  "page": zod.number(),
+  "limit": zod.number(),
+  "statusCounts": zod.record(zod.string(), zod.number())
+})
+
+
+/**
+ * @summary Admin create a listing
+ */
+
+
+
+export const CreateAdminInventoryListingBody = zod.object({
+  "sellerId": zod.number(),
+  "partNumber": zod.string(),
+  "description": zod.string(),
+  "manufacturer": zod.string(),
+  "condition": zod.enum(['new', 'overhauled', 'serviceable', 'as_removed', 'repaired']),
+  "saleType": zod.enum(['outright', 'exchange', 'both']),
+  "quantity": zod.number().min(1),
+  "price": zod.number().nullish(),
+  "aircraftApplicability": zod.string().nullish(),
+  "certificationDocs": zod.array(zod.string()).optional(),
+  "photos": zod.array(zod.string()).optional(),
+  "traceHistory": zod.string().nullish(),
+  "badge": zod.enum(['pending_verification', 'documentation_reviewed', 'verified']).optional(),
+  "featured": zod.boolean().optional()
+})
+
+
+/**
+ * @summary Admin get single listing
+ */
+export const GetAdminInventoryItemParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const GetAdminInventoryItemResponse = zod.object({
+  "id": zod.number(),
+  "partNumber": zod.string(),
+  "description": zod.string(),
+  "aircraftApplicability": zod.string().nullish(),
+  "manufacturer": zod.string(),
+  "condition": zod.enum(['new', 'overhauled', 'serviceable', 'as_removed', 'repaired']),
+  "saleType": zod.enum(['outright', 'exchange', 'both']),
+  "quantity": zod.number(),
+  "price": zod.number().nullable(),
+  "certificationDocs": zod.array(zod.string()).optional(),
+  "photos": zod.array(zod.string()).optional(),
+  "documents": zod.array(zod.object({
+  "id": zod.number(),
+  "listingId": zod.number(),
+  "fileName": zod.string(),
+  "documentType": zod.enum(['faa_8130_3', 'easa_form_1', 'tcca_form_1', 'overhaul_report', 'test_report', 'coa', 'other']),
+  "fileUrl": zod.string(),
+  "verificationStatus": zod.enum(['pending', 'approved', 'rejected']),
+  "reviewNote": zod.string().nullish(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+})).optional(),
+  "traceHistory": zod.string().nullish(),
+  "badge": zod.enum(['pending_verification', 'documentation_reviewed', 'verified']),
+  "status": zod.enum(['active', 'removed', 'suspended', 'pending_review', 'deleted']),
+  "featured": zod.boolean().optional(),
+  "deletedAt": zod.string().nullish(),
+  "deletedBy": zod.number().nullish(),
+  "sellerId": zod.number(),
+  "seller": zod.object({
+  "id": zod.number(),
+  "companyName": zod.string(),
+  "contactName": zod.string(),
+  "email": zod.string().optional(),
+  "phone": zod.string().nullish(),
+  "country": zod.string().nullable(),
+  "trustScore": zod.number().optional(),
+  "trustBadge": zod.enum(['unverified', 'document_verified', 'aviation_verified', 'trusted_partner']).optional()
+}).optional(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string().optional()
+})
+
+
+/**
+ * @summary Admin edit any listing field
+ */
+export const UpdateAdminInventoryListingParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+
+
+
+export const UpdateAdminInventoryListingBody = zod.object({
+  "partNumber": zod.string().optional(),
+  "description": zod.string().optional(),
+  "manufacturer": zod.string().optional(),
+  "condition": zod.enum(['new', 'overhauled', 'serviceable', 'as_removed', 'repaired']).optional(),
+  "saleType": zod.enum(['outright', 'exchange', 'both']).optional(),
+  "quantity": zod.number().min(1).optional(),
+  "price": zod.number().nullish(),
+  "aircraftApplicability": zod.string().nullish(),
+  "certificationDocs": zod.array(zod.string()).optional(),
+  "photos": zod.array(zod.string()).optional(),
+  "traceHistory": zod.string().nullish(),
+  "badge": zod.enum(['pending_verification', 'documentation_reviewed', 'verified']).optional(),
+  "featured": zod.boolean().optional()
+})
+
+export const UpdateAdminInventoryListingResponse = zod.object({
+  "id": zod.number(),
+  "partNumber": zod.string(),
+  "description": zod.string(),
+  "aircraftApplicability": zod.string().nullish(),
+  "manufacturer": zod.string(),
+  "condition": zod.enum(['new', 'overhauled', 'serviceable', 'as_removed', 'repaired']),
+  "saleType": zod.enum(['outright', 'exchange', 'both']),
+  "quantity": zod.number(),
+  "price": zod.number().nullable(),
+  "certificationDocs": zod.array(zod.string()).optional(),
+  "photos": zod.array(zod.string()).optional(),
+  "documents": zod.array(zod.object({
+  "id": zod.number(),
+  "listingId": zod.number(),
+  "fileName": zod.string(),
+  "documentType": zod.enum(['faa_8130_3', 'easa_form_1', 'tcca_form_1', 'overhaul_report', 'test_report', 'coa', 'other']),
+  "fileUrl": zod.string(),
+  "verificationStatus": zod.enum(['pending', 'approved', 'rejected']),
+  "reviewNote": zod.string().nullish(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+})).optional(),
+  "traceHistory": zod.string().nullish(),
+  "badge": zod.enum(['pending_verification', 'documentation_reviewed', 'verified']),
+  "status": zod.enum(['active', 'removed', 'suspended', 'pending_review', 'deleted']),
+  "featured": zod.boolean().optional(),
+  "deletedAt": zod.string().nullish(),
+  "deletedBy": zod.number().nullish(),
+  "sellerId": zod.number(),
+  "seller": zod.object({
+  "id": zod.number(),
+  "companyName": zod.string(),
+  "contactName": zod.string(),
+  "email": zod.string().optional(),
+  "phone": zod.string().nullish(),
+  "country": zod.string().nullable(),
+  "trustScore": zod.number().optional(),
+  "trustBadge": zod.enum(['unverified', 'document_verified', 'aviation_verified', 'trusted_partner']).optional()
+}).optional(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string().optional()
+})
+
+
+/**
+ * @summary Admin soft-delete a listing
+ */
+export const DeleteAdminInventoryListingParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const DeleteAdminInventoryListingResponse = zod.object({
+  "ok": zod.boolean()
+})
+
+
+/**
+ * @summary Admin suspend a listing
+ */
+export const SuspendAdminInventoryListingParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const SuspendAdminInventoryListingBody = zod.object({
+  "reason": zod.string().optional()
+})
+
+export const SuspendAdminInventoryListingResponse = zod.object({
+  "id": zod.number(),
+  "partNumber": zod.string(),
+  "description": zod.string(),
+  "aircraftApplicability": zod.string().nullish(),
+  "manufacturer": zod.string(),
+  "condition": zod.enum(['new', 'overhauled', 'serviceable', 'as_removed', 'repaired']),
+  "saleType": zod.enum(['outright', 'exchange', 'both']),
+  "quantity": zod.number(),
+  "price": zod.number().nullable(),
+  "certificationDocs": zod.array(zod.string()).optional(),
+  "photos": zod.array(zod.string()).optional(),
+  "documents": zod.array(zod.object({
+  "id": zod.number(),
+  "listingId": zod.number(),
+  "fileName": zod.string(),
+  "documentType": zod.enum(['faa_8130_3', 'easa_form_1', 'tcca_form_1', 'overhaul_report', 'test_report', 'coa', 'other']),
+  "fileUrl": zod.string(),
+  "verificationStatus": zod.enum(['pending', 'approved', 'rejected']),
+  "reviewNote": zod.string().nullish(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+})).optional(),
+  "traceHistory": zod.string().nullish(),
+  "badge": zod.enum(['pending_verification', 'documentation_reviewed', 'verified']),
+  "status": zod.enum(['active', 'removed', 'suspended', 'pending_review', 'deleted']),
+  "featured": zod.boolean().optional(),
+  "deletedAt": zod.string().nullish(),
+  "deletedBy": zod.number().nullish(),
+  "sellerId": zod.number(),
+  "seller": zod.object({
+  "id": zod.number(),
+  "companyName": zod.string(),
+  "contactName": zod.string(),
+  "email": zod.string().optional(),
+  "phone": zod.string().nullish(),
+  "country": zod.string().nullable(),
+  "trustScore": zod.number().optional(),
+  "trustBadge": zod.enum(['unverified', 'document_verified', 'aviation_verified', 'trusted_partner']).optional()
+}).optional(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string().optional()
+})
+
+
+/**
+ * @summary Admin restore a suspended listing to active
+ */
+export const RestoreAdminInventoryListingParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const RestoreAdminInventoryListingResponse = zod.object({
+  "id": zod.number(),
+  "partNumber": zod.string(),
+  "description": zod.string(),
+  "aircraftApplicability": zod.string().nullish(),
+  "manufacturer": zod.string(),
+  "condition": zod.enum(['new', 'overhauled', 'serviceable', 'as_removed', 'repaired']),
+  "saleType": zod.enum(['outright', 'exchange', 'both']),
+  "quantity": zod.number(),
+  "price": zod.number().nullable(),
+  "certificationDocs": zod.array(zod.string()).optional(),
+  "photos": zod.array(zod.string()).optional(),
+  "documents": zod.array(zod.object({
+  "id": zod.number(),
+  "listingId": zod.number(),
+  "fileName": zod.string(),
+  "documentType": zod.enum(['faa_8130_3', 'easa_form_1', 'tcca_form_1', 'overhaul_report', 'test_report', 'coa', 'other']),
+  "fileUrl": zod.string(),
+  "verificationStatus": zod.enum(['pending', 'approved', 'rejected']),
+  "reviewNote": zod.string().nullish(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+})).optional(),
+  "traceHistory": zod.string().nullish(),
+  "badge": zod.enum(['pending_verification', 'documentation_reviewed', 'verified']),
+  "status": zod.enum(['active', 'removed', 'suspended', 'pending_review', 'deleted']),
+  "featured": zod.boolean().optional(),
+  "deletedAt": zod.string().nullish(),
+  "deletedBy": zod.number().nullish(),
+  "sellerId": zod.number(),
+  "seller": zod.object({
+  "id": zod.number(),
+  "companyName": zod.string(),
+  "contactName": zod.string(),
+  "email": zod.string().optional(),
+  "phone": zod.string().nullish(),
+  "country": zod.string().nullable(),
+  "trustScore": zod.number().optional(),
+  "trustBadge": zod.enum(['unverified', 'document_verified', 'aviation_verified', 'trusted_partner']).optional()
+}).optional(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string().optional()
+})
+
+
+/**
+ * @summary Admin toggle featured flag on a listing
+ */
+export const FeatureAdminInventoryListingParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const FeatureAdminInventoryListingResponse = zod.object({
+  "id": zod.number(),
+  "partNumber": zod.string(),
+  "description": zod.string(),
+  "aircraftApplicability": zod.string().nullish(),
+  "manufacturer": zod.string(),
+  "condition": zod.enum(['new', 'overhauled', 'serviceable', 'as_removed', 'repaired']),
+  "saleType": zod.enum(['outright', 'exchange', 'both']),
+  "quantity": zod.number(),
+  "price": zod.number().nullable(),
+  "certificationDocs": zod.array(zod.string()).optional(),
+  "photos": zod.array(zod.string()).optional(),
+  "documents": zod.array(zod.object({
+  "id": zod.number(),
+  "listingId": zod.number(),
+  "fileName": zod.string(),
+  "documentType": zod.enum(['faa_8130_3', 'easa_form_1', 'tcca_form_1', 'overhaul_report', 'test_report', 'coa', 'other']),
+  "fileUrl": zod.string(),
+  "verificationStatus": zod.enum(['pending', 'approved', 'rejected']),
+  "reviewNote": zod.string().nullish(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+})).optional(),
+  "traceHistory": zod.string().nullish(),
+  "badge": zod.enum(['pending_verification', 'documentation_reviewed', 'verified']),
+  "status": zod.enum(['active', 'removed', 'suspended', 'pending_review', 'deleted']),
+  "featured": zod.boolean().optional(),
+  "deletedAt": zod.string().nullish(),
+  "deletedBy": zod.number().nullish(),
+  "sellerId": zod.number(),
+  "seller": zod.object({
+  "id": zod.number(),
+  "companyName": zod.string(),
+  "contactName": zod.string(),
+  "email": zod.string().optional(),
+  "phone": zod.string().nullish(),
+  "country": zod.string().nullable(),
+  "trustScore": zod.number().optional(),
+  "trustBadge": zod.enum(['unverified', 'document_verified', 'aviation_verified', 'trusted_partner']).optional()
+}).optional(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string().optional()
+})
+
+
+/**
+ * @summary Admin get audit log for a listing
+ */
+export const GetAdminInventoryAuditParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const GetAdminInventoryAuditResponseItem = zod.object({
+  "id": zod.number(),
+  "action": zod.string(),
+  "metadata": zod.record(zod.string(), zod.unknown()).nullish(),
+  "createdAt": zod.string(),
+  "admin": zod.object({
+  "id": zod.number(),
+  "email": zod.string().nullish(),
+  "name": zod.string().nullish()
+})
+})
+export const GetAdminInventoryAuditResponse = zod.array(GetAdminInventoryAuditResponseItem)
 
 

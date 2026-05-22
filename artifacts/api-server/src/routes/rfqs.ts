@@ -10,6 +10,7 @@ import {
   buildAutoQuoteSuggestion,
   fetchActiveSellers,
 } from "../lib/rfqAnalysis";
+import { notifyRfqCreated, notifyAogRfq, notifyQuoteAwarded } from "../lib/email";
 
 const router: IRouter = Router();
 
@@ -150,11 +151,26 @@ router.post("/rfqs", async (req, res): Promise<void> => {
 
   const serialized = serializeRfq(rfq, "full");
 
+  const rfqPayload = {
+    id: rfq.id,
+    partNumber: rfq.partNumber,
+    description: rfq.description,
+    quantity: rfq.quantity,
+    urgency: rfq.urgency ?? "standard",
+    aircraftApplicability: rfq.aircraftApplicability ?? null,
+    condition: rfq.condition ?? null,
+    buyerCompany: rfq.buyerCompany ?? null,
+    createdAt: rfq.createdAt.toISOString(),
+    urgencyReason: rfq.urgencyReason ?? null,
+  };
+
   if (rfq.urgency === "aog") {
+    void notifyAogRfq(rfqPayload);
     res.status(201).json({ ...serialized, _aogEscalation: true });
     return;
   }
 
+  void notifyRfqCreated(rfqPayload);
   res.status(201).json(serialized);
 });
 
@@ -381,6 +397,14 @@ router.post("/rfqs/:id/award", async (req, res): Promise<void> => {
     .set({ status: "awarded", awardedResponseId: parsed.data.quoteId, updatedAt: new Date() })
     .where(eq(rfqsTable.id, id))
     .returning();
+
+  void notifyQuoteAwarded(quote.sellerId, {
+    rfqId: rfq.id,
+    partNumber: rfq.partNumber,
+    description: rfq.description,
+    buyerName: rfq.buyerName,
+    buyerCompany: rfq.buyerCompany ?? null,
+  });
 
   res.json(serializeRfq(updated, "full"));
 });

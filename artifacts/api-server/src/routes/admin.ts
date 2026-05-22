@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { db, listingsTable, usersTable, inquiriesTable, mroProfilesTable } from "@workspace/db";
+import { db, listingsTable, usersTable, inquiriesTable, mroProfilesTable, listingAuditLogsTable } from "@workspace/db";
 import { eq, and, count, sql } from "drizzle-orm";
 import { GetAdminListingsQueryParams, AdminRemoveListingParams } from "@workspace/api-zod";
 import { recomputeAndSave } from "../lib/trustScore";
@@ -106,6 +106,15 @@ router.patch("/admin/listings/:id/remove", async (req, res): Promise<void> => {
   if (!updated) {
     res.status(404).json({ error: "Listing not found" });
     return;
+  }
+
+  const adminId = req.session?.user?.id;
+  if (adminId) {
+    await db.insert(listingAuditLogsTable).values({
+      listingId: updated.id,
+      adminId: parseInt(String(adminId), 10),
+      action: "remove",
+    });
   }
 
   const [seller] = await db.select().from(usersTable).where(eq(usersTable.id, updated.sellerId));

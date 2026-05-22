@@ -22,6 +22,14 @@ import {
   useAdminRfqAction,
   useAdminSetRfqUrgency,
   useGetAdminRfqAudit, getGetAdminRfqAuditQueryKey,
+  useGetAdminInventory, getGetAdminInventoryQueryKey,
+  useCreateAdminInventoryListing,
+  useUpdateAdminInventoryListing,
+  useDeleteAdminInventoryListing,
+  useSuspendAdminInventoryListing,
+  useRestoreAdminInventoryListing,
+  useFeatureAdminInventoryListing,
+  useGetAdminInventoryAudit,
 } from "@workspace/api-client-react";
 import { useAuth } from "@/context/AuthContext";
 import { useQueryClient } from "@tanstack/react-query";
@@ -33,6 +41,7 @@ import {
   Building2, Mail, Phone, Globe, Star, AlertCircle, Search,
   ArrowUpDown, Lock, Unlock, FileText, BarChart2, Trophy, Loader2,
   ChevronDown, MoreVertical, History,
+  Boxes, Plus, Pencil, Trash2, Ban, RefreshCw, ChevronLeft, ChevronRight as ChevronRightIcon,
 } from "lucide-react";
 
 // ─── helpers ────────────────────────────────────────────────────────────────
@@ -74,10 +83,11 @@ const BADGE_META: Record<string, { label: string; color: string }> = {
 
 // ─── navigation ─────────────────────────────────────────────────────────────
 
-type Section = "overview" | "sellers" | "listings" | "certifications" | "billing" | "mro" | "rfqs" | "trust" | "analytics" | "disputes";
+type Section = "overview" | "sellers" | "listings" | "certifications" | "billing" | "mro" | "rfqs" | "trust" | "analytics" | "disputes" | "inventory";
 
 const NAV: { id: Section; label: string; icon: React.ElementType }[] = [
   { id: "overview",        label: "Overview",               icon: LayoutDashboard },
+  { id: "inventory",       label: "Inventory Management",   icon: Boxes },
   { id: "sellers",         label: "Seller Management",      icon: Users },
   { id: "listings",        label: "Listing Review",         icon: Package },
   { id: "certifications",  label: "Certification Review",   icon: ShieldCheck },
@@ -1613,6 +1623,565 @@ function AnalyticsSection() {
   );
 }
 
+// ─── section: inventory ──────────────────────────────────────────────────────
+
+const STATUS_TABS = [
+  { value: "all",          label: "All" },
+  { value: "active",       label: "Active" },
+  { value: "suspended",    label: "Suspended" },
+  { value: "pending_review", label: "Pending Review" },
+  { value: "deleted",      label: "Deleted" },
+  { value: "removed",      label: "Removed" },
+];
+
+const LISTING_STATUS_META: Record<string, { label: string; cls: string }> = {
+  active:         { label: "Active",         cls: "text-emerald-400 bg-emerald-500/10 border border-emerald-500/20" },
+  suspended:      { label: "Suspended",      cls: "text-amber-400 bg-amber-500/10 border border-amber-500/20" },
+  pending_review: { label: "Pending Review", cls: "text-blue-400 bg-blue-500/10 border border-blue-500/20" },
+  deleted:        { label: "Deleted",        cls: "text-red-400 bg-red-500/10 border border-red-500/20" },
+  removed:        { label: "Removed",        cls: "text-red-400/70 bg-red-500/10 border border-red-500/20" },
+};
+
+const CONDITION_OPTS = ["new","overhauled","serviceable","as_removed","repaired"];
+const SALE_TYPE_OPTS = ["outright","exchange","both"];
+const BADGE_OPTS     = ["pending_verification","documentation_reviewed","verified"];
+
+function fmt2(s: string) { return s.replace(/_/g," ").replace(/\b\w/g, c => c.toUpperCase()); }
+
+function InventoryFormModal({
+  open, onClose, initial, sellers, onSubmit, submitting, title,
+}: {
+  open: boolean;
+  onClose: () => void;
+  initial?: any;
+  sellers: any[];
+  onSubmit: (data: any) => void;
+  submitting: boolean;
+  title: string;
+}) {
+  const isEdit = !!initial;
+  const [form, setForm] = useState({
+    sellerId:              initial?.sellerId ? String(initial.sellerId) : "",
+    partNumber:            initial?.partNumber ?? "",
+    description:           initial?.description ?? "",
+    manufacturer:          initial?.manufacturer ?? "",
+    condition:             initial?.condition ?? "serviceable",
+    saleType:              initial?.saleType ?? "outright",
+    quantity:              initial?.quantity ? String(initial.quantity) : "1",
+    price:                 initial?.price != null ? String(initial.price) : "",
+    aircraftApplicability: initial?.aircraftApplicability ?? "",
+    traceHistory:          initial?.traceHistory ?? "",
+    badge:                 initial?.badge ?? "pending_verification",
+    featured:              initial?.featured ?? false,
+  });
+
+  function set(k: string, v: any) { setForm(f => ({ ...f, [k]: v })); }
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    const payload: any = {
+      partNumber: form.partNumber.trim(),
+      description: form.description.trim(),
+      manufacturer: form.manufacturer.trim(),
+      condition: form.condition,
+      saleType: form.saleType,
+      quantity: parseInt(form.quantity) || 1,
+      price: form.price ? parseFloat(form.price) : null,
+      aircraftApplicability: form.aircraftApplicability.trim() || null,
+      traceHistory: form.traceHistory.trim() || null,
+      badge: form.badge,
+      featured: form.featured,
+    };
+    if (!isEdit) payload.sellerId = parseInt(form.sellerId);
+    onSubmit(payload);
+  }
+
+  if (!open) return null;
+
+  return (
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-card border-border">
+        <DialogHeader>
+          <DialogTitle className="text-white">{title}</DialogTitle>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-4 pt-2">
+          {!isEdit && (
+            <div className="space-y-1">
+              <label className="text-xs text-muted-foreground uppercase tracking-wider">Seller *</label>
+              <Select value={form.sellerId} onValueChange={v => set("sellerId", v)}>
+                <SelectTrigger className="bg-background border-border text-white">
+                  <SelectValue placeholder="Select seller…" />
+                </SelectTrigger>
+                <SelectContent>
+                  {sellers.map(s => (
+                    <SelectItem key={s.id} value={String(s.id)}>{s.companyName} ({s.email})</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1">
+              <label className="text-xs text-muted-foreground uppercase tracking-wider">Part Number *</label>
+              <Input value={form.partNumber} onChange={e => set("partNumber", e.target.value)} required className="bg-background border-border text-white font-mono" />
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs text-muted-foreground uppercase tracking-wider">Manufacturer *</label>
+              <Input value={form.manufacturer} onChange={e => set("manufacturer", e.target.value)} required className="bg-background border-border text-white" />
+            </div>
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs text-muted-foreground uppercase tracking-wider">Description *</label>
+            <Textarea value={form.description} onChange={e => set("description", e.target.value)} required rows={2} className="bg-background border-border text-white resize-none" />
+          </div>
+          <div className="grid grid-cols-3 gap-4">
+            <div className="space-y-1">
+              <label className="text-xs text-muted-foreground uppercase tracking-wider">Condition</label>
+              <Select value={form.condition} onValueChange={v => set("condition", v)}>
+                <SelectTrigger className="bg-background border-border text-white"><SelectValue /></SelectTrigger>
+                <SelectContent>{CONDITION_OPTS.map(o => <SelectItem key={o} value={o}>{fmt2(o)}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs text-muted-foreground uppercase tracking-wider">Sale Type</label>
+              <Select value={form.saleType} onValueChange={v => set("saleType", v)}>
+                <SelectTrigger className="bg-background border-border text-white"><SelectValue /></SelectTrigger>
+                <SelectContent>{SALE_TYPE_OPTS.map(o => <SelectItem key={o} value={o}>{fmt2(o)}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs text-muted-foreground uppercase tracking-wider">Badge</label>
+              <Select value={form.badge} onValueChange={v => set("badge", v)}>
+                <SelectTrigger className="bg-background border-border text-white"><SelectValue /></SelectTrigger>
+                <SelectContent>{BADGE_OPTS.map(o => <SelectItem key={o} value={o}>{fmt2(o)}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1">
+              <label className="text-xs text-muted-foreground uppercase tracking-wider">Quantity</label>
+              <Input type="number" min={1} value={form.quantity} onChange={e => set("quantity", e.target.value)} className="bg-background border-border text-white font-mono" />
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs text-muted-foreground uppercase tracking-wider">Price (USD)</label>
+              <Input type="number" min={0} step="0.01" placeholder="Leave blank for POA" value={form.price} onChange={e => set("price", e.target.value)} className="bg-background border-border text-white font-mono" />
+            </div>
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs text-muted-foreground uppercase tracking-wider">Aircraft Applicability</label>
+            <Input value={form.aircraftApplicability} onChange={e => set("aircraftApplicability", e.target.value)} placeholder="e.g. Boeing 737, Airbus A320" className="bg-background border-border text-white" />
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs text-muted-foreground uppercase tracking-wider">Trace History</label>
+            <Textarea value={form.traceHistory} onChange={e => set("traceHistory", e.target.value)} rows={2} className="bg-background border-border text-white resize-none" placeholder="Optional trace documentation notes…" />
+          </div>
+          <div className="flex items-center gap-2">
+            <input type="checkbox" id="inv-featured" checked={form.featured} onChange={e => set("featured", e.target.checked)} className="w-4 h-4 accent-primary" />
+            <label htmlFor="inv-featured" className="text-sm text-muted-foreground cursor-pointer">Featured listing (appears in homepage showcase)</label>
+          </div>
+          <DialogFooter className="pt-2">
+            <Button type="button" variant="ghost" onClick={onClose} className="text-muted-foreground">Cancel</Button>
+            <Button type="submit" disabled={submitting} className="bg-primary text-background font-semibold">
+              {submitting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+              {isEdit ? "Save Changes" : "Create Listing"}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function AuditLogModal({ listingId, partNumber, onClose }: { listingId: number; partNumber: string; onClose: () => void }) {
+  const { data: logs, isLoading } = useGetAdminInventoryAudit(listingId);
+
+  const ACTION_META: Record<string, { label: string; cls: string; icon: React.ElementType }> = {
+    create:   { label: "Created",   cls: "text-emerald-400", icon: Plus },
+    edit:     { label: "Edited",    cls: "text-blue-400",    icon: Pencil },
+    suspend:  { label: "Suspended", cls: "text-amber-400",   icon: Ban },
+    restore:  { label: "Restored",  cls: "text-emerald-400", icon: RefreshCw },
+    delete:   { label: "Deleted",   cls: "text-red-400",     icon: Trash2 },
+    remove:   { label: "Removed",   cls: "text-red-400",     icon: Trash2 },
+    feature:  { label: "Featured",  cls: "text-yellow-400",  icon: Star },
+    unfeature:{ label: "Unfeatured",cls: "text-muted-foreground", icon: Star },
+  };
+
+  return (
+    <Dialog open onOpenChange={onClose}>
+      <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto bg-card border-border">
+        <DialogHeader>
+          <DialogTitle className="text-white">Audit Log — <span className="font-mono text-primary">{partNumber}</span></DialogTitle>
+        </DialogHeader>
+        {isLoading ? (
+          <div className="space-y-3 py-4">{Array.from({length:4}).map((_,i) => <Skeleton key={i} className="h-10 w-full" />)}</div>
+        ) : !logs?.length ? (
+          <div className="py-8 text-center text-muted-foreground text-sm"><History className="w-6 h-6 mx-auto mb-2 opacity-40" />No audit entries yet.</div>
+        ) : (
+          <div className="space-y-2 py-2">
+            {logs.map((log: any) => {
+              const meta = ACTION_META[log.action] ?? { label: log.action, cls: "text-muted-foreground", icon: FileText };
+              const Icon = meta.icon;
+              return (
+                <div key={log.id} className="flex items-start gap-3 p-3 rounded-md bg-background/50 border border-border/50">
+                  <Icon className={`w-4 h-4 mt-0.5 flex-shrink-0 ${meta.cls}`} />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className={`text-sm font-medium ${meta.cls}`}>{meta.label}</span>
+                      <span className="text-xs text-muted-foreground">{new Date(log.createdAt).toLocaleString()}</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-0.5">by {log.admin?.name ?? log.admin?.email ?? `Admin #${log.admin?.id}`}</p>
+                    {log.metadata && Object.keys(log.metadata).length > 0 && (
+                      <p className="text-xs text-muted-foreground/70 mt-1 font-mono truncate">{JSON.stringify(log.metadata)}</p>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function InventorySection() {
+  const { toast } = useToast();
+  const qc = useQueryClient();
+  const [statusTab, setStatusTab] = useState("all");
+  const [search, setSearch] = useState("");
+  const [searchInput, setSearchInput] = useState("");
+  const [page, setPage] = useState(1);
+  const [showCreate, setShowCreate] = useState(false);
+  const [editTarget, setEditTarget] = useState<any>(null);
+  const [auditTarget, setAuditTarget] = useState<{ id: number; partNumber: string } | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<any>(null);
+  const [suspendTarget, setSuspendTarget] = useState<any>(null);
+  const [suspendReason, setSuspendReason] = useState("");
+
+  const params = {
+    page,
+    limit: 25,
+    status: statusTab !== "all" ? statusTab as any : undefined,
+    q: search || undefined,
+  };
+  const qKey = getGetAdminInventoryQueryKey(params);
+  const { data, isLoading } = useGetAdminInventory(params, { query: { queryKey: qKey } });
+  const { data: sellersData } = useGetAdminSellers({ query: { queryKey: getGetAdminSellersQueryKey() } });
+
+  const createM  = useCreateAdminInventoryListing();
+  const updateM  = useUpdateAdminInventoryListing();
+  const deleteM  = useDeleteAdminInventoryListing();
+  const suspendM = useSuspendAdminInventoryListing();
+  const restoreM = useRestoreAdminInventoryListing();
+  const featureM = useFeatureAdminInventoryListing();
+
+  function invalidate() {
+    qc.invalidateQueries({ queryKey: qKey });
+    qc.invalidateQueries({ queryKey: getGetAdminStatsQueryKey() });
+  }
+
+  function handleCreate(payload: any) {
+    createM.mutate({ data: payload }, {
+      onSuccess: () => { invalidate(); setShowCreate(false); toast({ title: "Listing created", description: payload.partNumber }); },
+      onError:   () => toast({ title: "Error", description: "Failed to create listing", variant: "destructive" }),
+    });
+  }
+
+  function handleEdit(payload: any) {
+    if (!editTarget) return;
+    updateM.mutate({ id: editTarget.id, data: payload }, {
+      onSuccess: () => { invalidate(); setEditTarget(null); toast({ title: "Listing updated", description: editTarget.partNumber }); },
+      onError:   () => toast({ title: "Error", description: "Failed to update listing", variant: "destructive" }),
+    });
+  }
+
+  function handleDelete() {
+    if (!deleteTarget) return;
+    deleteM.mutate({ id: deleteTarget.id }, {
+      onSuccess: () => { invalidate(); setDeleteTarget(null); toast({ title: "Listing deleted", description: deleteTarget.partNumber }); },
+      onError:   () => toast({ title: "Error", description: "Failed to delete listing", variant: "destructive" }),
+    });
+  }
+
+  function handleSuspend() {
+    if (!suspendTarget) return;
+    suspendM.mutate({ id: suspendTarget.id, data: suspendReason ? { reason: suspendReason } : undefined }, {
+      onSuccess: () => { invalidate(); setSuspendTarget(null); setSuspendReason(""); toast({ title: "Listing suspended", description: suspendTarget.partNumber }); },
+      onError:   () => toast({ title: "Error", description: "Failed to suspend listing", variant: "destructive" }),
+    });
+  }
+
+  function handleRestore(listing: any) {
+    restoreM.mutate({ id: listing.id }, {
+      onSuccess: () => { invalidate(); toast({ title: "Listing restored", description: listing.partNumber }); },
+      onError:   () => toast({ title: "Error", description: "Failed to restore listing", variant: "destructive" }),
+    });
+  }
+
+  function handleFeature(listing: any) {
+    featureM.mutate({ id: listing.id }, {
+      onSuccess: () => { invalidate(); toast({ title: listing.featured ? "Unfeatured" : "Featured", description: listing.partNumber }); },
+      onError:   () => toast({ title: "Error", description: "Failed to update featured", variant: "destructive" }),
+    });
+  }
+
+  const sellers = (sellersData ?? []) as any[];
+  const listings = data?.listings ?? [];
+  const total    = data?.total ?? 0;
+  const counts   = (data?.statusCounts ?? {}) as Record<string, number>;
+  const totalPages = Math.ceil(total / 25);
+
+  const canSuspend = (l: any) => l.status !== "suspended" && l.status !== "deleted" && l.status !== "removed";
+  const canRestore = (l: any) => l.status === "suspended" || l.status === "pending_review";
+  const canDelete  = (l: any) => l.status !== "deleted" && l.status !== "removed";
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between gap-4 flex-wrap">
+        <div>
+          <h2 className="text-lg font-semibold text-white mb-1">Inventory Management</h2>
+          <p className="text-sm text-muted-foreground">Create, edit, suspend, and manage all marketplace listings.</p>
+        </div>
+        <Button onClick={() => setShowCreate(true)} className="bg-primary text-background font-semibold h-8 text-xs gap-1.5">
+          <Plus className="w-3.5 h-3.5" /> Create Listing
+        </Button>
+      </div>
+
+      {/* Status count pills */}
+      <div className="flex gap-2 flex-wrap">
+        {STATUS_TABS.map(tab => {
+          const count = tab.value === "all" ? total : (counts[tab.value] ?? 0);
+          const active = statusTab === tab.value;
+          return (
+            <button key={tab.value} onClick={() => { setStatusTab(tab.value); setPage(1); }}
+              className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
+                active ? "bg-primary/20 border-primary/40 text-white" : "bg-card border-border text-muted-foreground hover:text-white hover:border-border/80"
+              }`}>
+              {tab.label}{count > 0 ? <span className={`ml-1.5 font-mono ${active ? "text-primary" : "text-muted-foreground"}`}>{count}</span> : null}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Search */}
+      <div className="flex gap-2">
+        <div className="relative flex-1 max-w-sm">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+          <Input
+            value={searchInput}
+            onChange={e => setSearchInput(e.target.value)}
+            onKeyDown={e => { if (e.key === "Enter") { setSearch(searchInput); setPage(1); } }}
+            placeholder="Search part number, description…"
+            className="pl-9 h-8 text-xs bg-card border-border text-white"
+          />
+        </div>
+        <Button variant="outline" size="sm" className="h-8 text-xs border-border text-muted-foreground" onClick={() => { setSearch(searchInput); setPage(1); }}>
+          Search
+        </Button>
+        {search && (
+          <Button variant="ghost" size="sm" className="h-8 text-xs text-muted-foreground" onClick={() => { setSearch(""); setSearchInput(""); setPage(1); }}>
+            Clear
+          </Button>
+        )}
+      </div>
+
+      {/* Table */}
+      <div className="border border-border rounded-lg bg-card overflow-hidden">
+        {isLoading ? (
+          <div className="p-6 space-y-3">{Array.from({length:8}).map((_,i) => <Skeleton key={i} className="h-12 w-full" />)}</div>
+        ) : listings.length === 0 ? (
+          <div className="p-12 text-center text-muted-foreground">
+            <Boxes className="w-8 h-8 mx-auto mb-3 opacity-30" />
+            <p>No listings match the current filters.</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border text-xs text-muted-foreground uppercase tracking-wider">
+                  <th className="text-left p-4">Part / Description</th>
+                  <th className="text-left p-4 hidden md:table-cell">Seller</th>
+                  <th className="text-left p-4 hidden lg:table-cell">Condition</th>
+                  <th className="text-left p-4 hidden lg:table-cell">Price</th>
+                  <th className="text-left p-4">Status</th>
+                  <th className="text-left p-4 hidden xl:table-cell">Featured</th>
+                  <th className="text-left p-4 hidden xl:table-cell">Created</th>
+                  <th className="text-right p-4">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {listings.map((listing: any) => {
+                  const sm = LISTING_STATUS_META[listing.status] ?? { label: listing.status, cls: "text-muted-foreground" };
+                  const isDead = listing.status === "deleted" || listing.status === "removed";
+                  return (
+                    <tr key={listing.id} className={`border-b border-border/50 hover:bg-secondary/10 transition-colors ${isDead ? "opacity-50" : ""}`}>
+                      <td className="p-4 max-w-[200px]">
+                        <Link href={`/listings/${listing.id}`}>
+                          <span className="font-mono text-primary hover:underline cursor-pointer text-xs flex items-center gap-1">
+                            {listing.partNumber}<ExternalLink className="h-3 w-3 flex-shrink-0" />
+                          </span>
+                        </Link>
+                        <p className="text-xs text-muted-foreground truncate mt-0.5">{listing.description}</p>
+                      </td>
+                      <td className="p-4 hidden md:table-cell">
+                        <p className="text-xs text-white">{listing.seller?.companyName ?? "—"}</p>
+                        <p className="text-xs text-muted-foreground">{listing.seller?.plan ?? ""}</p>
+                      </td>
+                      <td className="p-4 hidden lg:table-cell">
+                        <span className="text-xs text-muted-foreground">{fmt2(listing.condition ?? "")}</span>
+                      </td>
+                      <td className="p-4 hidden lg:table-cell">
+                        <span className="text-xs font-mono text-white">{listing.price != null ? `$${Number(listing.price).toLocaleString()}` : "POA"}</span>
+                      </td>
+                      <td className="p-4">
+                        <span className={`inline-block text-xs px-2 py-0.5 rounded-full font-medium ${sm.cls}`}>{sm.label}</span>
+                      </td>
+                      <td className="p-4 hidden xl:table-cell">
+                        {listing.featured
+                          ? <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
+                          : <Star className="w-4 h-4 text-muted-foreground/30" />}
+                      </td>
+                      <td className="p-4 hidden xl:table-cell">
+                        <span className="text-xs text-muted-foreground">{timeAgo(listing.createdAt)}</span>
+                      </td>
+                      <td className="p-4 text-right">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-muted-foreground hover:text-white">
+                              <MoreVertical className="w-4 h-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="bg-card border-border text-sm w-48">
+                            <DropdownMenuItem onClick={() => setEditTarget(listing)} className="gap-2 cursor-pointer">
+                              <Pencil className="w-3.5 h-3.5" /> Edit Listing
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => setAuditTarget({ id: listing.id, partNumber: listing.partNumber })} className="gap-2 cursor-pointer">
+                              <History className="w-3.5 h-3.5" /> Audit Log
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator className="bg-border" />
+                            <DropdownMenuItem
+                              onClick={() => handleFeature(listing)}
+                              className="gap-2 cursor-pointer"
+                            >
+                              <Star className="w-3.5 h-3.5" />
+                              {listing.featured ? "Remove from Featured" : "Mark as Featured"}
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator className="bg-border" />
+                            {canSuspend(listing) && (
+                              <DropdownMenuItem onClick={() => { setSuspendTarget(listing); setSuspendReason(""); }} className="gap-2 cursor-pointer text-amber-400 focus:text-amber-400">
+                                <Ban className="w-3.5 h-3.5" /> Suspend Listing
+                              </DropdownMenuItem>
+                            )}
+                            {canRestore(listing) && (
+                              <DropdownMenuItem onClick={() => handleRestore(listing)} className="gap-2 cursor-pointer text-emerald-400 focus:text-emerald-400">
+                                <RefreshCw className="w-3.5 h-3.5" /> Restore to Active
+                              </DropdownMenuItem>
+                            )}
+                            {canDelete(listing) && (
+                              <>
+                                <DropdownMenuSeparator className="bg-border" />
+                                <DropdownMenuItem onClick={() => setDeleteTarget(listing)} className="gap-2 cursor-pointer text-red-400 focus:text-red-400">
+                                  <Trash2 className="w-3.5 h-3.5" /> Delete Listing
+                                </DropdownMenuItem>
+                              </>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between text-xs text-muted-foreground">
+          <span>Page {page} of {totalPages} ({total} total)</span>
+          <div className="flex gap-1">
+            <Button variant="outline" size="sm" className="h-7 w-7 p-0 border-border" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>
+              <ChevronLeft className="w-3.5 h-3.5" />
+            </Button>
+            <Button variant="outline" size="sm" className="h-7 w-7 p-0 border-border" disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}>
+              <ChevronRightIcon className="w-3.5 h-3.5" />
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Modals */}
+      <InventoryFormModal
+        open={showCreate}
+        onClose={() => setShowCreate(false)}
+        sellers={sellers}
+        onSubmit={handleCreate}
+        submitting={createM.isPending}
+        title="Create New Listing"
+      />
+      {editTarget && (
+        <InventoryFormModal
+          open
+          onClose={() => setEditTarget(null)}
+          initial={editTarget}
+          sellers={sellers}
+          onSubmit={handleEdit}
+          submitting={updateM.isPending}
+          title={`Edit — ${editTarget.partNumber}`}
+        />
+      )}
+      {auditTarget && (
+        <AuditLogModal listingId={auditTarget.id} partNumber={auditTarget.partNumber} onClose={() => setAuditTarget(null)} />
+      )}
+
+      {/* Delete confirm */}
+      <Dialog open={!!deleteTarget} onOpenChange={() => setDeleteTarget(null)}>
+        <DialogContent className="max-w-sm bg-card border-border">
+          <DialogHeader>
+            <DialogTitle className="text-white">Delete Listing</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Soft-delete <span className="font-mono text-white">{deleteTarget?.partNumber}</span>? The listing will be hidden from the marketplace and marked as deleted in the audit log.
+          </p>
+          <DialogFooter className="pt-2 gap-2">
+            <Button variant="ghost" onClick={() => setDeleteTarget(null)} className="text-muted-foreground">Cancel</Button>
+            <Button onClick={handleDelete} disabled={deleteM.isPending} className="bg-red-600 hover:bg-red-700 text-white font-semibold">
+              {deleteM.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Trash2 className="w-4 h-4 mr-2" />}
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Suspend confirm */}
+      <Dialog open={!!suspendTarget} onOpenChange={() => setSuspendTarget(null)}>
+        <DialogContent className="max-w-sm bg-card border-border">
+          <DialogHeader>
+            <DialogTitle className="text-white">Suspend Listing</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground mb-3">
+            Suspend <span className="font-mono text-white">{suspendTarget?.partNumber}</span>? It will be hidden from buyers until restored.
+          </p>
+          <div className="space-y-1">
+            <label className="text-xs text-muted-foreground uppercase tracking-wider">Reason (optional)</label>
+            <Input value={suspendReason} onChange={e => setSuspendReason(e.target.value)} placeholder="e.g. Awaiting documentation…" className="bg-background border-border text-white text-sm" />
+          </div>
+          <DialogFooter className="pt-2 gap-2">
+            <Button variant="ghost" onClick={() => setSuspendTarget(null)} className="text-muted-foreground">Cancel</Button>
+            <Button onClick={handleSuspend} disabled={suspendM.isPending} className="bg-amber-600 hover:bg-amber-700 text-white font-semibold">
+              {suspendM.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Ban className="w-4 h-4 mr-2" />}
+              Suspend
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
 // ─── main admin shell ────────────────────────────────────────────────────────
 
 export default function AdminDashboard() {
@@ -1746,6 +2315,7 @@ export default function AdminDashboard() {
         {/* Section content */}
         <main className="flex-1 overflow-y-auto p-6">
           {section === "overview"       && <OverviewSection />}
+          {section === "inventory"      && <InventorySection />}
           {section === "sellers"        && <SellersSection />}
           {section === "listings"       && <ListingsSection />}
           {section === "certifications" && <CertificationsSection />}

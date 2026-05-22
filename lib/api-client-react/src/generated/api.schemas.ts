@@ -413,6 +413,9 @@ export type ListingStatus = typeof ListingStatus[keyof typeof ListingStatus];
 export const ListingStatus = {
   active: 'active',
   removed: 'removed',
+  suspended: 'suspended',
+  pending_review: 'pending_review',
+  deleted: 'deleted',
 } as const;
 
 export interface Listing {
@@ -434,6 +437,11 @@ export interface Listing {
   traceHistory?: string | null;
   badge: ListingBadge;
   status: ListingStatus;
+  featured?: boolean;
+  /** @nullable */
+  deletedAt?: string | null;
+  /** @nullable */
+  deletedBy?: number | null;
   sellerId: number;
   seller?: Seller;
   createdAt: string;
@@ -1267,6 +1275,137 @@ export interface BulkImportResponse {
   remainingSlots?: number | null;
 }
 
+export type AdminInventoryPageStatusCounts = {[key: string]: number};
+
+export interface AdminInventoryPage {
+  listings: Listing[];
+  total: number;
+  page: number;
+  limit: number;
+  statusCounts: AdminInventoryPageStatusCounts;
+}
+
+export type AdminListingInputCondition = typeof AdminListingInputCondition[keyof typeof AdminListingInputCondition];
+
+
+export const AdminListingInputCondition = {
+  new: 'new',
+  overhauled: 'overhauled',
+  serviceable: 'serviceable',
+  as_removed: 'as_removed',
+  repaired: 'repaired',
+} as const;
+
+export type AdminListingInputSaleType = typeof AdminListingInputSaleType[keyof typeof AdminListingInputSaleType];
+
+
+export const AdminListingInputSaleType = {
+  outright: 'outright',
+  exchange: 'exchange',
+  both: 'both',
+} as const;
+
+export type AdminListingInputBadge = typeof AdminListingInputBadge[keyof typeof AdminListingInputBadge];
+
+
+export const AdminListingInputBadge = {
+  pending_verification: 'pending_verification',
+  documentation_reviewed: 'documentation_reviewed',
+  verified: 'verified',
+} as const;
+
+export interface AdminListingInput {
+  sellerId: number;
+  partNumber: string;
+  description: string;
+  manufacturer: string;
+  condition: AdminListingInputCondition;
+  saleType: AdminListingInputSaleType;
+  /** @minimum 1 */
+  quantity: number;
+  /** @nullable */
+  price?: number | null;
+  /** @nullable */
+  aircraftApplicability?: string | null;
+  certificationDocs?: string[];
+  photos?: string[];
+  /** @nullable */
+  traceHistory?: string | null;
+  badge?: AdminListingInputBadge;
+  featured?: boolean;
+}
+
+export type AdminListingUpdateCondition = typeof AdminListingUpdateCondition[keyof typeof AdminListingUpdateCondition];
+
+
+export const AdminListingUpdateCondition = {
+  new: 'new',
+  overhauled: 'overhauled',
+  serviceable: 'serviceable',
+  as_removed: 'as_removed',
+  repaired: 'repaired',
+} as const;
+
+export type AdminListingUpdateSaleType = typeof AdminListingUpdateSaleType[keyof typeof AdminListingUpdateSaleType];
+
+
+export const AdminListingUpdateSaleType = {
+  outright: 'outright',
+  exchange: 'exchange',
+  both: 'both',
+} as const;
+
+export type AdminListingUpdateBadge = typeof AdminListingUpdateBadge[keyof typeof AdminListingUpdateBadge];
+
+
+export const AdminListingUpdateBadge = {
+  pending_verification: 'pending_verification',
+  documentation_reviewed: 'documentation_reviewed',
+  verified: 'verified',
+} as const;
+
+export interface AdminListingUpdate {
+  partNumber?: string;
+  description?: string;
+  manufacturer?: string;
+  condition?: AdminListingUpdateCondition;
+  saleType?: AdminListingUpdateSaleType;
+  /** @minimum 1 */
+  quantity?: number;
+  /** @nullable */
+  price?: number | null;
+  /** @nullable */
+  aircraftApplicability?: string | null;
+  certificationDocs?: string[];
+  photos?: string[];
+  /** @nullable */
+  traceHistory?: string | null;
+  badge?: AdminListingUpdateBadge;
+  featured?: boolean;
+}
+
+export interface SuspendListingBody {
+  reason?: string;
+}
+
+export type ListingAuditLogMetadata = { [key: string]: unknown } | null;
+
+export type ListingAuditLogAdmin = {
+  id: number;
+  /** @nullable */
+  email?: string | null;
+  /** @nullable */
+  name?: string | null;
+};
+
+export interface ListingAuditLog {
+  id: number;
+  action: string;
+  metadata?: ListingAuditLogMetadata;
+  createdAt: string;
+  admin: ListingAuditLogAdmin;
+}
+
 export type ChangePassword200 = {
   ok: boolean;
 };
@@ -1340,6 +1479,9 @@ export type GetAdminListingsStatus = typeof GetAdminListingsStatus[keyof typeof 
 export const GetAdminListingsStatus = {
   active: 'active',
   removed: 'removed',
+  suspended: 'suspended',
+  pending_review: 'pending_review',
+  deleted: 'deleted',
 } as const;
 
 export type GetRfqsParams = {
@@ -1429,4 +1571,41 @@ page?: number;
  */
 limit?: number;
 };
+
+export type GetAdminInventoryParams = {
+page?: number;
+limit?: number;
+status?: GetAdminInventoryStatus;
+badge?: GetAdminInventoryBadge;
+featured?: GetAdminInventoryFeatured;
+q?: string;
+};
+
+export type GetAdminInventoryStatus = typeof GetAdminInventoryStatus[keyof typeof GetAdminInventoryStatus];
+
+
+export const GetAdminInventoryStatus = {
+  active: 'active',
+  removed: 'removed',
+  suspended: 'suspended',
+  pending_review: 'pending_review',
+  deleted: 'deleted',
+} as const;
+
+export type GetAdminInventoryBadge = typeof GetAdminInventoryBadge[keyof typeof GetAdminInventoryBadge];
+
+
+export const GetAdminInventoryBadge = {
+  pending_verification: 'pending_verification',
+  documentation_reviewed: 'documentation_reviewed',
+  verified: 'verified',
+} as const;
+
+export type GetAdminInventoryFeatured = typeof GetAdminInventoryFeatured[keyof typeof GetAdminInventoryFeatured];
+
+
+export const GetAdminInventoryFeatured = {
+  true: 'true',
+  false: 'false',
+} as const;
 

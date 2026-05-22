@@ -623,7 +623,7 @@ paths:
           in: query
           schema:
             type: string
-            enum: [active, removed]
+            enum: [active, removed, suspended, pending_review, deleted]
       responses:
         "200":
           description: OK
@@ -1435,6 +1435,231 @@ paths:
         "401":
           description: Unauthorized
 
+  /admin/inventory:
+    get:
+      operationId: getAdminInventory
+      tags: [admin]
+      summary: Admin paginated listing inventory with filters
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+        - name: limit
+          in: query
+          schema:
+            type: integer
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [active, removed, suspended, pending_review, deleted]
+        - name: badge
+          in: query
+          schema:
+            type: string
+            enum: [pending_verification, documentation_reviewed, verified]
+        - name: featured
+          in: query
+          schema:
+            type: string
+            enum: ["true", "false"]
+        - name: q
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminInventoryPage"
+        "403":
+          description: Forbidden
+    post:
+      operationId: createAdminInventoryListing
+      tags: [admin]
+      summary: Admin create a listing
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminListingInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Listing"
+        "400":
+          description: Validation error
+        "403":
+          description: Forbidden
+
+  /admin/inventory/{id}:
+    get:
+      operationId: getAdminInventoryItem
+      tags: [admin]
+      summary: Admin get single listing
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Listing"
+        "404":
+          description: Not found
+    patch:
+      operationId: updateAdminInventoryListing
+      tags: [admin]
+      summary: Admin edit any listing field
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminListingUpdate"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Listing"
+        "403":
+          description: Forbidden
+        "404":
+          description: Not found
+    delete:
+      operationId: deleteAdminInventoryListing
+      tags: [admin]
+      summary: Admin soft-delete a listing
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OkResponse"
+        "403":
+          description: Forbidden
+        "404":
+          description: Not found
+
+  /admin/inventory/{id}/suspend:
+    post:
+      operationId: suspendAdminInventoryListing
+      tags: [admin]
+      summary: Admin suspend a listing
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SuspendListingBody"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Listing"
+        "403":
+          description: Forbidden
+
+  /admin/inventory/{id}/restore:
+    post:
+      operationId: restoreAdminInventoryListing
+      tags: [admin]
+      summary: Admin restore a suspended listing to active
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Listing"
+        "403":
+          description: Forbidden
+
+  /admin/inventory/{id}/feature:
+    patch:
+      operationId: featureAdminInventoryListing
+      tags: [admin]
+      summary: Admin toggle featured flag on a listing
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Listing"
+        "403":
+          description: Forbidden
+
+  /admin/inventory/{id}/audit:
+    get:
+      operationId: getAdminInventoryAudit
+      tags: [admin]
+      summary: Admin get audit log for a listing
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ListingAuditLog"
+        "403":
+          description: Forbidden
+
 components:
   schemas:
     UploadImagesResponse:
@@ -1852,7 +2077,13 @@ components:
           enum: [pending_verification, documentation_reviewed, verified]
         status:
           type: string
-          enum: [active, removed]
+          enum: [active, removed, suspended, pending_review, deleted]
+        featured:
+          type: boolean
+        deletedAt:
+          type: ["string", "null"]
+        deletedBy:
+          type: ["integer", "null"]
         sellerId:
           type: integer
         seller:
@@ -2803,3 +3034,132 @@ components:
             type: integer
         remainingSlots:
           type: ["integer", "null"]
+
+    AdminInventoryPage:
+      type: object
+      required: [listings, total, page, limit, statusCounts]
+      properties:
+        listings:
+          type: array
+          items:
+            $ref: "#/components/schemas/Listing"
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+        statusCounts:
+          type: object
+          additionalProperties:
+            type: integer
+
+    AdminListingInput:
+      type: object
+      required: [sellerId, partNumber, description, manufacturer, condition, saleType, quantity]
+      properties:
+        sellerId:
+          type: integer
+        partNumber:
+          type: string
+        description:
+          type: string
+        manufacturer:
+          type: string
+        condition:
+          type: string
+          enum: [new, overhauled, serviceable, as_removed, repaired]
+        saleType:
+          type: string
+          enum: [outright, exchange, both]
+        quantity:
+          type: integer
+          minimum: 1
+        price:
+          type: ["number", "null"]
+        aircraftApplicability:
+          type: ["string", "null"]
+        certificationDocs:
+          type: array
+          items:
+            type: string
+        photos:
+          type: array
+          items:
+            type: string
+        traceHistory:
+          type: ["string", "null"]
+        badge:
+          type: string
+          enum: [pending_verification, documentation_reviewed, verified]
+        featured:
+          type: boolean
+
+    AdminListingUpdate:
+      type: object
+      properties:
+        partNumber:
+          type: string
+        description:
+          type: string
+        manufacturer:
+          type: string
+        condition:
+          type: string
+          enum: [new, overhauled, serviceable, as_removed, repaired]
+        saleType:
+          type: string
+          enum: [outright, exchange, both]
+        quantity:
+          type: integer
+          minimum: 1
+        price:
+          type: ["number", "null"]
+        aircraftApplicability:
+          type: ["string", "null"]
+        certificationDocs:
+          type: array
+          items:
+            type: string
+        photos:
+          type: array
+          items:
+            type: string
+        traceHistory:
+          type: ["string", "null"]
+        badge:
+          type: string
+          enum: [pending_verification, documentation_reviewed, verified]
+        featured:
+          type: boolean
+
+    SuspendListingBody:
+      type: object
+      properties:
+        reason:
+          type: string
+
+    ListingAuditLog:
+      type: object
+      required: [id, action, createdAt, admin]
+      properties:
+        id:
+          type: integer
+        action:
+          type: string
+        metadata:
+          type: object
+          nullable: true
+          additionalProperties: true
+        createdAt:
+          type: string
+        admin:
+          type: object
+          required: [id]
+          properties:
+            id:
+              type: integer
+            email:
+              type: ["string", "null"]
+            name:
+              type: ["string", "null"]
