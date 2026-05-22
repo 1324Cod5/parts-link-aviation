@@ -4,7 +4,8 @@ import {
 } from "@workspace/db";
 import { eq, and, desc, asc, sql } from "drizzle-orm";
 import { z } from "zod/v4";
-import { FULL_ACCESS_PLANS } from "../lib/planEnforcement";
+import { FULL_ACCESS_PLANS, resolveEffectivePlan } from "../lib/planEnforcement";
+import { hasActivePaidPlan } from "../lib/subscriptionMiddleware";
 import { sendNewMessageAlert, sendBuyerReplyAlert } from "../lib/email";
 import { logger } from "../lib/logger";
 import type { MessageConversationInfo } from "../lib/emailTemplates";
@@ -102,9 +103,12 @@ router.post("/conversations", async (req, res): Promise<void> => {
     .values({ conversationId: conv.id, senderType: "buyer", content: initialMessage })
     .returning();
 
-  void sendNewMessageAlert(sellerId, toConvInfo(conv), initialMessage).catch(err =>
-    logger.warn({ err, convId: conv.id }, "messages: sendNewMessageAlert failed"),
-  );
+  // Email alerts are a paid-plan feature — only send if the seller has an
+  // active paid subscription (Stripe is the source of truth here too)
+  void hasActivePaidPlan(sellerId).then(canSend => {
+    if (!canSend) return;
+    return sendNewMessageAlert(sellerId, toConvInfo(conv), initialMessage);
+  }).catch(err => logger.warn({ err, convId: conv.id }, "messages: sendNewMessageAlert failed"));
 
   res.status(201).json({
     conversation: serializeConv(conv),
@@ -136,8 +140,9 @@ router.get("/conversations/unread-count", async (req, res): Promise<void> => {
 router.get("/conversations", async (req, res): Promise<void> => {
   if (!requireAuth(req, res)) return;
   const sellerId  = Number(req.session!.user!.id);
-  const plan      = req.session!.user!.subscriptionTier ?? "free";
-  const isFreeTier = !FULL_ACCESS_PLANS.has(plan);
+  // Fresh DB check — Stripe is the source of truth, not the cached session tier
+  const effectivePlan = await resolveEffectivePlan(sellerId);
+  const isFreeTier = !FULL_ACCESS_PLANS.has(effectivePlan);
 
   const rows = await db
     .select({
@@ -177,8 +182,9 @@ router.get("/conversations/:id/messages", async (req, res): Promise<void> => {
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
 
   const sellerId   = Number(req.session!.user!.id);
-  const plan       = req.session!.user!.subscriptionTier ?? "free";
-  const isFreeTier = !FULL_ACCESS_PLANS.has(plan);
+  // Fresh DB check — Stripe is the source of truth, not the cached session tier
+  const convEffectivePlan = await resolveEffectivePlan(sellerId);
+  const isFreeTier = !FULL_ACCESS_PLANS.has(convEffectivePlan);
 
   const [conv] = await db
     .select()
@@ -249,8 +255,11 @@ router.post("/conversations/:id/messages", async (req, res): Promise<void> => {
     void sendBuyerReplyAlert(toConvInfo(conv), content, sellerUser?.companyName ?? "The seller")
       .catch(err => logger.warn({ err, convId: id }, "messages: sendBuyerReplyAlert failed"));
   } else if (senderType === "buyer") {
-    void sendNewMessageAlert(conv.sellerId, toConvInfo(conv), content)
-      .catch(err => logger.warn({ err, convId: id }, "messages: sendNewMessageAlert (follow-up) failed"));
+    // Email alerts are a paid-plan feature — only send if seller has active subscription
+    void hasActivePaidPlan(conv.sellerId).then(canSend => {
+      if (!canSend) return;
+      return sendNewMessageAlert(conv.sellerId, toConvInfo(conv), content);
+    }).catch(err => logger.warn({ err, convId: id }, "messages: sendNewMessageAlert (follow-up) failed"));
   }
 
   res.status(201).json({ message: serializeMsg(msg) });
@@ -302,6 +311,20 @@ router.patch("/seller/notifications/message-alerts", async (req, res): Promise<v
   if (typeof emailOnMessage !== "boolean") {
     res.status(400).json({ error: "emailOnMessage must be a boolean" });
     return;
+  }
+
+  // Enabling email alerts requires an active paid subscription.
+  // Disabling is always allowed regardless of plan (no lock-in on opt-out).
+  if (emailOnMessage === true) {
+    const canEnable = await hasActivePaidPlan(userId);
+    if (!canEnable) {
+      res.status(402).json({
+        error: "Email alerts require an active paid subscription.",
+        code: "PLAN_REQUIRED",
+        upgradeUrl: "/pricing",
+      });
+      return;
+    }
   }
 
   const [existing] = await db

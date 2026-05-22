@@ -2,7 +2,7 @@ import { Router, type IRouter } from "express";
 import { db, rfqsTable, rfqResponsesTable, usersTable, listingsTable, aogEscalationsTable } from "@workspace/db";
 import { eq, desc, like, or, count, and, sql, inArray } from "drizzle-orm";
 import { CreateRfqBody, CreateRfqResponseBody, SubmitRfqQuoteBody, AwardRfqQuoteBody } from "@workspace/api-zod";
-import { FULL_ACCESS_PLANS } from "../lib/planEnforcement";
+import { FULL_ACCESS_PLANS, resolveEffectivePlan } from "../lib/planEnforcement";
 import {
   computeSellerStats,
   estimateMarketPrice,
@@ -176,12 +176,17 @@ router.post("/rfqs", async (req, res): Promise<void> => {
 // ─── GET /rfqs/aog/active — Pro/Enterprise: active AOG RFQs + escalation state ─
 
 router.get("/rfqs/aog/active", async (req, res): Promise<void> => {
-  const sessionUser = req.session?.user;
-  if (!sessionUser) { res.status(401).json({ error: "Not authenticated" }); return; }
+  const userId = req.session?.userId;
+  if (!userId) { res.status(401).json({ error: "Not authenticated" }); return; }
 
-  const plan = sessionUser.subscriptionTier ?? "free";
-  if (!FULL_ACCESS_PLANS.has(plan)) {
-    res.status(403).json({ error: "Pro or Enterprise plan required to access AOG alerts" });
+  // Fresh DB check — Stripe is the source of truth, not the cached session tier
+  const effectivePlan = await resolveEffectivePlan(userId);
+  if (!FULL_ACCESS_PLANS.has(effectivePlan)) {
+    res.status(402).json({
+      error: "AOG alerts require a Pro, Enterprise, or Premium MRO plan.",
+      code: "PLAN_REQUIRED",
+      upgradeUrl: "/pricing",
+    });
     return;
   }
 
@@ -285,16 +290,17 @@ router.post("/rfqs/:id/close", async (req, res): Promise<void> => {
 // ─── POST /rfqs/:id/responses — Pro/Enterprise/MRO Premium only ───────────────
 
 router.post("/rfqs/:id/responses", async (req, res): Promise<void> => {
-  const sessionUser = req.session?.user;
-  if (!sessionUser) { res.status(401).json({ error: "Not authenticated" }); return; }
+  const userId = req.session?.userId;
+  if (!userId) { res.status(401).json({ error: "Not authenticated" }); return; }
 
-  const plan = sessionUser.subscriptionTier ?? "free";
-  if (!FULL_ACCESS_PLANS.has(plan)) {
+  // Fresh DB check — Stripe is the source of truth, not the cached session tier
+  const effectivePlan = await resolveEffectivePlan(userId);
+  if (!FULL_ACCESS_PLANS.has(effectivePlan)) {
     res.status(402).json({
       error: "Responding to RFQs requires a Pro, Enterprise, or Premium MRO plan.",
-      plan,
-      requiredPlan: "pro",
-      upgradeUrl: "/seller/subscription",
+      code: "PLAN_REQUIRED",
+      effectivePlan,
+      upgradeUrl: "/pricing",
     });
     return;
   }
@@ -311,8 +317,6 @@ router.post("/rfqs/:id/responses", async (req, res): Promise<void> => {
 
   const parsed = CreateRfqResponseBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
-
-  const userId = parseInt(sessionUser.id);
 
   const [response] = await db
     .insert(rfqResponsesTable)
@@ -348,16 +352,17 @@ router.post("/rfqs/:id/responses", async (req, res): Promise<void> => {
 // ─── POST /rfqs/:id/quote — Pro/Enterprise/MRO Premium: formal price quote ────
 
 router.post("/rfqs/:id/quote", async (req, res): Promise<void> => {
-  const sessionUser = req.session?.user;
-  if (!sessionUser) { res.status(401).json({ error: "Not authenticated" }); return; }
+  const userId = req.session?.userId;
+  if (!userId) { res.status(401).json({ error: "Not authenticated" }); return; }
 
-  const plan = sessionUser.subscriptionTier ?? "free";
-  if (!FULL_ACCESS_PLANS.has(plan)) {
+  // Fresh DB check — Stripe is the source of truth, not the cached session tier
+  const effectivePlan = await resolveEffectivePlan(userId);
+  if (!FULL_ACCESS_PLANS.has(effectivePlan)) {
     res.status(402).json({
       error: "Submitting quotes requires a Pro, Enterprise, or Premium MRO plan.",
-      plan,
-      requiredPlan: "pro",
-      upgradeUrl: "/seller/subscription",
+      code: "PLAN_REQUIRED",
+      effectivePlan,
+      upgradeUrl: "/pricing",
     });
     return;
   }
@@ -374,8 +379,6 @@ router.post("/rfqs/:id/quote", async (req, res): Promise<void> => {
     res.status(400).json({ error: `Cannot quote on an RFQ with status '${rfq.status}'` });
     return;
   }
-
-  const userId = parseInt(sessionUser.id);
   const { price, leadTimeDays, message, listingId } = parsed.data;
 
   const [response] = await db

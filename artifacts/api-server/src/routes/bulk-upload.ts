@@ -224,24 +224,25 @@ router.get("/seller/bulk-upload/template", (_req: Request, res: Response): void 
 router.post(
   "/seller/bulk-upload/parse",
   // ── Auth + plan gate (runs before multer to avoid processing unauthorised files) ──
-  (req: Request, res: Response, next) => {
+  async (req: Request, res: Response, next): Promise<void> => {
     const userId = req.session?.userId;
     if (!userId) {
       res.status(401).json({ error: "Not authenticated" });
       return;
     }
-    const effectivePlan = req.session?.user?.subscriptionTier ?? "free";
+    // Fresh DB check — Stripe is the source of truth, not the cached session tier
+    const effectivePlan = await resolveEffectivePlan(userId);
     if (!BULK_UPLOAD_PLANS.has(effectivePlan)) {
-      res.status(403).json({
+      res.status(402).json({
         error: "Bulk upload requires a Pro or Enterprise plan.",
-        code: "plan_required",
+        code: "PLAN_REQUIRED",
       });
       return;
     }
     next();
   },
   upload.single("file"),
-  (req: Request, res: Response): void => {
+  async (req: Request, res: Response): Promise<void> => {
     if (!req.file) {
       res.status(400).json({ error: "No file uploaded" });
       return;
@@ -264,7 +265,9 @@ router.post(
     }
 
     // ── Per-upload row limit by tier ──────────────────────────────────────────
-    const effectivePlan = req.session?.user?.subscriptionTier ?? "free";
+    // Re-fetch effective plan for row-limit enforcement (belt-and-suspenders;
+    // auth middleware already verified the plan above)
+    const effectivePlan = await resolveEffectivePlan(req.session?.userId ?? 0);
     const rowLimit = BULK_ROW_LIMITS[effectivePlan] ?? 500;
     if (rowLimit !== null && rawRows.length > rowLimit) {
       res.status(400).json({

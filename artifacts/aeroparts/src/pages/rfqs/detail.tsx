@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useParams } from "wouter";
-import { useGetRfq, useCreateRfqResponse, useGetSellerListings, useCloseRfq } from "@workspace/api-client-react";
+import { useGetRfq, useCreateRfqResponse, useGetSellerListings, useCloseRfq, useGetSubscription } from "@workspace/api-client-react";
 import { useAuth } from "@/context/AuthContext";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
@@ -58,8 +58,21 @@ export default function RfqDetailPage() {
   const { user } = useAuth();
   const { toast } = useToast();
 
-  const isFreeSeller = user?.role === "seller" && user?.plan === "free";
-  const isPaidSeller = user?.role === "seller" && (user?.plan === "pro" || user?.plan === "enterprise");
+  // Fetch fresh subscription status so plan checks aren't stale from login time
+  const { data: subscription } = useGetSubscription({
+    query: { enabled: !!user && user.role === "seller", retry: false },
+  });
+  const subscriptionStatus = (subscription as any)?.subscriptionStatus as string | undefined;
+  const isSubscriptionActive =
+    !subscriptionStatus ||
+    subscriptionStatus === "active" ||
+    subscriptionStatus === "trial" ||
+    subscriptionStatus === "past_due";
+  // Effective plan: revert to "free" if subscription has lapsed
+  const effectivePlan =
+    isSubscriptionActive ? (user?.plan ?? "free") : "free";
+  const isFreeSeller = user?.role === "seller" && !["pro", "enterprise", "mro_premium"].includes(effectivePlan);
+  const isPaidSeller = user?.role === "seller" && ["pro", "enterprise", "mro_premium"].includes(effectivePlan);
 
   const { data, isLoading, refetch } = useGetRfq(id);
   const { data: sellerListings } = useGetSellerListings({ query: { enabled: !!user && user.role === "seller" && !isFreeSeller, queryKey: ["seller-listings-rfq"] } });

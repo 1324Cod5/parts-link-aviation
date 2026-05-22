@@ -16,6 +16,7 @@ import {
   useGetConversationMessages, getGetConversationMessagesQueryKey,
   useSendMessage,
   getGetConversationsUnreadCountQueryKey,
+  useGetSubscription,
 } from "@workspace/api-client-react";
 import { useAuth } from "@/context/AuthContext";
 import { useQueryClient } from "@tanstack/react-query";
@@ -170,6 +171,9 @@ export default function SellerDashboard() {
   const totalUnread = convs.reduce((s, c) => s + (c.unreadCount ?? 0), 0);
   const [openConvId, setOpenConvId] = useState<number | null>(null);
 
+  // Subscription status — must be called before any conditional returns (rules of hooks)
+  const { data: subscription } = useGetSubscription({ query: { retry: false } });
+
   const handleDelete = (id: number, partNumber: string) => {
     if (!confirm(`Delete listing ${partNumber}? This cannot be undone.`)) return;
     deleteMutation.mutate({ id }, {
@@ -205,6 +209,8 @@ export default function SellerDashboard() {
       </MainLayout>
     );
   }
+
+  const subscriptionStatus = (subscription as any)?.subscriptionStatus as string | undefined;
 
   const plan = (stats?.plan ?? user.plan ?? "free") as keyof typeof PLAN_META;
   const planMeta = PLAN_META[plan] ?? PLAN_META.free;
@@ -251,6 +257,43 @@ export default function SellerDashboard() {
             )}
           </div>
         </div>
+
+        {/* ─── Subscription Status Banner ───────────────────────────────── */}
+        {subscriptionStatus && subscriptionStatus !== "active" && subscriptionStatus !== "trial" && subscriptionStatus !== "none" && (
+          <div className={`mb-6 rounded-md border p-4 flex items-start gap-3 ${
+            subscriptionStatus === "past_due"
+              ? "border-amber-500/40 bg-amber-500/10"
+              : "border-red-500/40 bg-red-500/10"
+          }`}>
+            <AlertTriangle className={`h-5 w-5 flex-shrink-0 mt-0.5 ${subscriptionStatus === "past_due" ? "text-amber-400" : "text-red-400"}`} />
+            <div className="flex-1 min-w-0">
+              {subscriptionStatus === "past_due" ? (
+                <>
+                  <p className="text-sm font-semibold text-amber-400">Payment Past Due</p>
+                  <p className="text-xs text-amber-400/80 mt-0.5">
+                    Your subscription renewal failed. Update your payment method within 7 days to keep all features active.
+                  </p>
+                </>
+              ) : (
+                <>
+                  <p className="text-sm font-semibold text-red-400">Subscription {subscriptionStatus === "cancelled" ? "Cancelled" : "Suspended"}</p>
+                  <p className="text-xs text-red-400/80 mt-0.5">
+                    Your subscription is no longer active. Premium features (RFQ responses, bulk upload, email alerts) are locked.
+                  </p>
+                </>
+              )}
+            </div>
+            <Link href="/seller/subscription">
+              <Button size="sm" variant="outline" className={`flex-shrink-0 text-xs border h-8 ${
+                subscriptionStatus === "past_due"
+                  ? "border-amber-500/50 text-amber-400 hover:bg-amber-500/20"
+                  : "border-red-500/50 text-red-400 hover:bg-red-500/20"
+              }`}>
+                Manage
+              </Button>
+            </Link>
+          </div>
+        )}
 
         {/* ─── AOG Alerts Panel ─────────────────────────────────────────── */}
         {aogRfqs.length > 0 && (

@@ -9,8 +9,9 @@ import { getGetSellerListingsQueryKey, getGetSellerStatsQueryKey } from "@worksp
 import type { BulkParsedRow, BulkInvalidRow } from "@workspace/api-client-react";
 import {
   ArrowLeft, Upload, FileSpreadsheet, Download, CheckCircle2, XCircle,
-  AlertTriangle, Loader2, ChevronRight, Package, Lock, Zap,
+  AlertTriangle, Loader2, ChevronRight, Package, Lock, Zap, RefreshCw,
 } from "lucide-react";
+import { useGetSubscription } from "@workspace/api-client-react";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -79,6 +80,9 @@ export default function BulkUpload() {
   const [importResult, setImportResult] = useState<ImportResult | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
+  // Subscription status — must be called before any conditional returns (rules of hooks)
+  const { data: subscription } = useGetSubscription({ query: { retry: false } });
+
   // ─── Auth guard ──────────────────────────────────────────────────────────────
 
   if (authLoading) {
@@ -103,9 +107,56 @@ export default function BulkUpload() {
     );
   }
 
+  const subscriptionStatus = (subscription as any)?.subscriptionStatus as string | undefined;
+
   const plan = (user.plan ?? "free") as string;
   const planLabel = PLAN_LIMIT_LABELS[plan] ?? "5 listings";
-  const isBulkEnabled = plan === "pro" || plan === "enterprise";
+  const isPlanQualified = plan === "pro" || plan === "enterprise";
+  // Treat past_due as still active — backend enforces the 7-day grace window
+  const isSubscriptionActive =
+    !subscriptionStatus ||
+    subscriptionStatus === "active" ||
+    subscriptionStatus === "trial" ||
+    subscriptionStatus === "past_due";
+  const isBulkEnabled = isPlanQualified && isSubscriptionActive;
+
+  // ─── Subscription lapsed gate — plan is right but payment failed ──────────────
+
+  if (isPlanQualified && !isSubscriptionActive) {
+    return (
+      <MainLayout>
+        <div className="container mx-auto px-4 py-16 max-w-xl">
+          <div className="bg-card border border-red-500/30 rounded-lg p-10 text-center space-y-6">
+            <div className="w-14 h-14 bg-red-500/10 rounded-full flex items-center justify-center mx-auto">
+              <Lock className="h-7 w-7 text-red-400" />
+            </div>
+            <div>
+              <h2 className="text-xl font-bold text-white mb-2">Subscription Inactive</h2>
+              <p className="text-muted-foreground text-sm leading-relaxed">
+                Bulk upload requires an active{" "}
+                <span className="text-white font-medium capitalize">{plan}</span>{" "}
+                subscription. Your subscription is currently{" "}
+                <span className="text-red-400 font-medium">{subscriptionStatus ?? "inactive"}</span>.
+              </p>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2">
+              <Link href="/seller/subscription">
+                <Button className="bg-primary hover:bg-primary/90 gap-2 w-full sm:w-auto">
+                  <RefreshCw className="h-4 w-4" />
+                  Manage Subscription
+                </Button>
+              </Link>
+              <Link href="/seller/dashboard">
+                <Button variant="outline" className="border-border text-muted-foreground hover:text-white w-full sm:w-auto">
+                  Back to Dashboard
+                </Button>
+              </Link>
+            </div>
+          </div>
+        </div>
+      </MainLayout>
+    );
+  }
 
   // ─── Plan gate — Pro/Enterprise only ─────────────────────────────────────────
 
