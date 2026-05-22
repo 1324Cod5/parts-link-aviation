@@ -1,19 +1,27 @@
 import { createContext, useContext, ReactNode } from "react";
-import { useGetCurrentUser, useLogoutUser, getGetCurrentUserQueryKey } from "@workspace/api-client-react";
+import { useQueryClient } from "@tanstack/react-query";
+import {
+  useGetCurrentUser,
+  useLogoutUser,
+  useSwitchRole,
+  getGetCurrentUserQueryKey,
+  type SwitchRoleInputRole,
+} from "@workspace/api-client-react";
 import type { User } from "@workspace/api-client-react";
 
 export interface AuthContextType {
   user: User | null;
   isLoading: boolean;
   logout: () => void;
+  switchRole: (role: string) => void;
+  isSwitchingRole: boolean;
 }
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  // Always verify the session from the server on mount and on window focus.
-  // staleTime=0 ensures the cookie is checked on every page load/reload.
-  // retry=false prevents hammering the server on 401 (unauthenticated users).
+  const queryClient = useQueryClient();
+
   const { data: user, isLoading } = useGetCurrentUser({
     query: {
       queryKey: getGetCurrentUserQueryKey(),
@@ -25,6 +33,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   });
 
   const logoutMutation = useLogoutUser();
+  const switchRoleMutation = useSwitchRole();
 
   const logout = () => {
     logoutMutation.mutate(undefined, {
@@ -34,8 +43,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
   };
 
+  const switchRole = (role: string) => {
+    switchRoleMutation.mutate(
+      { data: { role: role as SwitchRoleInputRole } },
+      {
+        onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: getGetCurrentUserQueryKey() });
+          // Full reload ensures all role-gated UI refreshes cleanly
+          window.location.reload();
+        },
+      },
+    );
+  };
+
   return (
-    <AuthContext.Provider value={{ user: user ?? null, isLoading, logout }}>
+    <AuthContext.Provider
+      value={{
+        user: user ?? null,
+        isLoading,
+        logout,
+        switchRole,
+        isSwitchingRole: switchRoleMutation.isPending,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

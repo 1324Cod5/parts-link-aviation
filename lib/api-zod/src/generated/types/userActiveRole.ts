@@ -7,14 +7,13 @@
  */
 
 /**
- * Backward-compat alias for activeRole — always equals activeRole.
+ * Currently active role for UI context switching.
  */
-export type UserRole = typeof UserRole[keyof typeof UserRole];
+export type UserActiveRole = typeof UserActiveRole[keyof typeof UserActiveRole];
 
 
-export const UserRole = {
+export const UserActiveRole = {
   buyer: 'buyer',
   seller: 'seller',
   admin: 'admin',
-  super_admin: 'super_admin',
 } as const;

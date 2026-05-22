@@ -96,6 +96,7 @@ import type {
   SubscriptionInfo,
   SubscriptionProductsResponse,
   SuspendListingBody,
+  SwitchRoleInput,
   UnreadCountResponse,
   UploadDocumentsResponse,
   UploadImagesResponse,
@@ -472,6 +473,78 @@ export const useLogoutUser = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getLogoutUserMutationOptions(options));
+    }
+
+export const getSwitchRoleUrl = () => {
+
+
+
+
+  return `/api/user/switch-role`
+}
+
+/**
+ * Switches the currently active role for this session. The requested role must exist in the user's roles array.
+ * @summary Switch active role
+ */
+export const switchRole = async (switchRoleInput: SwitchRoleInput, options?: RequestInit): Promise<AuthResponse> => {
+
+  return customFetch<AuthResponse>(getSwitchRoleUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      switchRoleInput,)
+  }
+);}
+
+
+
+
+export const getSwitchRoleMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof switchRole>>, TError,{data: BodyType<SwitchRoleInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof switchRole>>, TError,{data: BodyType<SwitchRoleInput>}, TContext> => {
+
+const mutationKey = ['switchRole'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof switchRole>>, {data: BodyType<SwitchRoleInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  switchRole(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SwitchRoleMutationResult = NonNullable<Awaited<ReturnType<typeof switchRole>>>
+    export type SwitchRoleMutationBody = BodyType<SwitchRoleInput>
+    export type SwitchRoleMutationError = ErrorType<void>
+
+    /**
+ * @summary Switch active role
+ */
+export const useSwitchRole = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof switchRole>>, TError,{data: BodyType<SwitchRoleInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof switchRole>>,
+        TError,
+        {data: BodyType<SwitchRoleInput>},
+        TContext
+      > => {
+      return useMutation(getSwitchRoleMutationOptions(options));
     }
 
 export const getGetCurrentUserUrl = () => {

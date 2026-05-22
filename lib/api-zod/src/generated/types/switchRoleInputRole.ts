@@ -7,14 +7,13 @@
  */
 
 /**
- * Backward-compat alias for activeRole — always equals activeRole.
+ * The role to switch to — must exist in the user's roles array.
  */
-export type UserRole = typeof UserRole[keyof typeof UserRole];
+export type SwitchRoleInputRole = typeof SwitchRoleInputRole[keyof typeof SwitchRoleInputRole];
 
 
-export const UserRole = {
+export const SwitchRoleInputRole = {
   buyer: 'buyer',
   seller: 'seller',
   admin: 'admin',
-  super_admin: 'super_admin',
 } as const;

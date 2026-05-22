@@ -1,5 +1,6 @@
 import { Router, type IRouter } from "express";
 import bcrypt from "bcrypt";
+import { z } from "zod/v4";
 import { db, usersTable, mroProfilesTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import {
@@ -24,6 +25,10 @@ const router: IRouter = Router();
 const MAX_FAILED_ATTEMPTS = 5;
 const LOCKOUT_DURATION_MS = 15 * 60 * 1000; // 15 minutes
 
+const switchRoleSchema = z.object({
+  role: z.enum(["buyer", "seller", "admin"]),
+});
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 /**
@@ -45,20 +50,23 @@ async function fetchUserWithMro(userId: number) {
 }
 
 /**
- * Computes effectivePlan + computedRole for a user row.
+ * Computes effectivePlan + computedRole using the user's activeRole.
  * Returns null if the computed role is not a valid system role.
  */
 function deriveRole(
   user: typeof usersTable.$inferSelect,
   hasMroProfile: boolean,
 ): { effectivePlan: string; computedRole: ComputedRole } | null {
+  // Use activeRole for context-sensitive role derivation; fall back to role for
+  // accounts created before Option A migration.
+  const activeRole = user.activeRole ?? user.role;
   const effectivePlan = getEffectivePlan({
-    role: user.role,
+    role: activeRole,
     plan: user.plan,
     subscriptionStatus: user.subscriptionStatus,
     gracePeriodEnd: user.gracePeriodEnd,
   });
-  const computedRole = getComputedRole(user.role, effectivePlan, hasMroProfile);
+  const computedRole = getComputedRole(activeRole, effectivePlan, hasMroProfile);
   if (!computedRole) return null;
   assertValidComputedRole(computedRole);
   return { effectivePlan, computedRole };
@@ -68,10 +76,15 @@ function serializeUser(
   user: typeof usersTable.$inferSelect,
   computedRole: ComputedRole,
 ) {
+  const activeRole = user.activeRole ?? user.role;
+  const roles = user.roles ?? [user.role];
+
   return GetCurrentUserResponse.parse({
     id: user.id,
     email: user.email,
-    role: user.role,
+    role: activeRole,         // backward-compat: equals activeRole
+    roles,
+    activeRole,
     computedRole,
     companyName: user.companyName,
     contactName: user.contactName,
@@ -97,12 +110,28 @@ router.post("/auth/register", async (req, res): Promise<void> => {
     return;
   }
 
-  const { password, companyName, contactName, phone, country } = parsed.data;
+  const { password, contactName, phone, country } = parsed.data;
   const email = parsed.data.email.trim().toLowerCase();
+
+  // Get requested role from body — default to "seller" if not provided.
+  const requestedRole: "buyer" | "seller" = req.body.role === "buyer" ? "buyer" : "seller";
+
+  // Company name: required for sellers, defaults to contact name for buyers.
+  const companyName: string =
+    typeof parsed.data.companyName === "string" && parsed.data.companyName.trim()
+      ? parsed.data.companyName.trim()
+      : requestedRole === "buyer"
+        ? contactName
+        : "";
+
+  if (requestedRole === "seller" && !companyName) {
+    res.status(400).json({ error: "Company name is required for seller accounts." });
+    return;
+  }
 
   const [existing] = await db.select().from(usersTable).where(eq(usersTable.email, email));
   if (existing) {
-    res.status(400).json({ error: "Email already registered" });
+    res.status(409).json({ error: "An account with this email already exists. Please sign in." });
     return;
   }
 
@@ -110,16 +139,20 @@ router.post("/auth/register", async (req, res): Promise<void> => {
   const [user] = await db.insert(usersTable).values({
     email,
     passwordHash,
-    role: "seller",
+    role: requestedRole,
+    roles: [requestedRole],
+    activeRole: requestedRole,
     companyName,
     contactName,
     phone: phone ?? null,
     country: country ?? null,
   }).returning();
 
-  // New registrations always start as seller_free — no MRO profile yet
-  const computedRole = getComputedRole("seller", "free", false)!;
+  const computedRole = getComputedRole(requestedRole, "free", false)!;
   req.session!.userId = user.id;
+  await new Promise<void>((resolve, reject) =>
+    req.session!.save(err => (err ? reject(err) : resolve()))
+  );
   res.status(201).json({ user: serializeUser(user, computedRole) });
 });
 
@@ -211,10 +244,8 @@ router.post("/auth/login", async (req, res): Promise<void> => {
     .where(eq(usersTable.id, user.id));
 
   req.session!.userId = user.id;
-  console.log(`LOGIN SUCCESS | email=${email} | userId=${user.id} | role=${derived.computedRole}`);
+  console.log(`LOGIN SUCCESS | email=${email} | userId=${user.id} | activeRole=${user.activeRole ?? user.role} | computedRole=${derived.computedRole}`);
 
-  // Explicitly save the session before responding so the cookie is guaranteed
-  // to be committed to the store before the browser makes its next request.
   await new Promise<void>((resolve, reject) =>
     req.session!.save(err => (err ? reject(err) : resolve()))
   );
@@ -226,13 +257,6 @@ router.post("/auth/login", async (req, res): Promise<void> => {
 });
 
 // ─── Form-based login (native browser POST → server-side redirect) ────────────
-// This endpoint is called by the HTML login form (not AJAX/fetch).
-// Because the response is a browser navigation (302), the Set-Cookie header is
-// always stored — unlike AJAX fetch responses, which browsers block in cross-site
-// iframe contexts (e.g. Replit preview pane).
-//
-// On success  → redirects to the appropriate dashboard by role.
-// On failure  → redirects back to /seller/login?error=<msg>&email=<email>
 router.post("/auth/login-form", async (req, res): Promise<void> => {
   const rawEmail: string = (req.body?.email ?? "").trim().toLowerCase();
   const password: string = req.body?.password ?? "";
@@ -303,25 +327,35 @@ router.post("/auth/login-form", async (req, res): Promise<void> => {
     .set({ failedLoginAttempts: 0, lockedUntil: null, updatedAt: new Date() })
     .where(eq(usersTable.id, user.id));
 
-  // Derive base role: "admin" | "seller" | "mro"
+  const activeRole = user.activeRole ?? user.role;
+
+  // Map to a simple base role for session + redirect
   const baseRole: string =
     derived.computedRole === "admin"
       ? "admin"
-      : derived.computedRole.startsWith("mro_")
-        ? "mro"
-        : "seller";
+      : derived.computedRole === "buyer"
+        ? "buyer"
+        : derived.computedRole.startsWith("mro_")
+          ? "mro"
+          : "seller";
 
-  // Set session with both formats for maximum compatibility
-  const effectivePlan = getEffectivePlan(user);
+  const effectivePlan = getEffectivePlan({
+    role: activeRole,
+    plan: user.plan,
+    subscriptionStatus: user.subscriptionStatus,
+    gracePeriodEnd: user.gracePeriodEnd,
+  });
   req.session!.userId = user.id;
   req.session!.user = {
     id: String(user.id),
     email: user.email,
-    role: baseRole,
+    role: activeRole,
+    roles: user.roles ?? [user.role],
+    activeRole,
     subscriptionTier: effectivePlan,
     subscriptionStatus: "active",
     permissions: {
-      canCreateListings: true,
+      canCreateListings: baseRole === "seller" || baseRole === "mro" || baseRole === "admin",
       rfqFullAccess: FULL_ACCESS_PLANS.has(effectivePlan),
       maxListings: PLAN_LISTING_LIMITS[effectivePlan] ?? 5,
     },
@@ -330,15 +364,14 @@ router.post("/auth/login-form", async (req, res): Promise<void> => {
     req.session!.save(err => (err ? reject(err) : resolve()))
   );
 
-  console.log(`SESSION CREATED: yes | sessionId=${req.session!.id} | userId=${user.id} | role=${baseRole}`);
+  console.log(`SESSION CREATED: yes | sessionId=${req.session!.id} | userId=${user.id} | activeRole=${activeRole}`);
 
-  // Redirect to the correct dashboard by base role
   if (baseRole === "admin") {
     res.redirect(302, user.mustChangePassword ? "/admin/change-password" : "/admin/dashboard");
-  } else if (baseRole === "seller") {
+  } else if (baseRole === "seller" || baseRole === "mro") {
     res.redirect(302, "/seller/dashboard");
-  } else if (baseRole === "mro") {
-    res.redirect(302, "/mro/dashboard");
+  } else if (baseRole === "buyer") {
+    res.redirect(302, "/marketplace");
   } else {
     return errorRedirect("Unrecognised account role. Contact support.");
   }
@@ -419,8 +452,6 @@ router.get("/auth/me", async (req, res): Promise<void> => {
 });
 
 // ─── GET /permissions/me ──────────────────────────────────────────────────────
-// Returns the current user's server-derived permissions.
-// All permission checks MUST be derived server-side via this endpoint.
 router.get("/permissions/me", async (req, res): Promise<void> => {
   const userId = req.session?.userId;
   if (!userId) {
@@ -447,10 +478,59 @@ router.get("/permissions/me", async (req, res): Promise<void> => {
   });
 });
 
+// ─── POST /user/switch-role ───────────────────────────────────────────────────
+// Switches the active role for the current session. The requested role must
+// exist in the user's `roles` array — you cannot switch to a role you don't have.
+router.post("/user/switch-role", async (req, res): Promise<void> => {
+  const userId = req.session?.userId;
+  if (!userId) {
+    res.status(401).json({ error: "Not authenticated" });
+    return;
+  }
+
+  const parsed = switchRoleSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+
+  const { role: newRole } = parsed.data;
+
+  const result = await fetchUserWithMro(userId);
+  if (!result) {
+    res.status(401).json({ error: "Not authenticated" });
+    return;
+  }
+
+  const { user, hasMroProfile } = result;
+
+  // Validate the requested role is one this account actually has
+  const userRoles = user.roles ?? [user.role];
+  if (!userRoles.includes(newRole)) {
+    res.status(400).json({
+      error: `Role "${newRole}" is not available on this account. Available roles: ${userRoles.join(", ")}`,
+    });
+    return;
+  }
+
+  // Update activeRole in DB
+  await db.update(usersTable)
+    .set({ activeRole: newRole, updatedAt: new Date() })
+    .where(eq(usersTable.id, userId));
+
+  // Re-derive role with new activeRole
+  const updatedUser = { ...user, activeRole: newRole };
+  const derived = deriveRole(updatedUser, hasMroProfile);
+  if (!derived) {
+    res.status(400).json({ error: "Invalid role combination. Contact support." });
+    return;
+  }
+
+  console.log(`ROLE SWITCH | userId=${userId} | from=${user.activeRole} | to=${newRole} | computedRole=${derived.computedRole}`);
+  res.json({ user: serializeUser(updatedUser, derived.computedRole) });
+});
+
 // ─── Debug bypass (development only) ─────────────────────────────────────────
-// Visit /api/debug/login-free-seller to instantly create an authenticated session
-// for the free seller test account without going through the login form.
-// This lets us verify dashboard routing/session independently of the login flow.
 if (process.env.NODE_ENV !== "production") {
   router.get("/debug/login-free-seller", async (req, res): Promise<void> => {
     const [user] = await db

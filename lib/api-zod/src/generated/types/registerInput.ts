@@ -5,12 +5,16 @@
  * AeroParts Marketplace API
  * OpenAPI spec version: 0.1.0
  */
+import type { RegisterInputRole } from './registerInputRole';
 
 export interface RegisterInput {
   email: string;
   /** @minLength 8 */
   password: string;
-  companyName: string;
+  /** Account role — defaults to seller */
+  role?: RegisterInputRole;
+  /** Required for seller accounts; optional for buyers */
+  companyName?: string;
   contactName: string;
   /** @nullable */
   phone?: string | null;

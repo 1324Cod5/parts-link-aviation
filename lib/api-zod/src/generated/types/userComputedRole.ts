@@ -7,13 +7,14 @@
  */
 
 /**
- * Combined role derived from role + effective plan + MRO profile presence. This is the authoritative role for UI routing and feature gating.
+ * Combined role derived from activeRole + effective plan + MRO profile presence. This is the authoritative role for UI routing and feature gating.
  */
 export type UserComputedRole = typeof UserComputedRole[keyof typeof UserComputedRole];
 
 
 export const UserComputedRole = {
   admin: 'admin',
+  buyer: 'buyer',
   seller_free: 'seller_free',
   seller_pro: 'seller_pro',
   seller_enterprise: 'seller_enterprise',

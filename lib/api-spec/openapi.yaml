@@ -119,6 +119,30 @@ paths:
               schema:
                 $ref: "#/components/schemas/OkResponse"
 
+  /user/switch-role:
+    post:
+      operationId: switchRole
+      tags: [user]
+      summary: Switch active role
+      description: Switches the currently active role for this session. The requested role must exist in the user's roles array.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SwitchRoleInput"
+      responses:
+        "200":
+          description: Role switched successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "400":
+          description: Role not available on this account
+        "401":
+          description: Not authenticated
+
   /auth/me:
     get:
       operationId: getCurrentUser
@@ -1913,15 +1937,20 @@ components:
 
     RegisterInput:
       type: object
-      required: [email, password, companyName, contactName]
+      required: [email, password, contactName]
       properties:
         email:
           type: string
         password:
           type: string
           minLength: 8
+        role:
+          type: string
+          enum: [buyer, seller]
+          description: Account role — defaults to seller
         companyName:
           type: string
+          description: Required for seller accounts; optional for buyers
         contactName:
           type: string
         phone:
@@ -1940,7 +1969,7 @@ components:
 
     User:
       type: object
-      required: [id, email, role, companyName, contactName, plan, computedRole, createdAt]
+      required: [id, email, role, roles, activeRole, companyName, contactName, plan, computedRole, createdAt]
       properties:
         id:
           type: integer
@@ -1949,10 +1978,20 @@ components:
         role:
           type: string
           enum: [buyer, seller, admin, super_admin]
+          description: Backward-compat alias for activeRole — always equals activeRole.
+        roles:
+          type: array
+          items:
+            type: string
+          description: All roles assigned to this account (e.g. ["buyer","seller"]).
+        activeRole:
+          type: string
+          enum: [buyer, seller, admin]
+          description: Currently active role for UI context switching.
         computedRole:
           type: string
-          enum: [admin, seller_free, seller_pro, seller_enterprise, mro_free, mro_verified, mro_premium]
-          description: Combined role derived from role + effective plan + MRO profile presence. This is the authoritative role for UI routing and feature gating.
+          enum: [admin, buyer, seller_free, seller_pro, seller_enterprise, mro_free, mro_verified, mro_premium]
+          description: Combined role derived from activeRole + effective plan + MRO profile presence. This is the authoritative role for UI routing and feature gating.
         companyName:
           type: string
         contactName:
@@ -1992,6 +2031,15 @@ components:
         newPassword:
           type: string
           minLength: 8
+
+    SwitchRoleInput:
+      type: object
+      required: [role]
+      properties:
+        role:
+          type: string
+          enum: [buyer, seller, admin]
+          description: The role to switch to — must exist in the user's roles array.
 
     AuthResponse:
       type: object

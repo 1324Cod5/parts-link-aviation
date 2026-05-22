@@ -1,4 +1,5 @@
 import { pgTable, serial, text, timestamp, boolean, integer, pgEnum, jsonb } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
@@ -17,6 +18,9 @@ export const usersTable = pgTable("users", {
   email: text("email").notNull().unique(),
   passwordHash: text("password_hash").notNull(),
   role: userRoleEnum("role").notNull().default("seller"),
+  // Option A: single account per email, multiple roles
+  roles: text("roles").array().notNull().default(sql`ARRAY['seller']::text[]`),
+  activeRole: text("active_role").notNull().default("seller"),
   companyName: text("company_name").notNull(),
   contactName: text("contact_name").notNull(),
   phone: text("phone"),

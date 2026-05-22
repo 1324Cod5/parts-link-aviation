@@ -108,11 +108,25 @@ export interface LimitReachedError {
   listingLimit: number;
 }
 
+/**
+ * Account role — defaults to seller
+ */
+export type RegisterInputRole = typeof RegisterInputRole[keyof typeof RegisterInputRole];
+
+
+export const RegisterInputRole = {
+  buyer: 'buyer',
+  seller: 'seller',
+} as const;
+
 export interface RegisterInput {
   email: string;
   /** @minLength 8 */
   password: string;
-  companyName: string;
+  /** Account role — defaults to seller */
+  role?: RegisterInputRole;
+  /** Required for seller accounts; optional for buyers */
+  companyName?: string;
   contactName: string;
   /** @nullable */
   phone?: string | null;
@@ -125,6 +139,9 @@ export interface LoginInput {
   password: string;
 }
 
+/**
+ * Backward-compat alias for activeRole — always equals activeRole.
+ */
 export type UserRole = typeof UserRole[keyof typeof UserRole];
 
 
@@ -136,13 +153,26 @@ export const UserRole = {
 } as const;
 
 /**
- * Combined role derived from role + effective plan + MRO profile presence. This is the authoritative role for UI routing and feature gating.
+ * Currently active role for UI context switching.
+ */
+export type UserActiveRole = typeof UserActiveRole[keyof typeof UserActiveRole];
+
+
+export const UserActiveRole = {
+  buyer: 'buyer',
+  seller: 'seller',
+  admin: 'admin',
+} as const;
+
+/**
+ * Combined role derived from activeRole + effective plan + MRO profile presence. This is the authoritative role for UI routing and feature gating.
  */
 export type UserComputedRole = typeof UserComputedRole[keyof typeof UserComputedRole];
 
 
 export const UserComputedRole = {
   admin: 'admin',
+  buyer: 'buyer',
   seller_free: 'seller_free',
   seller_pro: 'seller_pro',
   seller_enterprise: 'seller_enterprise',
@@ -205,8 +235,13 @@ export interface TrustScoreBreakdown {
 export interface User {
   id: number;
   email: string;
+  /** Backward-compat alias for activeRole — always equals activeRole. */
   role: UserRole;
-  /** Combined role derived from role + effective plan + MRO profile presence. This is the authoritative role for UI routing and feature gating. */
+  /** All roles assigned to this account (e.g. ["buyer","seller"]). */
+  roles: string[];
+  /** Currently active role for UI context switching. */
+  activeRole: UserActiveRole;
+  /** Combined role derived from activeRole + effective plan + MRO profile presence. This is the authoritative role for UI routing and feature gating. */
   computedRole: UserComputedRole;
   companyName: string;
   contactName: string;
@@ -231,6 +266,23 @@ export interface ChangePasswordInput {
   currentPassword: string;
   /** @minLength 8 */
   newPassword: string;
+}
+
+/**
+ * The role to switch to — must exist in the user's roles array.
+ */
+export type SwitchRoleInputRole = typeof SwitchRoleInputRole[keyof typeof SwitchRoleInputRole];
+
+
+export const SwitchRoleInputRole = {
+  buyer: 'buyer',
+  seller: 'seller',
+  admin: 'admin',
+} as const;
+
+export interface SwitchRoleInput {
+  /** The role to switch to — must exist in the user's roles array. */
+  role: SwitchRoleInputRole;
 }
 
 export interface AuthResponse {

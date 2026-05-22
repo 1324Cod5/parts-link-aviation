@@ -26,7 +26,8 @@ export const registerUserBodyPasswordMin = 8;
 export const RegisterUserBody = zod.object({
   "email": zod.string(),
   "password": zod.string().min(registerUserBodyPasswordMin),
-  "companyName": zod.string(),
+  "role": zod.enum(['buyer', 'seller']).optional().describe('Account role — defaults to seller'),
+  "companyName": zod.string().optional().describe('Required for seller accounts; optional for buyers'),
   "contactName": zod.string(),
   "phone": zod.string().nullish(),
   "country": zod.string().nullish()
@@ -45,8 +46,10 @@ export const LoginUserResponse = zod.object({
   "user": zod.object({
   "id": zod.number(),
   "email": zod.string(),
-  "role": zod.enum(['buyer', 'seller', 'admin', 'super_admin']),
-  "computedRole": zod.enum(['admin', 'seller_free', 'seller_pro', 'seller_enterprise', 'mro_free', 'mro_verified', 'mro_premium']).describe('Combined role derived from role + effective plan + MRO profile presence. This is the authoritative role for UI routing and feature gating.'),
+  "role": zod.enum(['buyer', 'seller', 'admin', 'super_admin']).describe('Backward-compat alias for activeRole — always equals activeRole.'),
+  "roles": zod.array(zod.string()).describe('All roles assigned to this account (e.g. [\"buyer\",\"seller\"]).'),
+  "activeRole": zod.enum(['buyer', 'seller', 'admin']).describe('Currently active role for UI context switching.'),
+  "computedRole": zod.enum(['admin', 'buyer', 'seller_free', 'seller_pro', 'seller_enterprise', 'mro_free', 'mro_verified', 'mro_premium']).describe('Combined role derived from activeRole + effective plan + MRO profile presence. This is the authoritative role for UI routing and feature gating.'),
   "companyName": zod.string(),
   "contactName": zod.string(),
   "phone": zod.string().nullish(),
@@ -103,13 +106,61 @@ export const LogoutUserResponse = zod.object({
 
 
 /**
+ * Switches the currently active role for this session. The requested role must exist in the user's roles array.
+ * @summary Switch active role
+ */
+export const SwitchRoleBody = zod.object({
+  "role": zod.enum(['buyer', 'seller', 'admin']).describe('The role to switch to — must exist in the user\'s roles array.')
+})
+
+export const SwitchRoleResponse = zod.object({
+  "user": zod.object({
+  "id": zod.number(),
+  "email": zod.string(),
+  "role": zod.enum(['buyer', 'seller', 'admin', 'super_admin']).describe('Backward-compat alias for activeRole — always equals activeRole.'),
+  "roles": zod.array(zod.string()).describe('All roles assigned to this account (e.g. [\"buyer\",\"seller\"]).'),
+  "activeRole": zod.enum(['buyer', 'seller', 'admin']).describe('Currently active role for UI context switching.'),
+  "computedRole": zod.enum(['admin', 'buyer', 'seller_free', 'seller_pro', 'seller_enterprise', 'mro_free', 'mro_verified', 'mro_premium']).describe('Combined role derived from activeRole + effective plan + MRO profile presence. This is the authoritative role for UI routing and feature gating.'),
+  "companyName": zod.string(),
+  "contactName": zod.string(),
+  "phone": zod.string().nullish(),
+  "country": zod.string().nullish(),
+  "plan": zod.enum(['free', 'pro', 'enterprise', 'mro_verified', 'mro_premium']),
+  "planExpiresAt": zod.string().nullish(),
+  "subscriptionStatus": zod.union([zod.literal('active'),zod.literal('trial'),zod.literal('past_due'),zod.literal('cancelled'),zod.literal('suspended'),zod.literal(null)]).nullish(),
+  "mustChangePassword": zod.boolean().optional(),
+  "trustScore": zod.number().optional().describe('Seller trust score 0–100'),
+  "trustBadge": zod.enum(['unverified', 'document_verified', 'aviation_verified', 'trusted_partner']).optional(),
+  "trustScoreBreakdown": zod.union([zod.object({
+  "certDocScore": zod.number(),
+  "certDocMax": zod.number().optional(),
+  "listingAccuracyScore": zod.number(),
+  "listingAccuracyMax": zod.number().optional(),
+  "transactionScore": zod.number(),
+  "transactionMax": zod.number().optional(),
+  "responseTimeScore": zod.number(),
+  "responseTimeMax": zod.number().optional(),
+  "disputePenalty": zod.number(),
+  "subscriptionBoost": zod.number(),
+  "subscriptionBoostMax": zod.number().optional(),
+  "total": zod.number(),
+  "badge": zod.enum(['unverified', 'document_verified', 'aviation_verified', 'trusted_partner'])
+}),zod.null()]).optional(),
+  "createdAt": zod.string()
+})
+})
+
+
+/**
  * @summary Get current user
  */
 export const GetCurrentUserResponse = zod.object({
   "id": zod.number(),
   "email": zod.string(),
-  "role": zod.enum(['buyer', 'seller', 'admin', 'super_admin']),
-  "computedRole": zod.enum(['admin', 'seller_free', 'seller_pro', 'seller_enterprise', 'mro_free', 'mro_verified', 'mro_premium']).describe('Combined role derived from role + effective plan + MRO profile presence. This is the authoritative role for UI routing and feature gating.'),
+  "role": zod.enum(['buyer', 'seller', 'admin', 'super_admin']).describe('Backward-compat alias for activeRole — always equals activeRole.'),
+  "roles": zod.array(zod.string()).describe('All roles assigned to this account (e.g. [\"buyer\",\"seller\"]).'),
+  "activeRole": zod.enum(['buyer', 'seller', 'admin']).describe('Currently active role for UI context switching.'),
+  "computedRole": zod.enum(['admin', 'buyer', 'seller_free', 'seller_pro', 'seller_enterprise', 'mro_free', 'mro_verified', 'mro_premium']).describe('Combined role derived from activeRole + effective plan + MRO profile presence. This is the authoritative role for UI routing and feature gating.'),
   "companyName": zod.string(),
   "contactName": zod.string(),
   "phone": zod.string().nullish(),

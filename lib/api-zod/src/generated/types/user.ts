@@ -7,6 +7,7 @@
  */
 import type { TrustBadge } from './trustBadge';
 import type { TrustScoreBreakdown } from './trustScoreBreakdown';
+import type { UserActiveRole } from './userActiveRole';
 import type { UserComputedRole } from './userComputedRole';
 import type { UserPlan } from './userPlan';
 import type { UserRole } from './userRole';
@@ -15,8 +16,13 @@ import type { UserSubscriptionStatus } from './userSubscriptionStatus';
 export interface User {
   id: number;
   email: string;
+  /** Backward-compat alias for activeRole — always equals activeRole. */
   role: UserRole;
-  /** Combined role derived from role + effective plan + MRO profile presence. This is the authoritative role for UI routing and feature gating. */
+  /** All roles assigned to this account (e.g. ["buyer","seller"]). */
+  roles: string[];
+  /** Currently active role for UI context switching. */
+  activeRole: UserActiveRole;
+  /** Combined role derived from activeRole + effective plan + MRO profile presence. This is the authoritative role for UI routing and feature gating. */
   computedRole: UserComputedRole;
   companyName: string;
   contactName: string;

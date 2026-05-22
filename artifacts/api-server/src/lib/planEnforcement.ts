@@ -33,11 +33,12 @@ const PAID_PLANS = new Set(["pro", "enterprise", "mro_verified", "mro_premium"])
 // ─── Computed role ─────────────────────────────────────────────────────────────
 
 /**
- * The 7 valid combined roles in the system.
- * Derived at runtime from role + effectivePlan + hasMroProfile.
+ * The 8 valid combined roles in the system.
+ * Derived at runtime from activeRole + effectivePlan + hasMroProfile.
  */
 export const VALID_COMPUTED_ROLES = [
   "admin",
+  "buyer",
   "seller_free",
   "seller_pro",
   "seller_enterprise",
@@ -49,12 +50,13 @@ export const VALID_COMPUTED_ROLES = [
 export type ComputedRole = (typeof VALID_COMPUTED_ROLES)[number];
 
 /**
- * Throws if the given value is not one of the 7 valid computed roles.
+ * Throws if the given value is not one of the valid computed roles.
  * Use this at every trust boundary before acting on a role value.
  */
 export function assertValidComputedRole(role: unknown): asserts role is ComputedRole {
   if (
     role !== "admin" &&
+    role !== "buyer" &&
     role !== "seller_free" &&
     role !== "seller_pro" &&
     role !== "seller_enterprise" &&
@@ -67,20 +69,22 @@ export function assertValidComputedRole(role: unknown): asserts role is Computed
 }
 
 /**
- * Derives the combined role from the user's DB role, effective plan, and
+ * Derives the combined role from the user's activeRole, effective plan, and
  * whether they have an MRO profile.
  *
- * Returns null if the combination is not a recognised valid role
- * (e.g. role = "buyer" which has no place in the system).
+ * Returns null if the combination is not a recognised valid role.
  */
 export function getComputedRole(
-  role: string,
+  activeRole: string,
   effectivePlan: string,
   hasMroProfile: boolean,
 ): ComputedRole | null {
-  if (role === "admin" || role === "super_admin") return "admin";
+  if (activeRole === "admin" || activeRole === "super_admin") return "admin";
 
-  if (role === "seller") {
+  // Buyer role: no plan/MRO profile needed
+  if (activeRole === "buyer") return "buyer";
+
+  if (activeRole === "seller") {
     switch (effectivePlan) {
       case "pro":
         return "seller_pro";
@@ -97,7 +101,7 @@ export function getComputedRole(
     }
   }
 
-  // "buyer" or any unrecognised role has no valid computed role
+  // Any unrecognised role has no valid computed role
   return null;
 }
 
@@ -117,6 +121,7 @@ interface PlanUser {
  *
  * Rules:
  *  - admin / super_admin                  → bypass subscription check; return stored plan
+ *  - buyer                                → always free (no subscription)
  *  - active / trial                       → full paid plan
  *  - past_due within 7-day grace          → full paid plan (grace period)
  *  - past_due after grace expired         → free
@@ -128,6 +133,11 @@ export function getEffectivePlan(user: PlanUser): string {
   // Admins always get their stored plan — they are not subscription-gated.
   if (user.role === "admin" || user.role === "super_admin") {
     return user.plan;
+  }
+
+  // Buyers don't have subscriptions
+  if (user.role === "buyer") {
+    return "free";
   }
 
   const status = user.subscriptionStatus;
@@ -159,7 +169,7 @@ export function getEffectivePlan(user: PlanUser): string {
 export async function resolveEffectivePlan(userId: number): Promise<string> {
   const [user] = await db
     .select({
-      role: usersTable.role,
+      role: usersTable.activeRole,
       plan: usersTable.plan,
       subscriptionStatus: usersTable.subscriptionStatus,
       gracePeriodEnd: usersTable.gracePeriodEnd,
@@ -183,7 +193,7 @@ export async function resolveUserContext(userId: number): Promise<{
 } | null> {
   const rows = await db
     .select({
-      role: usersTable.role,
+      role: usersTable.activeRole,
       plan: usersTable.plan,
       subscriptionStatus: usersTable.subscriptionStatus,
       gracePeriodEnd: usersTable.gracePeriodEnd,

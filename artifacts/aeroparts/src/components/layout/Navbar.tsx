@@ -1,19 +1,37 @@
 import { Link, useLocation } from "wouter";
+import { ChevronDown } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   useGetConversationsUnreadCount,
   getGetConversationsUnreadCountQueryKey,
 } from "@workspace/api-client-react";
 
+const ROLE_LABELS: Record<string, string> = {
+  buyer: "Buyer View",
+  seller: "Seller View",
+  admin: "Admin View",
+};
+
 export function Navbar() {
-  const { user, logout } = useAuth();
+  const { user, logout, switchRole, isSwitchingRole } = useAuth();
   const [location] = useLocation();
+
+  const activeRole = user?.activeRole ?? user?.role ?? "";
+  const userRoles: string[] = (user as any)?.roles ?? (user?.role ? [user.role] : []);
+  const hasMultipleRoles = userRoles.length > 1;
 
   const { data: unreadData } = useGetConversationsUnreadCount({
     query: {
       queryKey: getGetConversationsUnreadCountQueryKey(),
-      enabled: !!user && user.role === "seller",
+      enabled: !!user && activeRole === "seller",
       refetchInterval: 30_000,
       retry: false,
     },
@@ -40,7 +58,7 @@ export function Navbar() {
             <Link href="/pricing" className={`text-sm font-medium transition-colors hover:text-primary ${location === '/pricing' ? 'text-primary' : 'text-muted-foreground'}`}>
               Pricing
             </Link>
-            {user?.role === 'seller' && (
+            {activeRole === 'seller' && (
               <Link href="/seller/dashboard" className={`relative text-sm font-medium transition-colors hover:text-primary ${location.startsWith('/seller') ? 'text-primary' : 'text-muted-foreground'}`}>
                 Dashboard
                 {unreadCount > 0 && (
@@ -50,7 +68,7 @@ export function Navbar() {
                 )}
               </Link>
             )}
-            {user?.role === 'admin' && (
+            {activeRole === 'admin' && (
               <Link href="/admin" className={`text-sm font-medium transition-colors hover:text-primary ${location.startsWith('/admin') ? 'text-primary' : 'text-muted-foreground'}`}>
                 Admin Portal
               </Link>
@@ -58,7 +76,7 @@ export function Navbar() {
           </div>
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3">
           {!user ? (
             <>
               <Link href="/seller/login">
@@ -69,7 +87,43 @@ export function Navbar() {
               </Link>
             </>
           ) : (
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3">
+              {/* Role switcher — shown only when the account has multiple roles */}
+              {hasMultipleRoles && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={isSwitchingRole}
+                      className="h-7 text-xs border-border text-muted-foreground hover:text-white gap-1 px-2"
+                    >
+                      {ROLE_LABELS[activeRole] ?? activeRole}
+                      <ChevronDown className="h-3 w-3" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="min-w-[140px]">
+                    {userRoles.map((r) => (
+                      <DropdownMenuItem
+                        key={r}
+                        disabled={r === activeRole || isSwitchingRole}
+                        onClick={() => r !== activeRole && switchRole(r)}
+                        className={r === activeRole ? "font-semibold text-primary cursor-default" : "cursor-pointer"}
+                      >
+                        {ROLE_LABELS[r] ?? r}
+                        {r === activeRole && (
+                          <span className="ml-auto text-[10px] text-muted-foreground">Active</span>
+                        )}
+                      </DropdownMenuItem>
+                    ))}
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem className="text-xs text-muted-foreground cursor-default" disabled>
+                      Single account, multiple roles
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
+
               <span className="text-sm text-muted-foreground hidden md:inline-flex items-center gap-2">
                 {user.contactName}
                 {user.plan && user.plan !== 'free' && (
