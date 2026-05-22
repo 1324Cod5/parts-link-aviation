@@ -1,0 +1,308 @@
+/**
+ * Email HTML templates — dark-navy-themed, inline styles for email client compat.
+ */
+
+// ─── Shared palette / primitives ──────────────────────────────────────────────
+
+const BG        = "#0d1b2e";
+const CARD      = "#132237";
+const BORDER    = "#1e3a5a";
+const SILVER    = "#bebebe";
+const WHITE     = "#f8f8f8";
+const MUTED     = "#7a8fa6";
+const RED       = "#dc2626";
+const GREEN     = "#16a34a";
+const AMBER     = "#d97706";
+const BLUE      = "#1d4ed8";
+
+function base(content: string, accentColor = SILVER): string {
+  return `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<body style="margin:0;padding:0;background:${BG};font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:${BG};padding:32px 16px;">
+    <tr><td>
+      <!-- Header -->
+      <table width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;margin:0 auto 24px;">
+        <tr>
+          <td style="padding:0 0 16px;">
+            <span style="font-size:20px;font-weight:700;color:${WHITE};letter-spacing:-0.5px;">AeroParts</span>
+            <span style="display:inline-block;width:6px;height:6px;background:${accentColor};border-radius:50%;margin:0 0 2px 6px;vertical-align:middle;"></span>
+          </td>
+        </tr>
+      </table>
+      <!-- Card -->
+      <table width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;margin:0 auto;">
+        <tr>
+          <td style="background:${CARD};border:1px solid ${BORDER};border-radius:8px;padding:32px;">
+            ${content}
+          </td>
+        </tr>
+      </table>
+      <!-- Footer -->
+      <table width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;margin:24px auto 0;">
+        <tr>
+          <td style="padding:16px 0;border-top:1px solid ${BORDER};text-align:center;">
+            <p style="margin:0;font-size:12px;color:${MUTED};">
+              You're receiving this because you're an AeroParts Pro/Enterprise seller.<br>
+              <a href="{{unsubscribe_url}}" style="color:${MUTED};text-decoration:underline;">Manage notification preferences</a>
+            </p>
+          </td>
+        </tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`;
+}
+
+function pill(text: string, bg: string, color: string): string {
+  return `<span style="display:inline-block;background:${bg};color:${color};font-size:11px;font-weight:600;padding:3px 10px;border-radius:4px;letter-spacing:0.5px;text-transform:uppercase;">${text}</span>`;
+}
+
+function section(label: string, value: string): string {
+  return `
+  <tr>
+    <td style="padding:6px 0;border-bottom:1px solid ${BORDER};">
+      <span style="font-size:12px;color:${MUTED};text-transform:uppercase;letter-spacing:0.5px;">${label}</span>
+    </td>
+    <td style="padding:6px 0 6px 16px;border-bottom:1px solid ${BORDER};text-align:right;">
+      <span style="font-size:14px;color:${WHITE};font-family:monospace;">${value}</span>
+    </td>
+  </tr>`;
+}
+
+function cta(label: string, href: string, bg = SILVER): string {
+  return `
+  <a href="${href}" style="display:inline-block;margin-top:24px;padding:12px 28px;background:${bg};color:${BG};font-size:14px;font-weight:600;border-radius:6px;text-decoration:none;">
+    ${label}
+  </a>`;
+}
+
+// ─── Seller profile shape used by templates ───────────────────────────────────
+
+export interface TemplateSeller {
+  id: number;
+  email: string;
+  companyName: string;
+  contactName: string;
+}
+
+// ─── RFQ Alert ────────────────────────────────────────────────────────────────
+
+import type { RfqPayload } from "./email";
+
+export function rfqAlertTemplate(
+  seller: TemplateSeller,
+  rfq: RfqPayload,
+  isEnterprise: boolean,
+): string {
+  const urgencyColor = rfq.urgency === "aog" ? RED : rfq.urgency === "critical" ? AMBER : BLUE;
+  const urgencyLabel = rfq.urgency.replace("_", " ").toUpperCase();
+
+  const content = `
+    <div style="margin-bottom:24px;">
+      ${isEnterprise ? `<div style="margin-bottom:12px;">${pill("⚡ Exclusive Priority", AMBER + "22", AMBER)}</div>` : ""}
+      ${pill(urgencyLabel, urgencyColor + "22", urgencyColor)}
+      <h1 style="margin:16px 0 4px;font-size:24px;font-weight:700;color:${WHITE};">${rfq.partNumber}</h1>
+      <p style="margin:0;font-size:15px;color:${MUTED};">${rfq.description}</p>
+    </div>
+
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
+      ${section("Quantity", String(rfq.quantity))}
+      ${rfq.aircraftApplicability ? section("Aircraft", rfq.aircraftApplicability) : ""}
+      ${rfq.condition ? section("Condition", rfq.condition) : ""}
+      ${rfq.buyerCompany ? section("Buyer Company", rfq.buyerCompany) : ""}
+      ${section("Posted", new Date(rfq.createdAt).toUTCString())}
+    </table>
+
+    <p style="font-size:14px;color:${MUTED};margin-bottom:8px;">
+      ${isEnterprise
+        ? "As an Enterprise seller, you're receiving this alert before other sellers. Respond quickly to maximize your chances."
+        : "Log in to view full buyer details and submit a quote."}
+    </p>
+    ${cta("View RFQ & Respond →", `https://aeroparts.app/rfqs/${rfq.id}`)}
+  `;
+  return base(content, isEnterprise ? AMBER : SILVER);
+}
+
+// ─── AOG Alert ────────────────────────────────────────────────────────────────
+
+export function aogAlertTemplate(
+  seller: TemplateSeller,
+  rfq: RfqPayload,
+  isEnterprise: boolean,
+): string {
+  const content = `
+    <div style="background:${RED}18;border:1px solid ${RED}44;border-radius:6px;padding:16px;margin-bottom:24px;text-align:center;">
+      <p style="margin:0 0 6px;font-size:22px;">🔴</p>
+      <p style="margin:0;font-size:20px;font-weight:700;color:${RED};">AIRCRAFT ON GROUND</p>
+      <p style="margin:4px 0 0;font-size:13px;color:${MUTED};">Immediate response requested</p>
+    </div>
+    ${isEnterprise ? `<div style="margin-bottom:16px;">${pill("⚡ Exclusive Enterprise Alert", AMBER + "22", AMBER)}</div>` : ""}
+    <h2 style="margin:0 0 4px;font-size:20px;color:${WHITE};">${rfq.partNumber}</h2>
+    <p style="margin:0 0 20px;color:${MUTED};font-size:14px;">${rfq.description}</p>
+
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
+      ${section("Quantity", String(rfq.quantity))}
+      ${rfq.aircraftApplicability ? section("Aircraft", rfq.aircraftApplicability) : ""}
+      ${rfq.buyerCompany ? section("Buyer Company", rfq.buyerCompany) : ""}
+      ${rfq.urgencyReason ? section("AOG Reason", rfq.urgencyReason ?? "") : ""}
+    </table>
+
+    <p style="font-size:13px;color:${RED};font-weight:600;margin-bottom:4px;">
+      ⚠️ AOG situations require same-day response. Act immediately.
+    </p>
+    ${cta("Respond to AOG RFQ →", `https://aeroparts.app/rfqs/${rfq.id}`, RED)}
+  `;
+  return base(content, RED);
+}
+
+// ─── Quote Awarded ────────────────────────────────────────────────────────────
+
+export interface QuoteAwardedPayload {
+  rfqId: number;
+  partNumber: string;
+  description: string;
+  buyerName: string;
+  buyerCompany: string | null;
+}
+
+export function quoteAwardedTemplate(
+  seller: TemplateSeller,
+  payload: QuoteAwardedPayload,
+): string {
+  const content = `
+    <div style="text-align:center;margin-bottom:28px;">
+      <p style="font-size:40px;margin:0 0 8px;">🏆</p>
+      <h1 style="margin:0 0 8px;font-size:24px;color:${WHITE};">Quote Accepted!</h1>
+      <p style="margin:0;font-size:15px;color:${MUTED};">Your quote for <strong style="color:${WHITE};">${payload.partNumber}</strong> has been selected.</p>
+    </div>
+
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
+      ${section("Part Number", payload.partNumber)}
+      ${section("Description", payload.description)}
+      ${section("Buyer Name", payload.buyerName)}
+      ${payload.buyerCompany ? section("Buyer Company", payload.buyerCompany) : ""}
+    </table>
+
+    <p style="font-size:14px;color:${MUTED};margin-bottom:8px;">
+      The buyer has selected your quote. Log in to view full contact details and coordinate delivery.
+    </p>
+    ${cta("View RFQ Details →", `https://aeroparts.app/rfqs/${payload.rfqId}`, GREEN)}
+  `;
+  return base(content, GREEN);
+}
+
+// ─── Certification Update ──────────────────────────────────────────────────────
+
+export interface CertUpdatePayload {
+  listingId: number;
+  partNumber: string;
+  documentType: string;
+  verificationStatus: "approved" | "rejected";
+  reviewNote: string | null;
+}
+
+export function certUpdateTemplate(
+  seller: TemplateSeller,
+  payload: CertUpdatePayload,
+): string {
+  const approved = payload.verificationStatus === "approved";
+  const statusColor = approved ? GREEN : RED;
+  const statusIcon  = approved ? "✅" : "❌";
+  const statusLabel = approved ? "APPROVED" : "ACTION REQUIRED";
+
+  const content = `
+    <div style="text-align:center;margin-bottom:28px;">
+      <p style="font-size:36px;margin:0 0 8px;">${statusIcon}</p>
+      <h1 style="margin:0 0 8px;font-size:22px;color:${WHITE};">Certification ${approved ? "Approved" : "Needs Attention"}</h1>
+      <div style="margin:8px 0;">${pill(statusLabel, statusColor + "22", statusColor)}</div>
+    </div>
+
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
+      ${section("Part Number", payload.partNumber)}
+      ${section("Document Type", payload.documentType.replace(/_/g, " ").toUpperCase())}
+      ${section("Status", payload.verificationStatus.toUpperCase())}
+    </table>
+
+    ${payload.reviewNote ? `
+    <div style="background:${BORDER}55;border-left:3px solid ${statusColor};padding:12px 16px;border-radius:4px;margin-bottom:20px;">
+      <p style="margin:0 0 4px;font-size:11px;color:${MUTED};text-transform:uppercase;letter-spacing:0.5px;">Admin Note</p>
+      <p style="margin:0;font-size:14px;color:${WHITE};">${payload.reviewNote}</p>
+    </div>` : ""}
+
+    ${cta("View Listing →", `https://aeroparts.app/listings/${payload.listingId}`, approved ? GREEN : AMBER)}
+  `;
+  return base(content, statusColor);
+}
+
+// ─── Daily Digest ──────────────────────────────────────────────────────────────
+
+export interface DigestData {
+  newRfqCount:     number;
+  aogCount:        number;
+  trendingParts:   { partNumber: string; count: number }[];
+  topAircraft:     { aircraft: string; count: number }[];
+  topSearchTerms:  { term: string; count: number }[];
+  periodLabel:     string; // e.g. "Last 24 hours"
+}
+
+export function dailyDigestTemplate(seller: TemplateSeller, data: DigestData): string {
+  const partRows = data.trendingParts.slice(0, 5).map((p, i) =>
+    `<tr>
+      <td style="padding:8px 0;border-bottom:1px solid ${BORDER};font-size:13px;color:${MUTED};">${i + 1}.</td>
+      <td style="padding:8px 0 8px 12px;border-bottom:1px solid ${BORDER};font-family:monospace;color:${WHITE};">${p.partNumber}</td>
+      <td style="padding:8px 0;border-bottom:1px solid ${BORDER};text-align:right;font-size:13px;color:${SILVER};">${p.count} inquiries</td>
+    </tr>`
+  ).join("");
+
+  const aircraftRows = data.topAircraft.slice(0, 5).map((a, i) =>
+    `<tr>
+      <td style="padding:6px 0;font-size:13px;color:${MUTED};">${i + 1}.</td>
+      <td style="padding:6px 0 6px 12px;font-size:14px;color:${WHITE};">${a.aircraft}</td>
+      <td style="padding:6px 0;text-align:right;font-size:13px;color:${SILVER};">${a.count} RFQs</td>
+    </tr>`
+  ).join("");
+
+  const content = `
+    <h1 style="margin:0 0 4px;font-size:22px;color:${WHITE};">Daily Intelligence Report</h1>
+    <p style="margin:0 0 28px;font-size:14px;color:${MUTED};">Hi ${seller.contactName}, here's your market summary for ${data.periodLabel}.</p>
+
+    <!-- KPI row -->
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:28px;">
+      <tr>
+        <td width="50%" style="padding:16px;background:${BG};border:1px solid ${BORDER};border-radius:6px;text-align:center;">
+          <p style="margin:0;font-size:28px;font-weight:700;color:${WHITE};font-family:monospace;">${data.newRfqCount}</p>
+          <p style="margin:4px 0 0;font-size:11px;color:${MUTED};text-transform:uppercase;letter-spacing:0.5px;">New RFQs</p>
+        </td>
+        <td width="4%"></td>
+        <td width="46%" style="padding:16px;background:${data.aogCount > 0 ? RED + "18" : BG};border:1px solid ${data.aogCount > 0 ? RED + "44" : BORDER};border-radius:6px;text-align:center;">
+          <p style="margin:0;font-size:28px;font-weight:700;color:${data.aogCount > 0 ? RED : WHITE};font-family:monospace;">${data.aogCount}</p>
+          <p style="margin:4px 0 0;font-size:11px;color:${MUTED};text-transform:uppercase;letter-spacing:0.5px;">AOG Alerts</p>
+        </td>
+      </tr>
+    </table>
+
+    <!-- Trending parts -->
+    ${data.trendingParts.length > 0 ? `
+    <h2 style="margin:0 0 12px;font-size:15px;font-weight:600;color:${SILVER};text-transform:uppercase;letter-spacing:0.5px;">🔥 Trending Parts</h2>
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:28px;">
+      ${partRows}
+    </table>` : ""}
+
+    <!-- Top aircraft types -->
+    ${data.topAircraft.length > 0 ? `
+    <h2 style="margin:0 0 12px;font-size:15px;font-weight:600;color:${SILVER};text-transform:uppercase;letter-spacing:0.5px;">✈️ High-Demand Aircraft Types</h2>
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:28px;">
+      ${aircraftRows}
+    </table>` : ""}
+
+    ${cta("Browse Open RFQs →", "https://aeroparts.app/rfqs")}
+  `;
+  return base(content, SILVER);
+}
