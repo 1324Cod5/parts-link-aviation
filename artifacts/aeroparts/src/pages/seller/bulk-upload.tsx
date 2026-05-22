@@ -9,7 +9,7 @@ import { getGetSellerListingsQueryKey, getGetSellerStatsQueryKey } from "@worksp
 import type { BulkParsedRow, BulkInvalidRow } from "@workspace/api-client-react";
 import {
   ArrowLeft, Upload, FileSpreadsheet, Download, CheckCircle2, XCircle,
-  AlertTriangle, Loader2, ChevronRight, Package,
+  AlertTriangle, Loader2, ChevronRight, Package, Lock, Zap,
 } from "lucide-react";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -105,6 +105,80 @@ export default function BulkUpload() {
 
   const plan = (user.plan ?? "free") as string;
   const planLabel = PLAN_LIMIT_LABELS[plan] ?? "5 listings";
+  const isBulkEnabled = plan === "pro" || plan === "enterprise";
+
+  // ─── Plan gate — Pro/Enterprise only ─────────────────────────────────────────
+
+  if (!isBulkEnabled) {
+    return (
+      <MainLayout>
+        <div className="container mx-auto px-4 py-16 max-w-xl">
+          <div className="bg-card border border-amber-500/30 rounded-lg p-10 text-center space-y-6">
+            <div className="w-14 h-14 bg-amber-500/10 rounded-full flex items-center justify-center mx-auto">
+              <Lock className="h-7 w-7 text-amber-400" />
+            </div>
+            <div>
+              <h2 className="text-xl font-bold text-white mb-2">Bulk Upload — Pro &amp; Enterprise Only</h2>
+              <p className="text-muted-foreground text-sm leading-relaxed">
+                Import an entire parts inventory in one go. Available on{" "}
+                <span className="text-white font-medium">Pro</span> and{" "}
+                <span className="text-white font-medium">Enterprise</span> plans.
+              </p>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-left text-sm">
+              <div className="border border-border rounded-md p-4 bg-secondary/20">
+                <p className="font-semibold text-white mb-2">Pro — $149/mo</p>
+                <ul className="space-y-1.5 text-xs text-muted-foreground">
+                  <li className="flex items-center gap-1.5">
+                    <CheckCircle2 className="h-3 w-3 text-emerald-400 flex-shrink-0" />
+                    Up to 500 rows per upload
+                  </li>
+                  <li className="flex items-center gap-1.5">
+                    <CheckCircle2 className="h-3 w-3 text-emerald-400 flex-shrink-0" />
+                    Excel (.xlsx) &amp; CSV support
+                  </li>
+                  <li className="flex items-center gap-1.5">
+                    <CheckCircle2 className="h-3 w-3 text-emerald-400 flex-shrink-0" />
+                    Preview &amp; validate before import
+                  </li>
+                </ul>
+              </div>
+              <div className="border border-primary/30 rounded-md p-4 bg-primary/5">
+                <p className="font-semibold text-white mb-2">Enterprise — $299/mo</p>
+                <ul className="space-y-1.5 text-xs text-muted-foreground">
+                  <li className="flex items-center gap-1.5">
+                    <CheckCircle2 className="h-3 w-3 text-emerald-400 flex-shrink-0" />
+                    Unlimited rows per upload
+                  </li>
+                  <li className="flex items-center gap-1.5">
+                    <CheckCircle2 className="h-3 w-3 text-emerald-400 flex-shrink-0" />
+                    Everything in Pro
+                  </li>
+                  <li className="flex items-center gap-1.5">
+                    <CheckCircle2 className="h-3 w-3 text-emerald-400 flex-shrink-0" />
+                    Dedicated account support
+                  </li>
+                </ul>
+              </div>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2">
+              <Link href="/pricing">
+                <Button className="bg-primary hover:bg-primary/90 gap-2 w-full sm:w-auto">
+                  <Zap className="h-4 w-4" />
+                  View Upgrade Options
+                </Button>
+              </Link>
+              <Link href="/seller/dashboard">
+                <Button variant="outline" className="border-border text-muted-foreground hover:text-white w-full sm:w-auto">
+                  Back to Dashboard
+                </Button>
+              </Link>
+            </div>
+          </div>
+        </div>
+      </MainLayout>
+    );
+  }
 
   // ─── Parse handler ────────────────────────────────────────────────────────────
 

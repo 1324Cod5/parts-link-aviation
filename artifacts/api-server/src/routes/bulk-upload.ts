@@ -3,7 +3,7 @@ import multer from "multer";
 import * as XLSX from "xlsx";
 import { db, listingsTable, usersTable } from "@workspace/db";
 import { eq, and, count } from "drizzle-orm";
-import { PLAN_LISTING_LIMITS } from "../lib/planEnforcement";
+import { PLAN_LISTING_LIMITS, resolveEffectivePlan } from "../lib/planEnforcement";
 
 const router: IRouter = Router();
 
@@ -22,12 +22,22 @@ const upload = multer({
   },
 });
 
+// ─── Plan gates ────────────────────────────────────────────────────────────────
+
+/** Plans that are allowed to use bulk upload at all. */
+const BULK_UPLOAD_PLANS = new Set(["pro", "enterprise"]);
+
+/** Maximum rows allowed per single file upload. null = unlimited. */
+const BULK_ROW_LIMITS: Record<string, number | null> = {
+  pro: 500,
+  enterprise: null,
+};
+
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const VALID_CONDITIONS = new Set(["new", "overhauled", "serviceable", "as_removed", "repaired"]);
 const VALID_SALE_TYPES = new Set(["outright", "exchange", "both"]);
 
-// Human-readable price-type aliases that sellers commonly write
 const SALE_TYPE_ALIASES: Record<string, string> = {
   "outright sale": "outright",
   "for sale": "outright",
@@ -36,7 +46,6 @@ const SALE_TYPE_ALIASES: Record<string, string> = {
   "both": "both",
 };
 
-// Condition aliases
 const CONDITION_ALIASES: Record<string, string> = {
   "as removed": "as_removed",
   "as-removed": "as_removed",
@@ -62,7 +71,6 @@ function resolveSaleType(raw: string): string | null {
   return SALE_TYPE_ALIASES[lower] ?? null;
 }
 
-// Column header normalisation — strip spaces, lowercase, drop punctuation
 function headerKey(h: string) {
   return h.toLowerCase().replace(/[\s\-_/]+/g, "");
 }
@@ -121,7 +129,6 @@ function parseRows(
     const rowNumber = idx + 2; // 1-indexed, row 1 = header
     const errors: string[] = [];
 
-    // Map headers
     const mapped: Record<string, unknown> = {};
     for (const [k, v] of Object.entries(raw)) {
       const canonical = HEADER_MAP[headerKey(k)];
@@ -206,7 +213,7 @@ const TEMPLATE_CSV = [
 
 // ─── Routes ───────────────────────────────────────────────────────────────────
 
-// GET /seller/bulk-upload/template — download the CSV template
+// GET /seller/bulk-upload/template — download the CSV template (no plan gate)
 router.get("/seller/bulk-upload/template", (_req: Request, res: Response): void => {
   res.setHeader("Content-Type", "text/csv");
   res.setHeader("Content-Disposition", 'attachment; filename="aeroparts-bulk-template.csv"');
@@ -216,9 +223,21 @@ router.get("/seller/bulk-upload/template", (_req: Request, res: Response): void 
 // POST /seller/bulk-upload/parse — parse and validate a .xlsx or .csv file
 router.post(
   "/seller/bulk-upload/parse",
+  // ── Auth + plan gate (runs before multer to avoid processing unauthorised files) ──
   (req: Request, res: Response, next) => {
     const userId = req.session?.userId;
-    if (!userId) { res.status(401).json({ error: "Not authenticated" }); return; }
+    if (!userId) {
+      res.status(401).json({ error: "Not authenticated" });
+      return;
+    }
+    const effectivePlan = req.session?.user?.subscriptionTier ?? "free";
+    if (!BULK_UPLOAD_PLANS.has(effectivePlan)) {
+      res.status(403).json({
+        error: "Bulk upload requires a Pro or Enterprise plan.",
+        code: "plan_required",
+      });
+      return;
+    }
     next();
   },
   upload.single("file"),
@@ -244,6 +263,18 @@ router.post(
       return;
     }
 
+    // ── Per-upload row limit by tier ──────────────────────────────────────────
+    const effectivePlan = req.session?.user?.subscriptionTier ?? "free";
+    const rowLimit = BULK_ROW_LIMITS[effectivePlan] ?? 500;
+    if (rowLimit !== null && rawRows.length > rowLimit) {
+      res.status(400).json({
+        error: `Your ${effectivePlan} plan allows a maximum of ${rowLimit} rows per upload. Split your file and re-upload in batches.`,
+        code: "row_limit_exceeded",
+        limit: rowLimit,
+      });
+      return;
+    }
+
     const { valid, invalid } = parseRows(rawRows);
 
     res.json({
@@ -258,7 +289,22 @@ router.post(
 // POST /seller/bulk-upload/import — create listings from validated rows
 router.post("/seller/bulk-upload/import", async (req: Request, res: Response): Promise<void> => {
   const userId = req.session?.userId;
-  if (!userId) { res.status(401).json({ error: "Not authenticated" }); return; }
+  if (!userId) {
+    res.status(401).json({ error: "Not authenticated" });
+    return;
+  }
+
+  // ── Resolve authoritative effective plan from DB ───────────────────────────
+  const effectivePlan = await resolveEffectivePlan(userId);
+
+  // ── Plan gate ─────────────────────────────────────────────────────────────
+  if (!BULK_UPLOAD_PLANS.has(effectivePlan)) {
+    res.status(403).json({
+      error: "Bulk upload requires a Pro or Enterprise plan.",
+      code: "plan_required",
+    });
+    return;
+  }
 
   const { rows } = req.body as { rows: ParsedRow[] };
   if (!Array.isArray(rows) || rows.length === 0) {
@@ -266,27 +312,24 @@ router.post("/seller/bulk-upload/import", async (req: Request, res: Response): P
     return;
   }
 
-  // Fetch plan limits
-  const [seller] = await db
-    .select({ plan: usersTable.plan, subscriptionStatus: usersTable.subscriptionStatus })
-    .from(usersTable)
-    .where(eq(usersTable.id, userId));
+  // ── Per-upload row limit (belt-and-suspenders) ────────────────────────────
+  const rowLimit = BULK_ROW_LIMITS[effectivePlan] ?? 500;
+  const cappedRows = rowLimit !== null ? rows.slice(0, rowLimit) : rows;
 
-  const effectivePlan = req.session?.user?.subscriptionTier ?? seller?.plan ?? "free";
-  const limit = PLAN_LISTING_LIMITS[effectivePlan] ?? 5;
-
+  // ── Listing slot enforcement ───────────────────────────────────────────────
+  const listingLimit = PLAN_LISTING_LIMITS[effectivePlan] ?? 5;
   let remainingSlots: number | null = null;
-  if (limit !== null) {
+
+  if (listingLimit !== null) {
     const [activeRow] = await db
       .select({ count: count() })
       .from(listingsTable)
       .where(and(eq(listingsTable.sellerId, userId), eq(listingsTable.status, "active")));
     const active = Number(activeRow.count);
-    remainingSlots = Math.max(0, limit - active);
+    remainingSlots = Math.max(0, listingLimit - active);
   }
 
-  // Slice to remaining capacity
-  const toImport = remainingSlots !== null ? rows.slice(0, remainingSlots) : rows;
+  const toImport = remainingSlots !== null ? cappedRows.slice(0, remainingSlots) : cappedRows;
   const skipped = rows.length - toImport.length;
   const limitReached = skipped > 0;
 
@@ -295,7 +338,7 @@ router.post("/seller/bulk-upload/import", async (req: Request, res: Response): P
     return;
   }
 
-  // Re-validate each row before inserting
+  // ── Re-validate each row server-side before inserting ─────────────────────
   const validConditions = ["new", "overhauled", "serviceable", "as_removed", "repaired"] as const;
   const validSaleTypes = ["outright", "exchange", "both"] as const;
 

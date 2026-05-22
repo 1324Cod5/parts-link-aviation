@@ -13,7 +13,7 @@ import {
 import { useAuth } from "@/context/AuthContext";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Edit2, Trash2, Package, FileCheck2, MessageSquare, ShieldCheck, Zap, Building2, AlertTriangle, ClipboardList, Wrench, Shield, FileSpreadsheet } from "lucide-react";
+import { Plus, Edit2, Trash2, Package, FileCheck2, MessageSquare, ShieldCheck, Zap, Building2, AlertTriangle, ClipboardList, Wrench, Shield, FileSpreadsheet, Lock } from "lucide-react";
 import { TrustBadge, TrustScoreBar, TRUST_BADGE_META } from "@/components/ui/trust-badge";
 
 function formatPrice(price: number | null) {
@@ -90,6 +90,7 @@ export default function SellerDashboard() {
   const planMeta = PLAN_META[plan] ?? PLAN_META.free;
   const PlanIcon = planMeta.icon;
   const canAdd = stats?.canAddListing ?? true;
+  const canBulkUpload = plan === "pro" || plan === "enterprise";
   const usedPct = stats && stats.listingLimit
     ? Math.min(100, Math.round((stats.activeListings / stats.listingLimit) * 100))
     : 0;
@@ -105,9 +106,15 @@ export default function SellerDashboard() {
           </div>
           <div className="flex items-center gap-2">
             <Link href="/seller/bulk-upload">
-              <Button variant="outline" className="flex items-center gap-2 border-border text-white/80 hover:text-white">
-                <FileSpreadsheet className="h-4 w-4" /> Bulk Upload
-              </Button>
+              {canBulkUpload ? (
+                <Button variant="outline" className="flex items-center gap-2 border-border text-white/80 hover:text-white">
+                  <FileSpreadsheet className="h-4 w-4" /> Bulk Upload
+                </Button>
+              ) : (
+                <Button variant="outline" className="flex items-center gap-2 border-border text-muted-foreground/60 hover:text-amber-400 hover:border-amber-500/40" title="Upgrade to Pro or Enterprise to use bulk upload">
+                  <Lock className="h-4 w-4" /> Bulk Upload
+                </Button>
+              )}
             </Link>
             {canAdd ? (
               <Link href="/seller/listings/new">
