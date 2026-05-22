@@ -15,8 +15,6 @@ export type RfqUrgency = typeof RfqUrgency[keyof typeof RfqUrgency];
 
 export const RfqUrgency = {
   aog: 'aog',
-  critical: 'critical',
-  high_priority: 'high_priority',
-  standard: 'standard',
-  planned: 'planned',
+  urgent: 'urgent',
+  routine: 'routine',
 } as const;

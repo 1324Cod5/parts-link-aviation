@@ -19,28 +19,20 @@ function timeAgo(dateStr: string) {
   return `${days}d ago`;
 }
 
-type UrgencyLevel = "aog" | "critical" | "high_priority" | "standard" | "planned";
+type UrgencyLevel = "aog" | "urgent" | "routine";
 
 function UrgencyBadge({ urgency }: { urgency: UrgencyLevel }) {
-  if (urgency === "standard") return null;
+  if (urgency === "routine") return null;
 
-  const config: Record<Exclude<UrgencyLevel, "standard">, { label: string; className: string; pulse?: boolean }> = {
+  const config: Record<Exclude<UrgencyLevel, "routine">, { label: string; className: string; pulse?: boolean }> = {
     aog: {
       label: "AOG",
       className: "bg-red-500/20 text-red-400 border-red-500/40 font-semibold",
       pulse: true,
     },
-    critical: {
-      label: "CRITICAL",
-      className: "bg-orange-500/20 text-orange-400 border-orange-500/30",
-    },
-    high_priority: {
-      label: "HIGH PRIORITY",
+    urgent: {
+      label: "URGENT",
       className: "bg-amber-500/20 text-amber-400 border-amber-500/30",
-    },
-    planned: {
-      label: "PLANNED",
-      className: "bg-sky-500/10 text-sky-400/80 border-sky-500/20",
     },
   };
 

@@ -18,10 +18,8 @@ const router: IRouter = Router();
 
 const URGENCY_SCORE: Record<string, number> = {
   aog: 40,
-  critical: 30,
-  high_priority: 20,
-  standard: 10,
-  planned: 5,
+  urgent: 20,
+  routine: 5,
 };
 
 const TIER_SCORE: Record<string, number> = {
@@ -47,7 +45,7 @@ function serializeRfq(rfq: any, accessLevel: "full" | "limited") {
     condition: rfq.condition ?? null,
     quantity: rfq.quantity,
     status: rfq.status,
-    urgency: rfq.urgency ?? "standard",
+    urgency: rfq.urgency ?? "routine",
     urgencyReason: rfq.urgencyReason ?? null,
     awardedResponseId: rfq.awardedResponseId ?? null,
     accessLevel,
@@ -144,7 +142,7 @@ router.post("/rfqs", async (req, res): Promise<void> => {
       aircraftApplicability: data.aircraftApplicability ?? null,
       condition: data.condition ?? null,
       quantity: data.quantity,
-      urgency: (data.urgency as any) ?? "standard",
+      urgency: (data.urgency as any) ?? "routine",
       urgencyReason: data.urgency === "aog" ? (data.urgencyReason ?? null) : null,
     })
     .returning();
@@ -156,7 +154,7 @@ router.post("/rfqs", async (req, res): Promise<void> => {
     partNumber: rfq.partNumber,
     description: rfq.description,
     quantity: rfq.quantity,
-    urgency: rfq.urgency ?? "standard",
+    urgency: rfq.urgency ?? "routine",
     aircraftApplicability: rfq.aircraftApplicability ?? null,
     condition: rfq.condition ?? null,
     buyerCompany: rfq.buyerCompany ?? null,
@@ -421,7 +419,7 @@ router.get("/rfqs/:id/matches", async (req, res): Promise<void> => {
   const [rfq] = await db.select().from(rfqsTable).where(eq(rfqsTable.id, id));
   if (!rfq) { res.status(404).json({ error: "RFQ not found" }); return; }
 
-  const urgencyScore = URGENCY_SCORE[rfq.urgency ?? "standard"] ?? 10;
+  const urgencyScore = URGENCY_SCORE[rfq.urgency ?? "routine"] ?? 5;
 
   // Fetch active sellers with their total response count
   const sellers = await db
@@ -496,7 +494,7 @@ router.get("/rfqs/:id/recommendations", async (req, res): Promise<void> => {
 
   // Run price estimation and seller fetch in parallel
   const [priceEstimate, sellers] = await Promise.all([
-    estimateMarketPrice(rfq.partNumber, rfq.urgency ?? "standard", rfq.condition ?? null),
+    estimateMarketPrice(rfq.partNumber, rfq.urgency ?? "routine", rfq.condition ?? null),
     fetchActiveSellers(),
   ]);
 
@@ -506,7 +504,7 @@ router.get("/rfqs/:id/recommendations", async (req, res): Promise<void> => {
 
   // Score each seller with the full model
   const rankedSellers = sellers
-    .map((s) => scoreSellerFull(s, statsMap.get(s.id)!, rfq.urgency ?? "standard"))
+    .map((s) => scoreSellerFull(s, statsMap.get(s.id)!, rfq.urgency ?? "routine"))
     .sort((a, b) => b.matchScore - a.matchScore)
     .slice(0, 20);
 
@@ -514,7 +512,7 @@ router.get("/rfqs/:id/recommendations", async (req, res): Promise<void> => {
   const autoQuoteSuggestion = buildAutoQuoteSuggestion(
     priceEstimate,
     rankedSellers,
-    rfq.urgency ?? "standard",
+    rfq.urgency ?? "routine",
     rfq.condition ?? null,
   );
 

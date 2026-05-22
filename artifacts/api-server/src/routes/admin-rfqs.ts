@@ -30,7 +30,7 @@ const AdminActionBody = z.object({
 });
 
 const AdminUrgencyBody = z.object({
-  urgency: z.enum(["aog", "critical", "high_priority", "standard", "planned"]),
+  urgency: z.enum(["aog", "urgent", "routine"]),
   urgencyReason: z.string().nullable().optional(),
   reason: z.string().min(1, "Admin reason is required"),
 });
@@ -58,7 +58,7 @@ function serializeRfq(rfq: any) {
     condition: rfq.condition ?? null,
     quantity: rfq.quantity,
     status: rfq.status,
-    urgency: rfq.urgency ?? "standard",
+    urgency: rfq.urgency ?? "routine",
     urgencyReason: rfq.urgencyReason ?? null,
     accessLevel: "full" as const,
     createdAt: rfq.createdAt?.toISOString?.() ?? rfq.createdAt,

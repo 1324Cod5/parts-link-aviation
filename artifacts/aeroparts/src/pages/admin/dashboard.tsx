@@ -973,22 +973,18 @@ function RfqActionDialog({
 
 // ─── Urgency helpers ──────────────────────────────────────────────────────────
 
-type RfqUrgency = "aog" | "critical" | "high_priority" | "standard" | "planned";
+type RfqUrgency = "aog" | "urgent" | "routine";
 
 const RFQ_URGENCY_META: Record<RfqUrgency, { label: string; className: string; show: boolean }> = {
-  aog:          { label: "AOG",          className: "bg-red-500/20 text-red-400 border-red-500/40",     show: true },
-  critical:     { label: "CRITICAL",     className: "bg-orange-500/20 text-orange-400 border-orange-500/30", show: true },
-  high_priority:{ label: "HIGH PRI",     className: "bg-amber-500/20 text-amber-400 border-amber-500/30",  show: true },
-  standard:     { label: "STANDARD",     className: "bg-muted text-muted-foreground border-border",     show: false },
-  planned:      { label: "PLANNED",      className: "bg-sky-500/10 text-sky-400/80 border-sky-500/20",  show: true },
+  aog:     { label: "AOG",     className: "bg-red-500/20 text-red-400 border-red-500/40",     show: true },
+  urgent:  { label: "URGENT",  className: "bg-amber-500/20 text-amber-400 border-amber-500/30", show: true },
+  routine: { label: "ROUTINE", className: "bg-muted text-muted-foreground border-border",     show: false },
 };
 
 const URGENCY_OPTIONS: { value: RfqUrgency; label: string }[] = [
-  { value: "aog",          label: "AOG — Aircraft on Ground" },
-  { value: "critical",     label: "Critical" },
-  { value: "high_priority",label: "High Priority" },
-  { value: "standard",     label: "Standard" },
-  { value: "planned",      label: "Planned" },
+  { value: "aog",     label: "AOG — Aircraft on Ground" },
+  { value: "urgent",  label: "Urgent" },
+  { value: "routine", label: "Routine" },
 ];
 
 // ─── Urgency override dialog ──────────────────────────────────────────────────
@@ -1228,7 +1224,7 @@ function RfqsSection() {
                 {data.rfqs.map(rfq => {
                   const statusMeta  = RFQ_STATUS_META[rfq.status] ?? RFQ_STATUS_META.closed;
                   const actions     = RFQ_ACTIONS[rfq.status] ?? [];
-                  const urgency     = ((rfq as any).urgency ?? "standard") as RfqUrgency;
+                  const urgency     = ((rfq as any).urgency ?? "routine") as RfqUrgency;
                   const urgencyMeta = RFQ_URGENCY_META[urgency];
                   const isAogRow    = urgency === "aog";
                   return (

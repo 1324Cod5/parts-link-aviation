@@ -49,19 +49,15 @@ export interface AutoQuoteSuggestion {
 /** Urgency price multipliers — AOG commands a significant premium. */
 const URGENCY_PRICE_MULTIPLIER: Record<string, number> = {
   aog: 1.35,
-  critical: 1.18,
-  high_priority: 1.07,
-  standard: 1.00,
-  planned: 0.92,
+  urgent: 1.15,
+  routine: 1.00,
 };
 
 /** Default lead times (days) per urgency, used when no historical data exists. */
 const DEFAULT_LEAD_TIME_DAYS: Record<string, number> = {
   aog: 3,
-  critical: 7,
-  high_priority: 10,
-  standard: 14,
-  planned: 30,
+  urgent: 7,
+  routine: 14,
 };
 
 /** Condition price multipliers relative to new/unknown. */
@@ -85,10 +81,8 @@ const TIER_SCORE: Record<string, number> = {
 /** Urgency alignment bonus ceiling per urgency level (used in scoring). */
 const URGENCY_ALIGNMENT_MAX: Record<string, number> = {
   aog: 10,
-  critical: 7,
-  high_priority: 5,
-  standard: 3,
-  planned: 2,
+  urgent: 5,
+  routine: 2,
 };
 
 // ─── Seller stats ─────────────────────────────────────────────────────────────
@@ -225,7 +219,7 @@ export async function estimateMarketPrice(
   const urgencyMult = URGENCY_PRICE_MULTIPLIER[urgency] ?? 1.0;
   const conditionMult = condition ? (CONDITION_PRICE_MULTIPLIER[condition] ?? 1.0) : 1.0;
   const totalMult = urgencyMult * conditionMult;
-  const urgencyAdjusted = urgency !== "standard";
+  const urgencyAdjusted = urgency !== "routine";
 
   if (dataPoints === 0) {
     // No historical data — return a zeroed estimate with "low" confidence

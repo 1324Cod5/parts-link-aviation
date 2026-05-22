@@ -5,7 +5,7 @@ import { usersTable } from "./users";
 import { listingsTable } from "./listings";
 
 export const rfqStatusEnum  = pgEnum("rfq_status",  ["draft", "open", "quoted", "awarded", "closed", "archived", "suspended", "deleted"]);
-export const rfqUrgencyEnum = pgEnum("rfq_urgency", ["aog", "critical", "high_priority", "standard", "planned"]);
+export const rfqUrgencyEnum = pgEnum("rfq_urgency", ["aog", "urgent", "routine"]);
 
 export const rfqsTable = pgTable("rfqs", {
   id: serial("id").primaryKey(),
@@ -19,7 +19,7 @@ export const rfqsTable = pgTable("rfqs", {
   condition: text("condition"),
   quantity: integer("quantity").notNull().default(1),
   status: rfqStatusEnum("status").notNull().default("open"),
-  urgency: rfqUrgencyEnum("urgency").notNull().default("standard"),
+  urgency: rfqUrgencyEnum("urgency").notNull().default("routine"),
   urgencyReason: text("urgency_reason"),
   awardedResponseId: integer("awarded_response_id"),
   createdAt: timestamp("created_at").defaultNow().notNull(),

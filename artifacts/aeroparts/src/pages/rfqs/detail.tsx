@@ -32,7 +32,7 @@ function formatDate(dateStr: string) {
   });
 }
 
-type UrgencyLevel = "aog" | "critical" | "high_priority" | "standard" | "planned";
+type UrgencyLevel = "aog" | "urgent" | "routine";
 
 const URGENCY_META: Record<UrgencyLevel, { label: string; badgeClass: string; show: boolean }> = {
   aog: {
@@ -40,25 +40,15 @@ const URGENCY_META: Record<UrgencyLevel, { label: string; badgeClass: string; sh
     badgeClass: "bg-red-500/20 text-red-400 border-red-500/40",
     show: true,
   },
-  critical: {
-    label: "CRITICAL",
-    badgeClass: "bg-orange-500/20 text-orange-400 border-orange-500/30",
-    show: true,
-  },
-  high_priority: {
-    label: "HIGH PRIORITY",
+  urgent: {
+    label: "URGENT",
     badgeClass: "bg-amber-500/20 text-amber-400 border-amber-500/30",
     show: true,
   },
-  standard: {
-    label: "STANDARD",
+  routine: {
+    label: "ROUTINE",
     badgeClass: "bg-muted text-muted-foreground border-border",
     show: false,
-  },
-  planned: {
-    label: "PLANNED",
-    badgeClass: "bg-sky-500/10 text-sky-400/80 border-sky-500/20",
-    show: true,
   },
 };
 
@@ -143,7 +133,7 @@ export default function RfqDetailPage() {
   }
 
   const { rfq, responses } = data;
-  const urgency = ((rfq as any).urgency ?? "standard") as UrgencyLevel;
+  const urgency = ((rfq as any).urgency ?? "routine") as UrgencyLevel;
   const urgencyReason = (rfq as any).urgencyReason as string | null;
   const urgencyMeta = URGENCY_META[urgency];
   const isAog = urgency === "aog";
@@ -374,8 +364,8 @@ export default function RfqDetailPage() {
 
             {/* Sidebar */}
             <div className="space-y-4">
-              {/* Urgency card — only shown for non-standard */}
-              {urgency !== "standard" && (
+              {/* Urgency card — only shown for non-routine */}
+              {urgency !== "routine" && (
                 <div className={`border rounded-lg p-5 ${isAog ? "border-red-500/40 bg-red-500/5" : "border-border bg-card"}`}>
                   <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-3">Request Urgency</h3>
                   <div className={`inline-flex items-center gap-1.5 rounded px-2.5 py-1.5 text-sm font-semibold border ${urgencyMeta.badgeClass} ${isAog ? "animate-pulse" : ""}`}>

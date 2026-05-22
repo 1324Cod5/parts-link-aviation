@@ -2645,7 +2645,7 @@ components:
 
     RfqUrgency:
       type: string
-      enum: [aog, critical, high_priority, standard, planned]
+      enum: [aog, urgent, routine]
       description: >
         Urgency classification for the RFQ.
         AOG (Aircraft on Ground) triggers the highest notification priority and fastest escalation.

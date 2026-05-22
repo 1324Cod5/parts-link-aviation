@@ -20,28 +20,16 @@ const URGENCY_OPTIONS = [
     color: "text-red-400",
   },
   {
-    value: "critical",
-    label: "Critical",
-    description: "Safety-critical part needed within 24–48 hours.",
-    color: "text-orange-400",
-  },
-  {
-    value: "high_priority",
-    label: "High Priority",
-    description: "Required within days — active operation affected.",
+    value: "urgent",
+    label: "Urgent",
+    description: "Part needed within days — active operation affected.",
     color: "text-amber-400",
   },
   {
-    value: "standard",
-    label: "Standard",
-    description: "Normal procurement timeline (1–2 weeks).",
+    value: "routine",
+    label: "Routine",
+    description: "Normal procurement timeline — flexible lead time.",
     color: "text-foreground",
-  },
-  {
-    value: "planned",
-    label: "Planned",
-    description: "Scheduled maintenance — flexible lead time.",
-    color: "text-sky-400",
   },
 ] as const;
 
@@ -63,7 +51,7 @@ export default function NewRfqPage() {
     aircraftApplicability: "",
     condition: "",
     quantity: 1,
-    urgency: "standard" as UrgencyValue,
+    urgency: "routine" as UrgencyValue,
     urgencyReason: "",
   });
 
