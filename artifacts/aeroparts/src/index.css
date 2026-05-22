@@ -120,4 +120,49 @@
   body {
     @apply font-sans antialiased bg-background text-foreground;
   }
+
+  /* Restore pointer cursor for all interactive elements (Tailwind v4 resets it) */
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  a[href],
+  select,
+  label,
+  input[type="checkbox"],
+  input[type="radio"],
+  input[type="file"],
+  input[type="range"],
+  summary {
+    cursor: pointer;
+  }
+
+  button:disabled,
+  [role="button"][aria-disabled="true"] {
+    cursor: not-allowed;
+  }
+}
+
+/* ─── Interaction utilities ───────────────────────────────────────────────── */
+
+@layer utilities {
+  /* hover-elevate: subtle brightness lift + upward nudge on hover */
+  .hover-elevate {
+    transition: filter 150ms ease, transform 150ms ease, box-shadow 150ms ease;
+  }
+  .hover-elevate:hover:not(:disabled):not([aria-disabled="true"]) {
+    filter: brightness(1.1);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+  }
+
+  /* active-elevate-2: subtle press-down on click */
+  .active-elevate-2:active:not(:disabled):not([aria-disabled="true"]) {
+    filter: brightness(0.95);
+    transform: scale(0.97) translateY(0);
+    box-shadow: none;
+  }
+
+  /* Convenience class: cursor pointer on any clickable div/span */
+  .clickable {
+    cursor: pointer;
+  }
 }
