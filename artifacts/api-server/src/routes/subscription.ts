@@ -251,7 +251,7 @@ router.post("/subscription/admin-set-plan", async (req, res): Promise<void> => {
     return;
   }
 
-  const validPlans = ["free", "pro", "enterprise", "mro_verified", "mro_premium"];
+  const validPlans = ["free", "pro", "enterprise", "mro_verified", "mro_premium", "mro_provider"];
   if (!validPlans.includes(plan)) {
     res.status(400).json({ error: `Invalid plan. Must be one of: ${validPlans.join(", ")}` });
     return;

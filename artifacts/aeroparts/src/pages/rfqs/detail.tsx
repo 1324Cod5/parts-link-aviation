@@ -71,8 +71,8 @@ export default function RfqDetailPage() {
   // Effective plan: revert to "free" if subscription has lapsed
   const effectivePlan =
     isSubscriptionActive ? (user?.plan ?? "free") : "free";
-  const isFreeSeller = user?.role === "seller" && !["pro", "enterprise", "mro_premium"].includes(effectivePlan);
-  const isPaidSeller = user?.role === "seller" && ["pro", "enterprise", "mro_premium"].includes(effectivePlan);
+  const isFreeSeller = user?.role === "seller" && !["pro", "enterprise", "mro_verified", "mro_premium", "mro_provider"].includes(effectivePlan);
+  const isPaidSeller = user?.role === "seller" && ["pro", "enterprise", "mro_verified", "mro_premium", "mro_provider"].includes(effectivePlan);
 
   const { data, isLoading, refetch } = useGetRfq(id);
   const { data: sellerListings } = useGetSellerListings({ query: { enabled: !!user && user.role === "seller" && !isFreeSeller, queryKey: ["seller-listings-rfq"] } });

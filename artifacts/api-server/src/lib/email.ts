@@ -50,7 +50,7 @@ async function send(to: string, subject: string, html: string): Promise<void> {
 
 // ─── Plan eligibility ─────────────────────────────────────────────────────────
 
-const EMAIL_PLANS = new Set(["pro", "enterprise", "mro_premium"]);
+const EMAIL_PLANS = new Set(["pro", "enterprise", "mro_verified", "mro_premium", "mro_provider"]);
 
 interface EligibleSeller {
   id: number;

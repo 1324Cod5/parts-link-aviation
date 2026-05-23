@@ -2,7 +2,7 @@ import { Router, type IRouter } from "express";
 import { db, rfqsTable, rfqResponsesTable, usersTable, listingsTable, aogEscalationsTable } from "@workspace/db";
 import { eq, desc, like, or, count, and, sql, inArray } from "drizzle-orm";
 import { CreateRfqBody, CreateRfqResponseBody, SubmitRfqQuoteBody, AwardRfqQuoteBody } from "@workspace/api-zod";
-import { FULL_ACCESS_PLANS, resolveEffectivePlan } from "../lib/planEnforcement";
+import { FULL_ACCESS_PLANS, AOG_NOTIFICATION_PLANS, resolveEffectivePlan } from "../lib/planEnforcement";
 import {
   computeSellerStats,
   estimateMarketPrice,
@@ -181,9 +181,9 @@ router.get("/rfqs/aog/active", async (req, res): Promise<void> => {
 
   // Fresh DB check — Stripe is the source of truth, not the cached session tier
   const effectivePlan = await resolveEffectivePlan(userId);
-  if (!FULL_ACCESS_PLANS.has(effectivePlan)) {
+  if (!AOG_NOTIFICATION_PLANS.has(effectivePlan)) {
     res.status(402).json({
-      error: "AOG alerts require a Pro, Enterprise, or Premium MRO plan.",
+      error: "AOG alerts require a Pro or Enterprise plan.",
       code: "PLAN_REQUIRED",
       upgradeUrl: "/pricing",
     });

@@ -24,16 +24,16 @@ export const MRO_SERVICE_LIMITS: Record<string, number | null> = {
 };
 
 /** Plans that get full RFQ buyer contact details and can post RFQ responses. */
-export const FULL_ACCESS_PLANS = new Set(["pro", "enterprise", "mro_premium", "mro_provider"]);
+export const FULL_ACCESS_PLANS = new Set(["pro", "enterprise", "mro_verified", "mro_premium", "mro_provider"]);
 
 /** Plans that get analytics access. */
-export const ANALYTICS_PLANS = new Set(["pro", "enterprise", "mro_premium", "mro_provider"]);
+export const ANALYTICS_PLANS = new Set(["pro", "enterprise", "mro_verified", "mro_premium", "mro_provider"]);
 
 /** Plans that can use bulk upload. */
-export const BULK_UPLOAD_PLANS = new Set(["pro", "enterprise", "mro_premium", "mro_provider"]);
+export const BULK_UPLOAD_PLANS = new Set(["pro", "enterprise", "mro_verified", "mro_premium", "mro_provider"]);
 
 /** Plans that receive instant RFQ email alerts. */
-export const EMAIL_ALERT_PLANS = new Set(["pro", "enterprise", "mro_premium", "mro_provider"]);
+export const EMAIL_ALERT_PLANS = new Set(["pro", "enterprise", "mro_verified", "mro_premium", "mro_provider"]);
 
 /** Plans that receive AOG push notifications. */
 export const AOG_NOTIFICATION_PLANS = new Set(["pro", "enterprise"]);

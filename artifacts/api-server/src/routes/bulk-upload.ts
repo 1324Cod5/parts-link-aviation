@@ -25,12 +25,15 @@ const upload = multer({
 // ─── Plan gates ────────────────────────────────────────────────────────────────
 
 /** Plans that are allowed to use bulk upload at all. */
-const BULK_UPLOAD_PLANS = new Set(["pro", "enterprise"]);
+const BULK_UPLOAD_PLANS = new Set(["pro", "enterprise", "mro_verified", "mro_premium", "mro_provider"]);
 
 /** Maximum rows allowed per single file upload. null = unlimited. */
 const BULK_ROW_LIMITS: Record<string, number | null> = {
   pro: 500,
   enterprise: null,
+  mro_verified: 500,
+  mro_premium: null,
+  mro_provider: 500,
 };
 
 // ─── Constants ────────────────────────────────────────────────────────────────

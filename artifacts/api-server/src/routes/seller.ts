@@ -164,8 +164,8 @@ router.get("/seller/analytics", async (req, res): Promise<void> => {
   let rfqResponses = 0;
   let rfqResponseRate = 0;
 
-  // Full RFQ stats available to enterprise and mro_premium
-  if (effectivePlan === "enterprise" || effectivePlan === "mro_premium") {
+  // Full RFQ stats available to enterprise, mro_premium, and mro_provider
+  if (effectivePlan === "enterprise" || effectivePlan === "mro_premium" || effectivePlan === "mro_provider" || effectivePlan === "mro_verified") {
     const [[myResponseRow], [openRfqRow]] = await Promise.all([
       db.select({ count: count() }).from(rfqResponsesTable).where(eq(rfqResponsesTable.sellerId, userId)),
       db.select({ count: count() }).from(rfqsTable).where(eq(rfqsTable.status, "open")),

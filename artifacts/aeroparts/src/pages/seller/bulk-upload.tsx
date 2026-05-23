@@ -59,8 +59,9 @@ const PLAN_LIMIT_LABELS: Record<string, string> = {
   free: "5 listings",
   pro: "500 listings",
   enterprise: "Unlimited",
-  mro_verified: "5 listings",
-  mro_premium: "20 listings",
+  mro_verified: "500 listings",
+  mro_premium: "Unlimited",
+  mro_provider: "500 listings",
 };
 
 // ─── Component ────────────────────────────────────────────────────────────────

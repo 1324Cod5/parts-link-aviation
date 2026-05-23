@@ -99,8 +99,8 @@ router.post("/mro", async (req, res): Promise<void> => {
     return;
   }
 
-  // Enterprise and Premium MRO accounts get featured placement
-  const featured = plan === "enterprise" || plan === "mro_premium";
+  // Enterprise, Premium MRO, and MRO Provider accounts get featured placement
+  const featured = plan === "enterprise" || plan === "mro_premium" || plan === "mro_provider";
 
   const [mro] = await db.insert(mroProfilesTable).values({
     userId,
