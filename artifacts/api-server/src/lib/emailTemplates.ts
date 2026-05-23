@@ -48,7 +48,7 @@ function base(content: string, accentColor = SILVER): string {
         <tr>
           <td style="padding:16px 0;border-top:1px solid ${BORDER};text-align:center;">
             <p style="margin:0;font-size:12px;color:${MUTED};">
-              You're receiving this because you're an AeroParts Pro/Enterprise seller.<br>
+              You're receiving this as a registered AeroParts seller.<br>
               <a href="{{unsubscribe_url}}" style="color:${MUTED};text-decoration:underline;">Manage notification preferences</a>
             </p>
           </td>

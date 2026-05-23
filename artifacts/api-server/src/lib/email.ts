@@ -24,7 +24,7 @@ import {
 // ─── Client ───────────────────────────────────────────────────────────────────
 
 const KEY = process.env.RESEND_API_KEY;
-const FROM = process.env.RESEND_FROM_EMAIL ?? "AeroParts <notifications@aeroparts.app>";
+const FROM = process.env.RESEND_FROM_EMAIL ?? "AeroParts Notifications <notifications@aeroparts.app>";
 
 let resend: Resend | null = null;
 if (KEY) {

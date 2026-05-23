@@ -1,7 +1,7 @@
 import { useLocation } from "wouter";
 import { Lock, Brain, TrendingUp, AlertTriangle, BarChart3, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import MainLayout from "@/components/layout/MainLayout";
+import { MainLayout } from "@/components/layout/MainLayout";
 import { useAuth } from "@/context/AuthContext";
 import { Link } from "wouter";
 

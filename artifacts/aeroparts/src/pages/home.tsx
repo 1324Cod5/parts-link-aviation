@@ -42,10 +42,10 @@ export default function Home() {
         <div className="container mx-auto px-4 relative z-10">
           <div className="max-w-3xl mx-auto text-center">
             <h1 className="text-4xl md:text-6xl font-bold tracking-tight text-white mb-6">
-              The Precision Marketplace for Certified Components
+              AeroParts — Aviation Parts Marketplace &amp; RFQ Network
             </h1>
             <p className="text-lg md:text-xl text-muted-foreground mb-10">
-              Source traceable aircraft parts from verified MROs, airlines, and brokers worldwide.
+              Connect buyers, verified vendors, MRO providers, and aircraft parts suppliers through a trusted aviation procurement platform.
             </p>
             
             <form onSubmit={handleSearch} className="flex gap-2 max-w-2xl mx-auto bg-card border border-border p-2 rounded-lg shadow-2xl">
