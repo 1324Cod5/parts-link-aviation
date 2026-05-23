@@ -6,10 +6,11 @@ import { eq } from "drizzle-orm";
 /** Maximum active parts listings per plan. null = unlimited. */
 export const PLAN_LISTING_LIMITS: Record<string, number | null> = {
   free: 5,
-  pro: 50,
+  pro: 500,
   enterprise: null,
   mro_verified: 5,
-  mro_premium: 20,
+  mro_premium: null,
+  mro_provider: null,
 };
 
 /** Maximum MRO service types per plan. null = unlimited. */
@@ -19,16 +20,29 @@ export const MRO_SERVICE_LIMITS: Record<string, number | null> = {
   enterprise: null,
   mro_verified: 10,
   mro_premium: null,
+  mro_provider: null,
 };
 
 /** Plans that get full RFQ buyer contact details and can post RFQ responses. */
-export const FULL_ACCESS_PLANS = new Set(["pro", "enterprise", "mro_premium"]);
+export const FULL_ACCESS_PLANS = new Set(["pro", "enterprise", "mro_premium", "mro_provider"]);
 
 /** Plans that get analytics access. */
-export const ANALYTICS_PLANS = new Set(["pro", "enterprise", "mro_premium"]);
+export const ANALYTICS_PLANS = new Set(["pro", "enterprise", "mro_premium", "mro_provider"]);
+
+/** Plans that can use bulk upload. */
+export const BULK_UPLOAD_PLANS = new Set(["pro", "enterprise", "mro_premium", "mro_provider"]);
+
+/** Plans that receive instant RFQ email alerts. */
+export const EMAIL_ALERT_PLANS = new Set(["pro", "enterprise", "mro_premium", "mro_provider"]);
+
+/** Plans that receive AOG push notifications. */
+export const AOG_NOTIFICATION_PLANS = new Set(["pro", "enterprise"]);
+
+/** Plans that get the intelligence dashboard and predictive alerts. */
+export const INTELLIGENCE_PLANS = new Set(["enterprise"]);
 
 /** Plans that require an active Stripe subscription to be valid. */
-const PAID_PLANS = new Set(["pro", "enterprise", "mro_verified", "mro_premium"]);
+const PAID_PLANS = new Set(["pro", "enterprise", "mro_verified", "mro_premium", "mro_provider"]);
 
 // ─── Computed role ─────────────────────────────────────────────────────────────
 
@@ -45,6 +59,7 @@ export const VALID_COMPUTED_ROLES = [
   "mro_free",
   "mro_verified",
   "mro_premium",
+  "mro_provider",
 ] as const;
 
 export type ComputedRole = (typeof VALID_COMPUTED_ROLES)[number];
@@ -62,7 +77,8 @@ export function assertValidComputedRole(role: unknown): asserts role is Computed
     role !== "seller_enterprise" &&
     role !== "mro_free" &&
     role !== "mro_verified" &&
-    role !== "mro_premium"
+    role !== "mro_premium" &&
+    role !== "mro_provider"
   ) {
     throw new Error(`Invalid role: ${String(role)}`);
   }
@@ -94,6 +110,8 @@ export function getComputedRole(
         return "mro_verified";
       case "mro_premium":
         return "mro_premium";
+      case "mro_provider":
+        return "mro_provider";
       case "free":
         return hasMroProfile ? "mro_free" : "seller_free";
       default:

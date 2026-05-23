@@ -9,31 +9,24 @@ import { getUncachableStripeClient } from "./stripeClient";
 const PLANS = [
   {
     name: "Parts Pro Seller",
-    description: "50 active listings, full RFQ buyer contact details, priority placement, analytics dashboard",
+    description: "Up to 500 active listings, full RFQ buyer contact details, bulk upload, instant email alerts, AOG notifications, priority placement",
     metadata: { plan: "pro", type: "seller" },
-    monthlyPrice: 14900, // $149.00
-    yearlyPrice: 149000,  // $1,490.00 (~17% discount)
+    monthlyPrice: 2900,  // $29.00
+    yearlyPrice: 29000,  // $290.00 (~$24/mo, save $58/yr)
   },
   {
     name: "Parts Enterprise",
-    description: "Unlimited listings, full RFQ access, top placement, full analytics + RFQ response metrics",
+    description: "Unlimited listings, highest RFQ priority, intelligence dashboard, predictive alerts, featured placement, full analytics",
     metadata: { plan: "enterprise", type: "seller" },
-    monthlyPrice: 29900, // $299.00
-    yearlyPrice: 299000,  // $2,990.00
+    monthlyPrice: 9900,  // $99.00
+    yearlyPrice: 99000,  // $990.00 (~$83/mo, save $198/yr)
   },
   {
-    name: "Verified MRO",
-    description: "MRO directory listing, up to 10 service types, standard visibility",
-    metadata: { plan: "mro_verified", type: "mro" },
-    monthlyPrice: 4900,  // $49.00
-    yearlyPrice: 49000,   // $490.00
-  },
-  {
-    name: "Premium MRO",
-    description: "Featured MRO listing, unlimited service types, full RFQ contact access",
-    metadata: { plan: "mro_premium", type: "mro" },
-    monthlyPrice: 14900, // $149.00
-    yearlyPrice: 149000,  // $1,490.00
+    name: "MRO Provider",
+    description: "MRO directory listing, unlimited service types, full RFQ access, verified badge, priority placement",
+    metadata: { plan: "mro_provider", type: "mro" },
+    monthlyPrice: 1000,  // $10.00
+    yearlyPrice: 10000,  // $100.00
   },
 ] as const;
 

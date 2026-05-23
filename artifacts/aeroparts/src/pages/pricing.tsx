@@ -11,7 +11,7 @@ import {
 } from "@workspace/api-client-react";
 
 import { useToast } from "@/hooks/use-toast";
-import { Check, Zap, Building2, Package, Wrench, ShieldCheck, Star, Rocket, Clock, Loader2, CalendarDays } from "lucide-react";
+import { Check, Zap, Building2, Package, Wrench, Star, Rocket, Clock, Loader2, CalendarDays, Brain, Radio, Upload } from "lucide-react";
 
 type BillingCycle = "monthly" | "yearly";
 
@@ -32,6 +32,12 @@ const PARTS_TIERS = [
       "Part number search indexing",
       "Community support",
     ],
+    lockedFeatures: [
+      "Bulk CSV upload",
+      "Full RFQ buyer contact details",
+      "Instant RFQ email alerts",
+      "AOG push notifications",
+    ],
     cta: "Get Started Free",
     highlight: false,
     supportsYearly: false,
@@ -40,19 +46,22 @@ const PARTS_TIERS = [
     id: "pro" as const,
     planKey: "pro",
     name: "Parts Pro",
-    monthlyPrice: 149,
-    yearlyPrice: 1490,  // ~$124/mo — save $298/yr (2 months free)
+    monthlyPrice: 29,
+    yearlyPrice: 290,
     icon: Zap,
-    listingLimit: 50,
+    listingLimit: 500,
     description: "For growing MROs and active parts brokers.",
     features: [
-      "Up to 50 active listings",
+      "Up to 500 active listings",
       "Priority placement in search results",
       "Full buyer contact on all RFQs",
+      "Bulk CSV listing upload",
+      "Instant RFQ email alerts",
+      "AOG push notifications",
       "Seller analytics dashboard",
-      "Early access to buyer RFQs",
       "Priority email support",
     ],
+    lockedFeatures: [],
     cta: "Upgrade to Pro",
     highlight: true,
     supportsYearly: true,
@@ -61,86 +70,50 @@ const PARTS_TIERS = [
     id: "enterprise" as const,
     planKey: "enterprise",
     name: "Enterprise",
-    monthlyPrice: 299,
-    yearlyPrice: 2990,  // ~$249/mo — save $598/yr (2 months free)
+    monthlyPrice: 99,
+    yearlyPrice: 990,
     icon: Building2,
     listingLimit: null,
     description: "For airlines, large MROs, and global distributors.",
     features: [
       "Unlimited active listings",
-      "Premium homepage placement",
+      "Highest RFQ priority ranking",
+      "Intelligence dashboard",
+      "Predictive demand alerts",
+      "Featured homepage placement",
       "Full RFQ access + response metrics",
       "Dedicated account manager",
       "API access for inventory sync",
-      "Custom contract terms",
       "SLA-backed support",
     ],
+    lockedFeatures: [],
     cta: "Upgrade to Enterprise",
     highlight: false,
     supportsYearly: true,
   },
 ];
 
-const MRO_TIERS = [
-  {
-    id: "mro_free",
-    planKey: null,
-    name: "Free",
-    price: null,
-    priceLabel: "Free",
-    icon: Wrench,
-    description: "Get started with a basic MRO listing.",
-    features: [
-      "1 MRO service listing",
-      "Basic directory visibility",
-      "Up to 1 service category",
-      "Inbound quote request form",
-    ],
-    cta: "Create Free Listing",
-    href: "/mro/register",
-    highlight: false,
-  },
-  {
-    id: "mro_verified",
-    planKey: "mro_verified",
-    name: "Verified MRO",
-    price: 49,
-    priceLabel: "$49/mo",
-    icon: ShieldCheck,
-    description: "For active MROs seeking qualified service leads.",
-    features: [
-      "Full MRO profile listing",
-      "Up to 10 service categories",
-      "Capability document references",
-      "Priority directory placement",
-      "Verified MRO badge",
-      "Email notification on new quotes",
-    ],
-    cta: "Get Verified MRO",
-    href: "/mro/register",
-    highlight: true,
-  },
-  {
-    id: "mro_premium",
-    planKey: "mro_premium",
-    name: "Premium MRO",
-    price: 149,
-    priceLabel: "$149/mo",
-    icon: Star,
-    description: "Maximum visibility for high-volume service providers.",
-    features: [
-      "Everything in Verified MRO",
-      "Featured placement (homepage + search top)",
-      "Unlimited service categories",
-      "Full RFQ contact access",
-      "Analytics & quote tracking",
-      "Dedicated account support",
-    ],
-    cta: "Get Premium MRO",
-    href: "/mro/register",
-    highlight: false,
-  },
-];
+const MRO_TIER = {
+  id: "mro_provider" as const,
+  planKey: "mro_provider",
+  name: "MRO Provider",
+  monthlyPrice: 10,
+  yearlyPrice: 100,
+  icon: Wrench,
+  description: "For certified MROs seeking qualified service leads.",
+  features: [
+    "Full MRO profile listing",
+    "Unlimited service categories",
+    "Capability document references",
+    "Priority directory placement",
+    "Verified MRO badge",
+    "Email notification on new quotes",
+    "Full RFQ buyer contact access",
+    "Analytics & quote tracking",
+  ],
+  cta: "Get MRO Provider",
+  supportsYearly: true,
+};
 
 export default function Pricing() {
   const { user } = useAuth();
@@ -166,7 +139,6 @@ export default function Pricing() {
       if (meta?.plan === planKey) {
         const targetInterval = cycle === "yearly" ? "year" : "month";
         const price = product.prices.find((p: any) => p.interval === targetInterval);
-        // Fall back to monthly if yearly price isn't synced yet
         return price?.id ?? product.prices.find((p: any) => p.interval === "month")?.id ?? null;
       }
     }
@@ -229,7 +201,7 @@ export default function Pricing() {
           </p>
         </div>
 
-        {/* Billing cycle toggle (Pro & Enterprise only) */}
+        {/* Billing cycle toggle */}
         <div className="flex flex-col items-center gap-3 mb-10">
           <div className="inline-flex items-center bg-secondary/60 border border-border rounded-lg p-1 gap-1">
             <button
@@ -257,11 +229,11 @@ export default function Pricing() {
           {billingCycle === "yearly" && (
             <div className="inline-flex items-center gap-1.5 text-xs font-semibold text-green-400 bg-green-500/10 border border-green-500/20 rounded-full px-3 py-1">
               <Check className="h-3 w-3" />
-              Save 2 months — get 10 months for the price of 12
+              Save ~$58–$198/yr — pay for 10 months, get 12
             </div>
           )}
           {billingCycle === "monthly" && (
-            <p className="text-xs text-muted-foreground">Switch to yearly to save ~17% on Pro &amp; Enterprise</p>
+            <p className="text-xs text-muted-foreground">Switch to yearly to save on Pro &amp; Enterprise</p>
           )}
         </div>
 
@@ -275,7 +247,6 @@ export default function Pricing() {
             );
             const isLoading = checkingOutPlan === tier.planKey;
 
-            // Determine displayed price based on billing cycle
             const showYearly = billingCycle === "yearly" && tier.supportsYearly;
             const displayedPrice = showYearly ? tier.yearlyPrice : tier.monthlyPrice;
             const perMonthEquiv = showYearly && tier.yearlyPrice
@@ -334,19 +305,27 @@ export default function Pricing() {
                   )}
                   {showYearly && savingsAmount && (
                     <div className="inline-flex items-center gap-1 mt-2 text-xs text-green-400 font-medium bg-green-500/10 border border-green-500/20 rounded-full px-2.5 py-0.5">
-                      <Check className="h-3 w-3" /> Save ${savingsAmount.toLocaleString()}/yr
+                      <Check className="h-3 w-3" /> Save ${savingsAmount}/yr
                     </div>
                   )}
                 </div>
 
-                <ul className="space-y-3 mb-8 flex-1">
+                <ul className="space-y-3 mb-4 flex-1">
                   {tier.features.map(feature => (
                     <li key={feature} className="flex items-start gap-2.5 text-sm">
                       <Check className={`h-4 w-4 mt-0.5 flex-shrink-0 ${tier.highlight ? "text-primary" : "text-muted-foreground"}`} />
                       <span className="text-white/80">{feature}</span>
                     </li>
                   ))}
+                  {tier.lockedFeatures.map(feature => (
+                    <li key={feature} className="flex items-start gap-2.5 text-sm opacity-40 line-through">
+                      <Check className="h-4 w-4 mt-0.5 flex-shrink-0 text-muted-foreground" />
+                      <span className="text-muted-foreground">{feature}</span>
+                    </li>
+                  ))}
                 </ul>
+
+                <div className="mb-8" />
 
                 {isCurrentPlan ? (
                   <div className="w-full py-2.5 px-4 rounded-md border border-border text-center text-sm text-muted-foreground font-medium">
@@ -385,41 +364,6 @@ export default function Pricing() {
 
         {/* ── MRO SERVICES SECTION ── */}
         <div className="border-t border-border pt-20">
-          {/* Launch Partner Promo Banner */}
-          <div className="max-w-5xl mx-auto mb-10">
-            <div className="relative overflow-hidden rounded-xl border border-amber-500/40 bg-gradient-to-br from-amber-500/10 via-amber-500/5 to-transparent p-6 md:p-8">
-              <div className="absolute -top-10 -right-10 w-40 h-40 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
-              <div className="relative flex flex-col md:flex-row md:items-center gap-6">
-                <div className="flex items-start gap-4 flex-1">
-                  <div className="w-12 h-12 rounded-xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center flex-shrink-0">
-                    <Rocket className="w-6 h-6 text-amber-400" />
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2 mb-1.5">
-                      <span className="text-xs font-bold uppercase tracking-widest text-amber-400 bg-amber-500/20 border border-amber-500/30 rounded-full px-2.5 py-0.5">
-                        Launch Partner Offer
-                      </span>
-                      <span className="text-xs text-amber-500/70 flex items-center gap-1">
-                        <Clock className="w-3 h-3" /> Limited time
-                      </span>
-                    </div>
-                    <h3 className="text-lg font-bold text-white mb-1">First 3 Months at $20/mo</h3>
-                    <p className="text-amber-200/70 text-sm leading-relaxed">
-                      Early MRO adopters who list during the launch period get 3 months at $20/mo on any paid MRO plan — then renew at the standard rate.
-                    </p>
-                  </div>
-                </div>
-                <div className="flex-shrink-0">
-                  <Link href="/mro/register">
-                    <Button className="bg-amber-500 hover:bg-amber-400 text-black font-semibold gap-2">
-                      <Rocket className="w-4 h-4" /> Claim Offer
-                    </Button>
-                  </Link>
-                </div>
-              </div>
-            </div>
-          </div>
-
           <div className="text-center max-w-2xl mx-auto mb-14">
             <div className="inline-flex items-center gap-2 text-xs text-muted-foreground uppercase tracking-widest border border-border rounded-full px-3 py-1 mb-4">
               <Wrench className="w-3.5 h-3.5" /> MRO Services
@@ -430,75 +374,103 @@ export default function Pricing() {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
-            {MRO_TIERS.map(tier => {
-              const Icon = tier.icon;
-              const isCurrentPlan = currentPlan === tier.id;
-              const isLoading = checkingOutPlan === tier.id;
+          {/* Single MRO Provider card + feature callouts */}
+          <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
+            {/* Card */}
+            <div className="relative rounded-lg border border-primary bg-primary/5 shadow-lg shadow-primary/10 p-8 flex flex-col">
+              <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                <span className="bg-primary text-primary-foreground text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">
+                  Single Plan
+                </span>
+              </div>
 
-              return (
-                <div
-                  key={tier.id}
-                  className={`relative rounded-lg border p-8 flex flex-col ${
-                    tier.highlight
-                      ? "border-primary bg-primary/5 shadow-lg shadow-primary/10"
-                      : "border-border bg-card"
-                  }`}
-                >
-                  {tier.highlight && (
-                    <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                      <span className="bg-primary text-primary-foreground text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">
-                        Most Popular
-                      </span>
-                    </div>
-                  )}
-
-                  <div className="mb-6">
-                    <div className={`h-10 w-10 rounded-md flex items-center justify-center mb-4 ${
-                      tier.highlight ? "bg-primary/20" : "bg-secondary"
-                    }`}>
-                      <Icon className={`h-5 w-5 ${tier.highlight ? "text-primary" : "text-muted-foreground"}`} />
-                    </div>
-                    <h3 className="text-xl font-bold text-white mb-1">{tier.name}</h3>
-                    <p className="text-muted-foreground text-sm mb-4">{tier.description}</p>
-                    <div className="flex items-baseline gap-1">
-                      <span className="text-4xl font-bold text-white font-mono">{tier.priceLabel}</span>
-                      {tier.price && <span className="text-muted-foreground text-sm">/month</span>}
-                    </div>
-                  </div>
-
-                  <ul className="space-y-3 mb-8 flex-1">
-                    {tier.features.map(feature => (
-                      <li key={feature} className="flex items-start gap-2.5 text-sm">
-                        <Check className={`h-4 w-4 mt-0.5 flex-shrink-0 ${tier.highlight ? "text-primary" : "text-muted-foreground"}`} />
-                        <span className="text-white/80">{feature}</span>
-                      </li>
-                    ))}
-                  </ul>
-
-                  {isCurrentPlan ? (
-                    <div className="w-full py-2.5 px-4 rounded-md border border-border text-center text-sm text-muted-foreground font-medium">
-                      Current Plan
-                    </div>
-                  ) : tier.planKey ? (
-                    <Button
-                      className="w-full gap-2"
-                      variant={tier.highlight ? "default" : "outline"}
-                      disabled={!!checkingOutPlan}
-                      onClick={() => handleCheckout(tier.planKey!)}
-                    >
-                      {isLoading ? (
-                        <><Loader2 className="h-4 w-4 animate-spin" /> Redirecting…</>
-                      ) : tier.cta}
-                    </Button>
-                  ) : (
-                    <Link href={tier.href}>
-                      <Button className="w-full" variant="outline">{tier.cta}</Button>
-                    </Link>
-                  )}
+              <div className="mb-6">
+                <div className="h-10 w-10 rounded-md flex items-center justify-center mb-4 bg-primary/20">
+                  <Wrench className="h-5 w-5 text-primary" />
                 </div>
-              );
-            })}
+                <h3 className="text-xl font-bold text-white mb-1">{MRO_TIER.name}</h3>
+                <p className="text-muted-foreground text-sm mb-4">{MRO_TIER.description}</p>
+
+                {/* Price */}
+                <div className="flex items-baseline gap-1">
+                  <span className="text-4xl font-bold text-white font-mono">
+                    {billingCycle === "yearly" ? `$${MRO_TIER.yearlyPrice}/yr` : `$${MRO_TIER.monthlyPrice}/mo`}
+                  </span>
+                </div>
+                {billingCycle === "yearly" && (
+                  <p className="text-xs text-muted-foreground mt-1">~$8/mo · billed annually</p>
+                )}
+                {billingCycle === "monthly" && (
+                  <p className="text-xs text-muted-foreground mt-1">billed monthly</p>
+                )}
+                {billingCycle === "yearly" && (
+                  <div className="inline-flex items-center gap-1 mt-2 text-xs text-green-400 font-medium bg-green-500/10 border border-green-500/20 rounded-full px-2.5 py-0.5">
+                    <Check className="h-3 w-3" /> Save $20/yr
+                  </div>
+                )}
+              </div>
+
+              <ul className="space-y-3 mb-8 flex-1">
+                {MRO_TIER.features.map(feature => (
+                  <li key={feature} className="flex items-start gap-2.5 text-sm">
+                    <Check className="h-4 w-4 mt-0.5 flex-shrink-0 text-primary" />
+                    <span className="text-white/80">{feature}</span>
+                  </li>
+                ))}
+              </ul>
+
+              {currentPlan === "mro_provider" || currentPlan === "mro_verified" || currentPlan === "mro_premium" ? (
+                <div className="w-full py-2.5 px-4 rounded-md border border-border text-center text-sm text-muted-foreground font-medium">
+                  Current Plan
+                </div>
+              ) : (
+                <Button
+                  className="w-full gap-2"
+                  disabled={!!checkingOutPlan}
+                  onClick={() => handleCheckout(MRO_TIER.planKey, billingCycle)}
+                >
+                  {checkingOutPlan === MRO_TIER.planKey ? (
+                    <><Loader2 className="h-4 w-4 animate-spin" /> Redirecting…</>
+                  ) : MRO_TIER.cta}
+                </Button>
+              )}
+            </div>
+
+            {/* Feature callout tiles */}
+            <div className="space-y-4">
+              {[
+                {
+                  icon: Star,
+                  title: "Verified MRO Badge",
+                  desc: "Display a trust badge on your directory listing. Buyers filter by verified providers — stand out from unverified listings.",
+                },
+                {
+                  icon: Radio,
+                  title: "Quote Request Notifications",
+                  desc: "Receive instant email alerts whenever a buyer submits a quote request matching your service categories.",
+                },
+                {
+                  icon: Upload,
+                  title: "Unlimited Service Categories",
+                  desc: "List every capability — airframe, engine, avionics, NDT, and more — with no cap on categories or sub-types.",
+                },
+                {
+                  icon: Brain,
+                  title: "Analytics & Tracking",
+                  desc: "See how many buyers viewed your profile, which services drive the most quote requests, and your response conversion rate.",
+                },
+              ].map(({ icon: Icon, title, desc }) => (
+                <div key={title} className="flex gap-4 p-4 rounded-lg border border-border bg-card">
+                  <div className="h-9 w-9 rounded-md flex items-center justify-center bg-secondary flex-shrink-0">
+                    <Icon className="h-4 w-4 text-primary" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-white mb-0.5">{title}</p>
+                    <p className="text-xs text-muted-foreground leading-relaxed">{desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
 
@@ -509,7 +481,7 @@ export default function Pricing() {
             {[
               {
                 q: "What's the difference between monthly and yearly billing?",
-                a: "Monthly billing charges your card each month. Yearly billing charges once per year and saves you the equivalent of 2 months — roughly 17% off. Pro yearly is $1,490/yr vs $1,788/yr on monthly; Enterprise yearly is $2,990/yr vs $3,588/yr.",
+                a: "Monthly billing charges your card each month. Yearly billing charges once per year and saves you roughly 2 months — Pro yearly is $290/yr vs $348/yr monthly; Enterprise yearly is $990/yr vs $1,188/yr; MRO Provider yearly is $100/yr vs $120/yr.",
               },
               {
                 q: "How does billing work?",
@@ -517,19 +489,19 @@ export default function Pricing() {
               },
               {
                 q: "What happens when I hit my listing limit?",
-                a: "You'll be prompted to upgrade when you attempt to create a new listing beyond your plan's limit. Existing listings remain active.",
+                a: "You'll be prompted to upgrade when you attempt to create a new listing beyond your plan's limit. Existing listings remain active. Free is capped at 5; Pro at 500; Enterprise is unlimited.",
               },
               {
                 q: "What happens if my payment fails?",
                 a: "You get a 7-day grace period while Stripe retries your payment. During that time your plan stays active. If payment isn't resolved after 7 days, your account is downgraded to Free.",
               },
               {
-                q: "Do you send reminders before yearly renewal?",
-                a: "Yes. We send an email reminder 30 days before your yearly subscription renews so you have time to review or make changes via the billing portal.",
+                q: "What are AOG notifications?",
+                a: "AOG (Aircraft on Ground) alerts are real-time notifications pushed to Pro and Enterprise sellers when a buyer submits an urgent RFQ flagged as AOG. These appear on your dashboard and trigger instant email alerts.",
               },
               {
-                q: "How does the Launch Partner promotion work?",
-                a: "Early MRO adopters who sign up during the launch period receive the first 3 months at $20/month on any paid MRO plan. After 3 months, the plan renews at the standard rate ($49/mo or $149/mo).",
+                q: "What is the intelligence dashboard?",
+                a: "Available exclusively on Enterprise, the intelligence dashboard surfaces demand trends, fraud risk indicators, and predictive demand alerts for parts you stock — helping you price competitively and stock the right inventory.",
               },
               {
                 q: "Can I cancel at any time?",

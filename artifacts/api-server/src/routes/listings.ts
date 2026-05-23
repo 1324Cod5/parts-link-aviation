@@ -28,9 +28,9 @@ const PLAN_ORDER_SQL = sql<number>`
          AND ${usersTable.gracePeriodEnd} IS NOT NULL
          AND ${usersTable.gracePeriodEnd} < NOW() THEN 4
     WHEN ${usersTable.sellerType} = 'verified_vendor'
-         AND ${usersTable.plan} IN ('enterprise', 'mro_premium') THEN 0
+         AND ${usersTable.plan} IN ('enterprise', 'mro_premium', 'mro_provider') THEN 0
     WHEN ${usersTable.sellerType} = 'verified_vendor' THEN 1
-    WHEN ${usersTable.plan} IN ('enterprise', 'mro_premium') THEN 2
+    WHEN ${usersTable.plan} IN ('enterprise', 'mro_premium', 'mro_provider') THEN 2
     WHEN ${usersTable.plan} IN ('pro', 'mro_verified') THEN 3
     ELSE 4
   END`;

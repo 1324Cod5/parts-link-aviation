@@ -89,13 +89,25 @@ export function requirePlanMiddleware(allowedPlans: Set<string>) {
 
 // ─── requireAnyPaidPlanMiddleware ─────────────────────────────────────────────
 
-const ANY_PAID_PLANS = new Set(["pro", "enterprise", "mro_verified", "mro_premium"]);
+const ANY_PAID_PLANS = new Set(["pro", "enterprise", "mro_verified", "mro_premium", "mro_provider"]);
+const BULK_UPLOAD_PLAN_SET = new Set(["pro", "enterprise", "mro_verified", "mro_premium", "mro_provider"]);
+const EMAIL_ALERT_PLAN_SET = new Set(["pro", "enterprise", "mro_verified", "mro_premium", "mro_provider"]);
 
 /**
  * Middleware that requires any active paid subscription.
  * Used for features like email alerts that are gated to paid plans.
  */
 export const requireAnyPaidPlanMiddleware = requirePlanMiddleware(ANY_PAID_PLANS);
+
+/**
+ * Middleware that gates bulk-upload functionality to pro+ plans.
+ */
+export const requireBulkUploadMiddleware = requirePlanMiddleware(BULK_UPLOAD_PLAN_SET);
+
+/**
+ * Middleware that gates instant RFQ email alerts to pro+ plans.
+ */
+export const requireEmailAlertsMiddleware = requirePlanMiddleware(EMAIL_ALERT_PLAN_SET);
 
 // ─── hasActivePaidPlan ────────────────────────────────────────────────────────
 

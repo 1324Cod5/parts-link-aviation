@@ -21,7 +21,7 @@ import {
 import { useAuth } from "@/context/AuthContext";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Edit2, Trash2, Package, FileCheck2, MessageSquare, ShieldCheck, Zap, Building2, AlertTriangle, ClipboardList, Wrench, Shield, FileSpreadsheet, Lock, Radio, ArrowRight, Clock, BadgeCheck, Send } from "lucide-react";
+import { Plus, Edit2, Trash2, Package, FileCheck2, MessageSquare, ShieldCheck, Zap, Building2, AlertTriangle, ClipboardList, Wrench, Shield, FileSpreadsheet, Lock, Radio, ArrowRight, Clock, BadgeCheck, Send, Brain, TrendingUp } from "lucide-react";
 import { TrustBadge, TrustScoreBar, TRUST_BADGE_META } from "@/components/ui/trust-badge";
 import { SellerTypeBadge } from "@/components/ui/seller-type-badge";
 import {
@@ -138,9 +138,12 @@ function formatCondition(c: string) {
 }
 
 const PLAN_META = {
-  free:       { label: "Free",       icon: Package,   color: "text-muted-foreground", bg: "bg-secondary/50"  },
-  pro:        { label: "Pro",        icon: Zap,        color: "text-primary",          bg: "bg-primary/10"    },
-  enterprise: { label: "Enterprise", icon: Building2,  color: "text-amber-400",        bg: "bg-amber-500/10"  },
+  free:         { label: "Free",         icon: Package,   color: "text-muted-foreground", bg: "bg-secondary/50"  },
+  pro:          { label: "Pro",          icon: Zap,       color: "text-primary",          bg: "bg-primary/10"    },
+  enterprise:   { label: "Enterprise",   icon: Building2, color: "text-amber-400",        bg: "bg-amber-500/10"  },
+  mro_provider: { label: "MRO Provider", icon: Wrench,    color: "text-blue-400",         bg: "bg-blue-500/10"   },
+  mro_verified: { label: "MRO Verified", icon: Wrench,    color: "text-blue-400",         bg: "bg-blue-500/10"   },
+  mro_premium:  { label: "MRO Premium",  icon: Wrench,    color: "text-blue-400",         bg: "bg-blue-500/10"   },
 };
 
 export default function SellerDashboard() {
@@ -251,7 +254,9 @@ export default function SellerDashboard() {
   const planMeta = PLAN_META[plan] ?? PLAN_META.free;
   const PlanIcon = planMeta.icon;
   const canAdd = stats?.canAddListing ?? true;
-  const canBulkUpload = plan === "pro" || plan === "enterprise";
+  const canBulkUpload = plan === "pro" || plan === "enterprise" || plan === "mro_provider" || plan === "mro_premium" || plan === "mro_verified";
+  const canSeeAogAlerts = plan === "pro" || plan === "enterprise";
+  const canSeeIntelligence = plan === "enterprise";
   const usedPct = stats && stats.listingLimit
     ? Math.min(100, Math.round((stats.activeListings / stats.listingLimit) * 100))
     : 0;
@@ -458,8 +463,105 @@ export default function SellerDashboard() {
           </div>
         )}
 
-        {/* ─── AOG Alerts Panel ─────────────────────────────────────────── */}
-        {aogRfqs.length > 0 && (
+        {/* ─── AOG Alerts Upgrade Prompt (free plan) ───────────────────── */}
+        {!canSeeAogAlerts && (
+          <div className="mb-6 rounded-md border border-border bg-card p-4 flex items-start gap-3">
+            <div className="h-9 w-9 rounded-md flex items-center justify-center bg-red-500/10 flex-shrink-0">
+              <Radio className="h-4 w-4 text-red-400" />
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-semibold text-white flex items-center gap-2">
+                AOG Alerts
+                <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded border border-primary/40 text-primary bg-primary/10">Pro</span>
+              </p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Receive real-time Aircraft on Ground alerts when urgent RFQs are submitted. Be first to respond to high-priority buyers.
+              </p>
+            </div>
+            <Link href="/pricing" className="flex-shrink-0">
+              <Button size="sm" variant="outline" className="h-8 text-xs border-primary/40 text-primary hover:bg-primary/10 gap-1.5">
+                <Zap className="h-3 w-3" /> Upgrade
+              </Button>
+            </Link>
+          </div>
+        )}
+
+        {/* ─── Intelligence Dashboard Card ──────────────────────────────── */}
+        {canSeeIntelligence ? (
+          <div className="mb-6 rounded-md border border-amber-500/30 bg-amber-500/5 p-4 flex items-start gap-3">
+            <div className="h-9 w-9 rounded-md flex items-center justify-center bg-amber-500/10 flex-shrink-0">
+              <Brain className="h-4 w-4 text-amber-400" />
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-semibold text-amber-400">Intelligence Dashboard</p>
+              <p className="text-xs text-amber-400/70 mt-0.5">Access demand trends, fraud risk analysis, and market intelligence.</p>
+            </div>
+            <Link href="/seller/intelligence" className="flex-shrink-0">
+              <Button size="sm" variant="outline" className="h-8 text-xs border-amber-500/40 text-amber-400 hover:bg-amber-500/10 gap-1.5">
+                <Brain className="h-3 w-3" /> Open
+              </Button>
+            </Link>
+          </div>
+        ) : (
+          <div className="mb-6 rounded-md border border-border bg-card p-4 flex items-start gap-3">
+            <div className="h-9 w-9 rounded-md flex items-center justify-center bg-amber-500/10 flex-shrink-0">
+              <Brain className="h-4 w-4 text-amber-400/50" />
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-semibold text-white flex items-center gap-2">
+                Intelligence Dashboard
+                <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded border border-amber-500/40 text-amber-400 bg-amber-500/10">Enterprise</span>
+              </p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Demand trends, fraud risk indicators, and predictive inventory alerts powered by platform-wide market data.
+              </p>
+            </div>
+            <Link href="/pricing" className="flex-shrink-0">
+              <Button size="sm" variant="outline" className="h-8 text-xs border-amber-500/40 text-amber-400 hover:bg-amber-500/10 gap-1.5">
+                <Zap className="h-3 w-3" /> Upgrade
+              </Button>
+            </Link>
+          </div>
+        )}
+
+        {/* ─── Predictive Alerts Card ───────────────────────────────────── */}
+        {canSeeIntelligence ? (
+          <div className="mb-6 rounded-md border border-amber-500/30 bg-amber-500/5 p-4 flex items-start gap-3">
+            <div className="h-9 w-9 rounded-md flex items-center justify-center bg-amber-500/10 flex-shrink-0">
+              <TrendingUp className="h-4 w-4 text-amber-400" />
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-semibold text-amber-400">Predictive Demand Alerts</p>
+              <p className="text-xs text-amber-400/70 mt-0.5">AI-powered alerts when demand for parts in your inventory is trending up.</p>
+            </div>
+            <Button size="sm" variant="outline" className="h-8 text-xs border-amber-500/40 text-amber-400 hover:bg-amber-500/10 gap-1.5 flex-shrink-0">
+              <TrendingUp className="h-3 w-3" /> Configure
+            </Button>
+          </div>
+        ) : (
+          <div className="mb-6 rounded-md border border-border bg-card p-4 flex items-start gap-3">
+            <div className="h-9 w-9 rounded-md flex items-center justify-center bg-amber-500/10 flex-shrink-0">
+              <TrendingUp className="h-4 w-4 text-amber-400/50" />
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-semibold text-white flex items-center gap-2">
+                Predictive Demand Alerts
+                <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded border border-amber-500/40 text-amber-400 bg-amber-500/10">Enterprise</span>
+              </p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Get notified when demand trends for parts you stock are rising — before buyers post RFQs. Price and position ahead of the market.
+              </p>
+            </div>
+            <Link href="/pricing" className="flex-shrink-0">
+              <Button size="sm" variant="outline" className="h-8 text-xs border-amber-500/40 text-amber-400 hover:bg-amber-500/10 gap-1.5">
+                <Zap className="h-3 w-3" /> Upgrade
+              </Button>
+            </Link>
+          </div>
+        )}
+
+        {/* ─── AOG Alerts Panel (pro+ only) ─────────────────────────────── */}
+        {canSeeAogAlerts && aogRfqs.length > 0 && (
           <div className="mb-6 rounded-md border border-red-600/60 bg-red-950/40 overflow-hidden">
             {/* Panel header */}
             <div className="flex items-center gap-3 px-4 py-3 bg-red-900/40 border-b border-red-600/40">
