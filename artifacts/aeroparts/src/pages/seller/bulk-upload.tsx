@@ -112,7 +112,7 @@ export default function BulkUpload() {
 
   const plan = (user.plan ?? "free") as string;
   const planLabel = PLAN_LIMIT_LABELS[plan] ?? "5 listings";
-  const isPlanQualified = plan === "pro" || plan === "enterprise";
+  const isPlanQualified = plan === "pro" || plan === "enterprise" || plan === "mro_verified" || plan === "mro_premium" || plan === "mro_provider";
   // Treat past_due as still active — backend enforces the 7-day grace window
   const isSubscriptionActive =
     !subscriptionStatus ||

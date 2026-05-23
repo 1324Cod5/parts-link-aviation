@@ -114,7 +114,7 @@ export async function computeTrustScore(userId: number): Promise<TrustScoreBreak
   const isActiveSubscription = user.subscriptionStatus === "active" || user.subscriptionStatus === "trial";
   let subscriptionBoost = 0;
   if (isActiveSubscription) {
-    if (user.plan === "enterprise" || user.plan === "mro_premium") subscriptionBoost = 10;
+    if (user.plan === "enterprise" || user.plan === "mro_premium" || user.plan === "mro_provider") subscriptionBoost = 10;
     else if (user.plan === "pro" || user.plan === "mro_verified") subscriptionBoost = 5;
   }
 

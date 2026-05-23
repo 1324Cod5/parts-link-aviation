@@ -87,7 +87,7 @@ async function fetchEligibleSellers(): Promise<EligibleSeller[]> {
       notificationPreferencesTable,
       eq(notificationPreferencesTable.userId, usersTable.id),
     )
-    .where(inArray(usersTable.plan, ["pro", "enterprise", "mro_premium"]));
+    .where(inArray(usersTable.plan, ["pro", "enterprise", "mro_verified", "mro_premium", "mro_provider"]));
 
   return rows.map((r) => ({
     id: r.id,
