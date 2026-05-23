@@ -26,6 +26,7 @@ import MroDirectoryPage from "@/pages/mro/index";
 import MroRegisterPage from "@/pages/mro/register";
 import MroDetailPage from "@/pages/mro/detail";
 import MroDashboard from "@/pages/mro/dashboard";
+import SellerIntelligence from "@/pages/seller/intelligence";
 import DebugLoginFreeSeller from "@/pages/debug-login";
 import AuthTestPage from "@/pages/auth-test";
 
@@ -50,6 +51,7 @@ function Router() {
       <Route path="/seller/listings/new" component={NewListing} />
       <Route path="/seller/listings/:id/edit" component={EditListing} />
       <Route path="/seller/bulk-upload" component={BulkUpload} />
+      <Route path="/seller/intelligence" component={SellerIntelligence} />
       <Route path="/admin/login" component={AdminLogin} />
       <Route path="/admin/change-password" component={AdminChangePassword} />
       <Route path="/admin/review-cert/:id" component={AdminCertReview} />

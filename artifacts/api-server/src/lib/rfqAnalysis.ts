@@ -74,6 +74,7 @@ const TIER_SCORE: Record<string, number> = {
   enterprise: 25,
   mro_premium: 25,
   pro: 17,
+  mro_provider: 17,
   mro_verified: 12,
   free: 0,
 };

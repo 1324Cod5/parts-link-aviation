@@ -46,7 +46,7 @@ interface RankedSeller {
   score: number;
 }
 
-const TIER_SCORE: Record<string, number> = { enterprise: 30, mro_premium: 30, pro: 20 };
+const TIER_SCORE: Record<string, number> = { enterprise: 30, mro_premium: 30, mro_provider: 20, pro: 20 };
 
 async function getAogRankedSellers(): Promise<RankedSeller[]> {
   const sellers = await db

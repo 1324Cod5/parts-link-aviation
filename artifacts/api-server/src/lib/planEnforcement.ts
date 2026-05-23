@@ -8,7 +8,7 @@ export const PLAN_LISTING_LIMITS: Record<string, number | null> = {
   free: 5,
   pro: 500,
   enterprise: null,
-  mro_verified: 5,
+  mro_verified: 500,
   mro_premium: null,
   mro_provider: 500,
 };
@@ -18,7 +18,7 @@ export const MRO_SERVICE_LIMITS: Record<string, number | null> = {
   free: 1,
   pro: 15,
   enterprise: null,
-  mro_verified: 10,
+  mro_verified: null,
   mro_premium: null,
   mro_provider: null,
 };

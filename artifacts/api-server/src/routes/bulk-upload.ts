@@ -4,6 +4,7 @@ import * as XLSX from "xlsx";
 import { db, listingsTable, usersTable } from "@workspace/db";
 import { eq, and, count } from "drizzle-orm";
 import { PLAN_LISTING_LIMITS, BULK_UPLOAD_PLANS, resolveEffectivePlan } from "../lib/planEnforcement";
+import { requireBulkUploadMiddleware } from "../lib/subscriptionMiddleware";
 
 const router: IRouter = Router();
 
@@ -291,7 +292,7 @@ router.post(
 );
 
 // POST /seller/bulk-upload/import — create listings from validated rows
-router.post("/seller/bulk-upload/import", async (req: Request, res: Response): Promise<void> => {
+router.post("/seller/bulk-upload/import", requireBulkUploadMiddleware, async (req: Request, res: Response): Promise<void> => {
   const userId = req.session?.userId;
   if (!userId) {
     res.status(401).json({ error: "Not authenticated" });
@@ -301,7 +302,7 @@ router.post("/seller/bulk-upload/import", async (req: Request, res: Response): P
   // ── Resolve authoritative effective plan from DB ───────────────────────────
   const effectivePlan = await resolveEffectivePlan(userId);
 
-  // ── Plan gate ─────────────────────────────────────────────────────────────
+  // ── Belt-and-suspenders plan check (middleware already validated above) ────
   if (!BULK_UPLOAD_PLANS.has(effectivePlan)) {
     res.status(403).json({
       error: "Bulk upload requires a Pro or Enterprise plan.",

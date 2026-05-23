@@ -55,6 +55,7 @@ const PLAN_TIER_SCORE: Record<string, number> = {
   enterprise:   10,
   mro_premium:  10,
   pro:           7,
+  mro_provider:  7,
   mro_verified:  5,
   free:          0,
 };
