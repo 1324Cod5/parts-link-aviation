@@ -225,8 +225,8 @@ function OverviewSection() {
         <div className="grid grid-cols-3 gap-4 text-center">
           {[
             { plan: "Free",       color: "text-muted-foreground", revenue: "$0" },
-            { plan: "Pro",        color: "text-primary",          revenue: "$149/seat" },
-            { plan: "Enterprise", color: "text-amber-400",        revenue: "$299/seat" },
+            { plan: "Pro",        color: "text-primary",          revenue: "$29/seat" },
+            { plan: "Enterprise", color: "text-amber-400",        revenue: "$99/seat" },
           ].map(p => (
             <div key={p.plan} className="border border-border rounded-md p-4">
               <p className={`text-sm font-semibold ${p.color}`}>{p.plan}</p>
@@ -650,9 +650,9 @@ function SubscriptionsSection() {
   (sellers ?? []).forEach(s => { if (grouped[s.plan as keyof typeof grouped]) grouped[s.plan as keyof typeof grouped].push(s); });
 
   const MRO_TIERS = [
-    { name: "Free MRO",     price: "$0",      seats: grouped.free.length,       color: "text-muted-foreground" },
-    { name: "Verified MRO", price: "$49/mo",  seats: grouped.pro.length,        color: "text-primary" },
-    { name: "Premium MRO",  price: "$149/mo", seats: grouped.enterprise.length, color: "text-amber-400" },
+    { name: "Free MRO",      price: "$0",     seats: grouped.free.length,       color: "text-muted-foreground" },
+    { name: "MRO Provider",  price: "$10/mo", seats: grouped.pro.length,        color: "text-primary" },
+    { name: "Premium MRO",   price: "$149/mo (legacy)", seats: grouped.enterprise.length, color: "text-amber-400" },
   ];
 
   return (
@@ -666,8 +666,8 @@ function SubscriptionsSection() {
       <div className="grid grid-cols-3 gap-4">
         {[
           { plan: "Free",       count: grouped.free.length,       revenue: "$0/mo",      color: "text-muted-foreground", bg: "border-border" },
-          { plan: "Pro",        count: grouped.pro.length,        revenue: `$${grouped.pro.length * 149}/mo`,        color: "text-primary",    bg: "border-primary/30" },
-          { plan: "Enterprise", count: grouped.enterprise.length, revenue: `$${grouped.enterprise.length * 299}/mo`, color: "text-amber-400",  bg: "border-amber-500/30" },
+          { plan: "Pro",        count: grouped.pro.length,        revenue: `$${grouped.pro.length * 29}/mo`,        color: "text-primary",    bg: "border-primary/30" },
+          { plan: "Enterprise", count: grouped.enterprise.length, revenue: `$${grouped.enterprise.length * 99}/mo`, color: "text-amber-400",  bg: "border-amber-500/30" },
         ].map(p => (
           <div key={p.plan} className={`border rounded-lg p-5 bg-card ${p.bg}`}>
             <p className={`text-sm font-semibold ${p.color} mb-1`}>{p.plan}</p>
@@ -1561,7 +1561,7 @@ function AnalyticsSection() {
   const proCount = (sellers ?? []).filter(s => s.plan === "pro").length;
   const enterpriseCount = (sellers ?? []).filter(s => s.plan === "enterprise").length;
   const freeCount = (sellers ?? []).filter(s => s.plan === "free").length;
-  const estRevenue = proCount * 149 + enterpriseCount * 299;
+  const estRevenue = proCount * 29 + enterpriseCount * 99;
 
   const kpis = [
     { label: "Total Listings",   value: stats?.totalListings,       color: "text-white"       as const, icon: Package },
@@ -1593,8 +1593,8 @@ function AnalyticsSection() {
         <div className="grid grid-cols-3 gap-4 mb-4">
           {[
             { label: "Free Tier",  count: freeCount,       revenue: "$0/mo",                                    color: "text-muted-foreground", bg: "border-border" },
-            { label: "Pro Tier",   count: proCount,        revenue: `$${(proCount * 149).toLocaleString()}/mo`,        color: "text-primary",    bg: "border-primary/30" },
-            { label: "Enterprise", count: enterpriseCount, revenue: `$${(enterpriseCount * 299).toLocaleString()}/mo`, color: "text-amber-400",  bg: "border-amber-500/30" },
+            { label: "Pro Tier",   count: proCount,        revenue: `$${(proCount * 29).toLocaleString()}/mo`,        color: "text-primary",    bg: "border-primary/30" },
+            { label: "Enterprise", count: enterpriseCount, revenue: `$${(enterpriseCount * 99).toLocaleString()}/mo`, color: "text-amber-400",  bg: "border-amber-500/30" },
           ].map(p => (
             <div key={p.label} className={`border rounded-lg p-4 bg-card/60 ${p.bg}`}>
               <p className={`text-sm font-semibold mb-1 ${p.color}`}>{p.label}</p>

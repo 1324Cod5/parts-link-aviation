@@ -10,7 +10,7 @@ export const PLAN_LISTING_LIMITS: Record<string, number | null> = {
   enterprise: null,
   mro_verified: 5,
   mro_premium: null,
-  mro_provider: null,
+  mro_provider: 500,
 };
 
 /** Maximum MRO service types per plan. null = unlimited. */

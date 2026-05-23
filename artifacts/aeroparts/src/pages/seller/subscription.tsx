@@ -336,10 +336,9 @@ export default function SubscriptionManagement() {
             <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">Upgrade to unlock</h2>
             <div className="grid grid-cols-2 gap-3 text-sm">
               {[
-                { icon: Zap, label: "Pro — $149/mo", detail: "50 listings, analytics, priority placement" },
-                { icon: Building2, label: "Enterprise — $299/mo", detail: "Unlimited listings, full RFQ access" },
-                { icon: ShieldCheck, label: "Verified MRO — $49/mo", detail: "MRO directory, 10 service types" },
-                { icon: Star, label: "Premium MRO — $149/mo", detail: "Featured listing, unlimited services" },
+                { icon: Zap, label: "Pro — $29/mo", detail: "500 listings, analytics, AOG alerts, priority placement" },
+                { icon: Building2, label: "Enterprise — $99/mo", detail: "Unlimited listings, intelligence dashboard, full RFQ access" },
+                { icon: ShieldCheck, label: "MRO Provider — $10/mo", detail: "MRO directory, unlimited service categories, verified badge" },
               ].map(({ icon: I, label, detail }) => (
                 <div key={label} className="border border-border rounded-md p-3">
                   <I className="h-4 w-4 text-primary mb-1.5" />

@@ -179,7 +179,7 @@ export default function BulkUpload() {
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-left text-sm">
               <div className="border border-border rounded-md p-4 bg-secondary/20">
-                <p className="font-semibold text-white mb-2">Pro — $149/mo</p>
+                <p className="font-semibold text-white mb-2">Pro — $29/mo</p>
                 <ul className="space-y-1.5 text-xs text-muted-foreground">
                   <li className="flex items-center gap-1.5">
                     <CheckCircle2 className="h-3 w-3 text-emerald-400 flex-shrink-0" />
@@ -196,7 +196,7 @@ export default function BulkUpload() {
                 </ul>
               </div>
               <div className="border border-primary/30 rounded-md p-4 bg-primary/5">
-                <p className="font-semibold text-white mb-2">Enterprise — $299/mo</p>
+                <p className="font-semibold text-white mb-2">Enterprise — $99/mo</p>
                 <ul className="space-y-1.5 text-xs text-muted-foreground">
                   <li className="flex items-center gap-1.5">
                     <CheckCircle2 className="h-3 w-3 text-emerald-400 flex-shrink-0" />

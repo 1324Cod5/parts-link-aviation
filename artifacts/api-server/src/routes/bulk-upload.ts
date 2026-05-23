@@ -3,7 +3,7 @@ import multer from "multer";
 import * as XLSX from "xlsx";
 import { db, listingsTable, usersTable } from "@workspace/db";
 import { eq, and, count } from "drizzle-orm";
-import { PLAN_LISTING_LIMITS, resolveEffectivePlan } from "../lib/planEnforcement";
+import { PLAN_LISTING_LIMITS, BULK_UPLOAD_PLANS, resolveEffectivePlan } from "../lib/planEnforcement";
 
 const router: IRouter = Router();
 
@@ -23,9 +23,7 @@ const upload = multer({
 });
 
 // ─── Plan gates ────────────────────────────────────────────────────────────────
-
-/** Plans that are allowed to use bulk upload at all. */
-const BULK_UPLOAD_PLANS = new Set(["pro", "enterprise", "mro_verified", "mro_premium", "mro_provider"]);
+// BULK_UPLOAD_PLANS is imported from planEnforcement — single source of truth.
 
 /** Maximum rows allowed per single file upload. null = unlimited. */
 const BULK_ROW_LIMITS: Record<string, number | null> = {

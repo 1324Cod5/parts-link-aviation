@@ -334,15 +334,15 @@ export default function RfqDetailPage() {
                       </p>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4 text-sm">
                         <div className="border border-border rounded p-3 bg-card/50">
-                          <div className="font-medium text-white mb-1.5">Pro — $149/mo</div>
+                          <div className="font-medium text-white mb-1.5">Pro — $29/mo</div>
                           <ul className="space-y-1 text-muted-foreground text-xs">
                             <li className="flex items-center gap-1.5"><CheckCircle2 className="w-3 h-3 text-emerald-400" /> Full buyer details</li>
                             <li className="flex items-center gap-1.5"><CheckCircle2 className="w-3 h-3 text-emerald-400" /> Respond to RFQs</li>
-                            <li className="flex items-center gap-1.5"><CheckCircle2 className="w-3 h-3 text-emerald-400" /> 50 active listings</li>
+                            <li className="flex items-center gap-1.5"><CheckCircle2 className="w-3 h-3 text-emerald-400" /> 500 active listings</li>
                           </ul>
                         </div>
                         <div className="border border-primary/30 rounded p-3 bg-primary/5">
-                          <div className="font-medium text-white mb-1.5">Enterprise — $299/mo</div>
+                          <div className="font-medium text-white mb-1.5">Enterprise — $99/mo</div>
                           <ul className="space-y-1 text-muted-foreground text-xs">
                             <li className="flex items-center gap-1.5"><CheckCircle2 className="w-3 h-3 text-emerald-400" /> Everything in Pro</li>
                             <li className="flex items-center gap-1.5"><CheckCircle2 className="w-3 h-3 text-emerald-400" /> Unlimited listings</li>
