@@ -22,21 +22,27 @@ export function Footer() {
         { label: "Seller Login", href: "/seller/login" },
         { label: "Seller Dashboard", href: "/seller/dashboard" },
         { label: "Pricing Plans", href: "/pricing" },
-        { label: "Seller Guidelines", href: "#" },
+        { label: "Seller Guidelines", href: "/seller-guidelines" },
       ],
     },
     {
       heading: "Trust & Safety",
       links: [
-        { label: "Certification Process", href: "#" },
-        { label: "Buyer Protection", href: "#" },
-        { label: "Compliance Overview", href: "#" },
-        { label: "Contact Support", href: "#" },
+        { label: "Certification Process", href: "/certification" },
+        { label: "Buyer Protection", href: "/buyer-protection" },
+        { label: "Compliance Overview", href: "/compliance" },
+        { label: "Contact Support", href: "/contact" },
       ],
     },
   ];
 
   const badges = ["FAA Approved", "EASA Part 145", "AS9120", "ISO 9001:2015"];
+
+  const bottomLinks: Record<string, string> = {
+    "Privacy Policy": "/privacy",
+    "Terms of Service": "/terms",
+    "Cookie Policy": "/cookies",
+  };
 
   return (
     <footer style={{ background: "#060e1a", borderTop: `1px solid ${BORDER}`, padding: "52px 24px 28px" }}>
@@ -99,14 +105,14 @@ export function Footer() {
             © {new Date().getFullYear()} Parts Link Aviation. All rights reserved.
           </span>
           <div style={{ display: "flex", gap: 20 }}>
-            {["Privacy Policy", "Terms of Service", "Cookie Policy"].map(l => (
+            {Object.entries(bottomLinks).map(([label, href]) => (
               <a
-                key={l}
-                href="#"
+                key={label}
+                href={href}
                 style={{ fontFamily: "'Barlow', sans-serif", fontSize: 12, color: "#2a4060", textDecoration: "none", transition: "color 0.2s" }}
                 onMouseEnter={e => (e.currentTarget.style.color = "#4a6480")}
                 onMouseLeave={e => (e.currentTarget.style.color = "#2a4060")}
-              >{l}</a>
+              >{label}</a>
             ))}
           </div>
         </div>

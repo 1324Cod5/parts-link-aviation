@@ -21,7 +21,7 @@ import {
 import { useAuth } from "@/context/AuthContext";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Edit2, Trash2, Package, FileCheck2, MessageSquare, ShieldCheck, Zap, Building2, AlertTriangle, ClipboardList, Wrench, Shield, FileSpreadsheet, Lock, Radio, ArrowRight, Clock, BadgeCheck, Send, Brain, TrendingUp } from "lucide-react";
+import { Plus, Edit2, Trash2, Package, FileCheck2, MessageSquare, ShieldCheck, Zap, Building2, AlertTriangle, ClipboardList, Wrench, Shield, FileSpreadsheet, Lock, Radio, ArrowRight, Clock, BadgeCheck, Send, Brain, TrendingUp, FileDown, Code2, Heart } from "lucide-react";
 import { TrustBadge, TrustScoreBar, TRUST_BADGE_META } from "@/components/ui/trust-badge";
 import { SellerTypeBadge } from "@/components/ui/seller-type-badge";
 import {
@@ -221,6 +221,51 @@ export default function SellerDashboard() {
         toast({ title: "Listing deleted", description: `${partNumber} has been removed.` });
       },
     });
+  };
+
+  const handleExport = () => {
+    const rows = listings ?? [];
+    const fmt = (p: number | null) => p == null ? "POA" : new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(p);
+    const fmtC = (c: string) => c.split("_").map(w => w[0].toUpperCase() + w.slice(1)).join(" ");
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/><title>Parts Link Aviation — Listings Export</title>
+<style>
+  body { font-family: Arial, sans-serif; margin: 40px; color: #111; }
+  h1 { font-size: 22px; margin-bottom: 4px; }
+  p { font-size: 12px; color: #666; margin-bottom: 24px; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th { background: #0a1628; color: #fff; padding: 8px 10px; text-align: left; font-weight: 600; }
+  td { padding: 8px 10px; border-bottom: 1px solid #e5e7eb; }
+  tr:nth-child(even) td { background: #f9fafb; }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 3px; font-size: 10px; font-weight: 600; text-transform: uppercase; }
+  .pending { background: #fef3c7; color: #92400e; }
+  .docs { background: #dbeafe; color: #1e40af; }
+  .verified { background: #d1fae5; color: #065f46; }
+  @media print { body { margin: 20px; } }
+</style></head><body>
+<h1>Parts Link Aviation — Inventory Export</h1>
+<p>Exported ${new Date().toLocaleDateString()} · ${user?.companyName} · ${rows.length} listing${rows.length !== 1 ? "s" : ""}</p>
+<table>
+  <thead><tr><th>#</th><th>Part Number</th><th>Description</th><th>Manufacturer</th><th>Condition</th><th>Price</th><th>Qty</th><th>Status</th></tr></thead>
+  <tbody>
+    ${rows.map((l, i) => `<tr>
+      <td>${i + 1}</td>
+      <td><strong>${l.partNumber}</strong></td>
+      <td>${l.description ?? ""}</td>
+      <td>${l.manufacturer}</td>
+      <td>${fmtC(l.condition)}</td>
+      <td>${fmt(l.price as any)}</td>
+      <td>${l.quantity}</td>
+      <td><span class="badge ${l.badge === "verified" ? "verified" : l.badge === "documentation_reviewed" ? "docs" : "pending"}">${fmtC(l.badge)}</span></td>
+    </tr>`).join("")}
+  </tbody>
+</table>
+</body></html>`;
+    const w = window.open("", "_blank");
+    if (!w) { toast({ title: "Pop-up blocked", description: "Allow pop-ups to export listings.", variant: "destructive" }); return; }
+    w.document.write(html);
+    w.document.close();
+    w.focus();
+    setTimeout(() => { w.print(); }, 400);
   };
 
   // Wait until the auth check has fully resolved before deciding whether to
@@ -523,6 +568,60 @@ export default function SellerDashboard() {
             </Link>
           </div>
         )}
+
+        {/* ─── API Access Card ──────────────────────────────────────────── */}
+        {(plan === "pro" || plan === "enterprise") ? (
+          <div className="mb-6 rounded-md border border-primary/30 bg-primary/5 p-4 flex items-start gap-3">
+            <div className="h-9 w-9 rounded-md flex items-center justify-center bg-primary/15 flex-shrink-0">
+              <Code2 className="h-4 w-4 text-primary" />
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-semibold text-primary">API Access</p>
+              <p className="text-xs text-primary/70 mt-0.5">Integrate the Parts Link Aviation catalog into your ERP, MRO system, or custom app.</p>
+            </div>
+            <Link href="/developer" className="flex-shrink-0">
+              <Button size="sm" variant="outline" className="h-8 text-xs border-primary/40 text-primary hover:bg-primary/10 gap-1.5">
+                <Code2 className="h-3 w-3" /> API Docs
+              </Button>
+            </Link>
+          </div>
+        ) : (
+          <div className="mb-6 rounded-md border border-border bg-card p-4 flex items-start gap-3">
+            <div className="h-9 w-9 rounded-md flex items-center justify-center bg-primary/10 flex-shrink-0">
+              <Code2 className="h-4 w-4 text-primary/40" />
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-semibold text-white flex items-center gap-2">
+                API Access
+                <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded border border-primary/40 text-primary bg-primary/10">Fleet Manager</span>
+              </p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Connect your ERP or MRO system directly to the Parts Link Aviation marketplace via REST API.
+              </p>
+            </div>
+            <Link href="/pricing" className="flex-shrink-0">
+              <Button size="sm" variant="outline" className="h-8 text-xs border-primary/40 text-primary hover:bg-primary/10 gap-1.5">
+                <Zap className="h-3 w-3" /> Upgrade
+              </Button>
+            </Link>
+          </div>
+        )}
+
+        {/* ─── Watchlist Quick Link ─────────────────────────────────────── */}
+        <div className="mb-6 rounded-md border border-border bg-card p-4 flex items-start gap-3">
+          <div className="h-9 w-9 rounded-md flex items-center justify-center bg-red-500/10 flex-shrink-0">
+            <Heart className="h-4 w-4 text-red-400" />
+          </div>
+          <div className="flex-1">
+            <p className="text-sm font-semibold text-white">Saved Parts</p>
+            <p className="text-xs text-muted-foreground mt-0.5">Parts you've bookmarked from the marketplace for quick comparison and tracking.</p>
+          </div>
+          <Link href="/watchlist" className="flex-shrink-0">
+            <Button size="sm" variant="outline" className="h-8 text-xs border-red-500/30 text-red-400 hover:bg-red-500/10 gap-1.5">
+              <Heart className="h-3 w-3" /> View Watchlist
+            </Button>
+          </Link>
+        </div>
 
         {/* ─── Predictive Alerts Card ───────────────────────────────────── */}
         {canSeeIntelligence ? (
@@ -937,9 +1036,16 @@ export default function SellerDashboard() {
 
         {/* Listings Table */}
         <div className="bg-card border border-border rounded-md">
-          <div className="p-5 border-b border-border flex items-center justify-between">
+          <div className="p-5 border-b border-border flex items-center justify-between gap-3">
             <h2 className="font-semibold text-white">Your Listings</h2>
-            <span className="text-sm text-muted-foreground">{listings?.length ?? 0} parts listed</span>
+            <div className="flex items-center gap-3">
+              <span className="text-sm text-muted-foreground">{listings?.length ?? 0} parts listed</span>
+              {(listings?.length ?? 0) > 0 && (
+                <Button variant="outline" size="sm" onClick={handleExport} className="gap-1.5 text-xs h-8 border-border text-white/70 hover:text-white">
+                  <FileDown className="h-3.5 w-3.5" /> Export PDF
+                </Button>
+              )}
+            </div>
           </div>
 
           {listingsLoading ? (

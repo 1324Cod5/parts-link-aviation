@@ -274,7 +274,7 @@ function AogBanner() {
 // ─── Section: Hero ────────────────────────────────────────────────────────────
 function Hero({ onSearch }: { onSearch: (q: string, cat: string) => void }) {
   const ref = useRef<HTMLDivElement>(null);
-  const [visible, setVisible] = useState(false);
+  const [visible, setVisible] = useState(true);
   const [query, setQuery] = useState("");
   const [cat, setCat] = useState("All Categories");
 
@@ -778,21 +778,21 @@ function HomeFooter() {
     {
       heading: "Resources",
       links: [
-        { label: "Documentation Guide", href: "#" },
-        { label: "AOG Response Protocol", href: "#" },
-        { label: "Compliance Overview", href: "#" },
-        { label: "API Integration", href: "#" },
-        { label: "Seller Help Center", href: "#" },
+        { label: "Documentation Guide", href: "/developer" },
+        { label: "AOG Response Protocol", href: "/contact" },
+        { label: "Compliance Overview", href: "/compliance" },
+        { label: "API Integration", href: "/developer" },
+        { label: "Seller Help Center", href: "/seller-guidelines" },
       ],
     },
     {
       heading: "Company",
       links: [
-        { label: "About Parts Link Aviation", href: "#" },
-        { label: "Contact Sales", href: "mailto:sales@aeroparts.app" },
+        { label: "About Parts Link Aviation", href: "/contact" },
+        { label: "Contact Sales", href: "/contact" },
         { label: "Become a Supplier", href: "/seller/register" },
         { label: "Admin Portal", href: "/admin" },
-        { label: "Status Page", href: "#" },
+        { label: "Status Page", href: "/contact" },
       ],
     },
   ];
@@ -844,8 +844,8 @@ function HomeFooter() {
             © {new Date().getFullYear()} Parts Link Aviation. All rights reserved.
           </span>
           <div style={{ display: "flex", gap: 20 }}>
-            {["Privacy Policy", "Terms of Service", "Cookie Policy"].map(l => (
-              <a key={l} href="#" style={{ fontFamily: "'Barlow', sans-serif", fontSize: 12, color: "#2a4060", textDecoration: "none" }}
+            {[{ l: "Privacy Policy", h: "/privacy" }, { l: "Terms of Service", h: "/terms" }, { l: "Cookie Policy", h: "/cookies" }].map(({ l, h }) => (
+              <a key={l} href={h} style={{ fontFamily: "'Barlow', sans-serif", fontSize: 12, color: "#2a4060", textDecoration: "none" }}
                 onMouseEnter={e => (e.currentTarget.style.color = "#4a6480")}
                 onMouseLeave={e => (e.currentTarget.style.color = "#2a4060")}
               >{l}</a>

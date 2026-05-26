@@ -29,6 +29,16 @@ import MroDashboard from "@/pages/mro/dashboard";
 import SellerIntelligence from "@/pages/seller/intelligence";
 import DebugLoginFreeSeller from "@/pages/debug-login";
 import AuthTestPage from "@/pages/auth-test";
+import PrivacyPage from "@/pages/privacy";
+import TermsPage from "@/pages/terms";
+import CookiesPage from "@/pages/cookies";
+import ContactPage from "@/pages/contact";
+import BuyerProtectionPage from "@/pages/buyer-protection";
+import CertificationPage from "@/pages/certification";
+import CompliancePage from "@/pages/compliance";
+import SellerGuidelinesPage from "@/pages/seller-guidelines";
+import DeveloperPage from "@/pages/developer";
+import WatchlistPage from "@/pages/watchlist";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -66,6 +76,16 @@ function Router() {
       <Route path="/mro/register" component={MroRegisterPage} />
       <Route path="/mro/dashboard" component={MroDashboard} />
       <Route path="/mro/:id" component={MroDetailPage} />
+      <Route path="/privacy" component={PrivacyPage} />
+      <Route path="/terms" component={TermsPage} />
+      <Route path="/cookies" component={CookiesPage} />
+      <Route path="/contact" component={ContactPage} />
+      <Route path="/buyer-protection" component={BuyerProtectionPage} />
+      <Route path="/certification" component={CertificationPage} />
+      <Route path="/compliance" component={CompliancePage} />
+      <Route path="/seller-guidelines" component={SellerGuidelinesPage} />
+      <Route path="/developer" component={DeveloperPage} />
+      <Route path="/watchlist" component={WatchlistPage} />
       <Route path="/debug-login-free-seller" component={DebugLoginFreeSeller} />
       <Route path="/auth-test" component={AuthTestPage} />
       <Route component={NotFound} />

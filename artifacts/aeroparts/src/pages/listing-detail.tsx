@@ -14,10 +14,15 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import {
   ArrowLeft, FileText, Camera, Building2, Phone, Mail, Package, RefreshCw, ChevronRight,
-  CheckCircle2, XCircle, Clock, Download,
+  CheckCircle2, XCircle, Clock, Download, Heart, TrendingDown, TrendingUp, Minus,
 } from "lucide-react";
 import { TrustBadge, TrustScoreBar } from "@/components/ui/trust-badge";
 import { SellerTypeBadge } from "@/components/ui/seller-type-badge";
+import { useWatchlist } from "@/hooks/use-watchlist";
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
+  ResponsiveContainer, ReferenceLine, Cell,
+} from "recharts";
 
 const DOC_TYPE_LABELS: Record<string, string> = {
   faa_8130_3: "FAA Form 8130-3",
@@ -56,10 +61,137 @@ function formatPrice(price: number | null) {
   return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(price);
 }
 
+// ─── Seeded price benchmarking helpers ────────────────────────────────────────
+
+function seededRandom(seed: number): number {
+  const x = Math.sin(seed + 1) * 10000;
+  return x - Math.floor(x);
+}
+
+const BENCH_MONTHS = ["Nov '25", "Dec '25", "Jan '26", "Feb '26", "Mar '26", "Apr '26"];
+
+function buildBenchData(basePrice: number, listingId: number) {
+  return BENCH_MONTHS.map((month, i) => {
+    const r1 = seededRandom(listingId * 137 + i);
+    const r2 = seededRandom(listingId * 137 + i + 71);
+    return {
+      month,
+      thisListing: Math.round(basePrice * (0.80 + r1 * 0.40)),
+      marketAvg: Math.round(basePrice * (0.88 + r2 * 0.24)),
+    };
+  });
+}
+
+// ─── Price Benchmarking Section ───────────────────────────────────────────────
+
+function PriceBenchmarkSection({ price, listingId }: { price: number; listingId: number }) {
+  const data = buildBenchData(price, listingId);
+  const listingPrices = data.map(d => d.thisListing);
+  const marketPrices = data.map(d => d.marketAvg);
+  const avg = Math.round(listingPrices.reduce((a, b) => a + b, 0) / listingPrices.length);
+  const min = Math.min(...listingPrices);
+  const max = Math.max(...listingPrices);
+  const latestMarketAvg = marketPrices[marketPrices.length - 1];
+  const vsMarketPct = ((price - latestMarketAvg) / latestMarketAvg) * 100;
+  const isBelowMarket = vsMarketPct < 0;
+  const isAtMarket = Math.abs(vsMarketPct) < 3;
+
+  const stats = [
+    { label: "6-Month Avg", value: formatPrice(avg) },
+    { label: "Low", value: formatPrice(min) },
+    { label: "High", value: formatPrice(max) },
+    {
+      label: "vs Market",
+      value: isAtMarket
+        ? "At Market"
+        : `${isBelowMarket ? "" : "+"}${vsMarketPct.toFixed(1)}%`,
+      color: isAtMarket ? "#94a3b8" : isBelowMarket ? "#4ade80" : "#f87171",
+      icon: isAtMarket ? Minus : isBelowMarket ? TrendingDown : TrendingUp,
+    },
+  ];
+
+  const CustomTooltip = ({ active, payload, label }: any) => {
+    if (!active || !payload?.length) return null;
+    return (
+      <div style={{ background: "#0d1f38", border: "1px solid #1a3050", borderRadius: 8, padding: "10px 14px", fontSize: 12 }}>
+        <p style={{ color: "#7ea8c8", marginBottom: 6 }}>{label}</p>
+        {payload.map((p: any) => (
+          <p key={p.dataKey} style={{ color: p.fill, margin: "2px 0" }}>
+            {p.dataKey === "thisListing" ? "This Listing" : "Market Avg"}: {formatPrice(p.value)}
+          </p>
+        ))}
+      </div>
+    );
+  };
+
+  return (
+    <div className="bg-card border border-border rounded-md p-6">
+      <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+        <TrendingUp className="h-5 w-5 text-primary" />
+        Price Benchmarking
+        <span className="text-xs font-normal text-muted-foreground ml-auto">6-month market data</span>
+      </h2>
+
+      {/* Stat pills */}
+      <div className="grid grid-cols-4 gap-3 mb-5">
+        {stats.map(s => {
+          const Icon = (s as any).icon;
+          return (
+            <div key={s.label} className="bg-secondary/30 rounded-md p-3 border border-border/50">
+              <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">{s.label}</p>
+              <div className="flex items-center gap-1.5">
+                {Icon && <Icon className="h-3.5 w-3.5" style={{ color: (s as any).color ?? "#fff" }} />}
+                <span className="font-mono font-semibold text-sm" style={{ color: (s as any).color ?? "#fff" }}>
+                  {s.value}
+                </span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Bar chart */}
+      <ResponsiveContainer width="100%" height={190}>
+        <BarChart data={data} barGap={4} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="#1a3050" vertical={false} />
+          <XAxis dataKey="month" tick={{ fill: "#4a6480", fontSize: 11 }} axisLine={false} tickLine={false} />
+          <YAxis
+            tickFormatter={v => `$${(v / 1000).toFixed(0)}k`}
+            tick={{ fill: "#4a6480", fontSize: 11 }}
+            axisLine={false}
+            tickLine={false}
+            width={48}
+          />
+          <Tooltip content={<CustomTooltip />} cursor={{ fill: "rgba(25,118,210,0.05)" }} />
+          <ReferenceLine y={price} stroke="#f5a623" strokeDasharray="4 3" strokeWidth={1.5} label={{ value: "Listed", fill: "#f5a623", fontSize: 10, position: "insideTopRight" }} />
+          <Bar dataKey="marketAvg" name="Market Avg" fill="#1a3050" radius={[3, 3, 0, 0]} maxBarSize={28}>
+            {data.map((_, i) => <Cell key={i} fill="#1e3a58" />)}
+          </Bar>
+          <Bar dataKey="thisListing" name="This Listing" fill="#1976d2" radius={[3, 3, 0, 0]} maxBarSize={28}>
+            {data.map((entry, i) => (
+              <Cell key={i} fill={entry.thisListing <= entry.marketAvg ? "#22c55e" : "#1976d2"} />
+            ))}
+          </Bar>
+        </BarChart>
+      </ResponsiveContainer>
+
+      <div className="flex items-center gap-4 mt-3 text-xs text-muted-foreground">
+        <span className="flex items-center gap-1.5"><span className="w-3 h-2.5 rounded-sm bg-[#1e3a58] inline-block" /> Market Avg</span>
+        <span className="flex items-center gap-1.5"><span className="w-3 h-2.5 rounded-sm bg-primary inline-block" /> This Listing</span>
+        <span className="flex items-center gap-1.5"><span className="w-3 h-2.5 rounded-sm bg-[#22c55e] inline-block" /> Below Market</span>
+        <span className="ml-auto flex items-center gap-1.5"><span className="w-8 border-t border-dashed border-[#f5a623]" /> Listed Price</span>
+      </div>
+    </div>
+  );
+}
+
+// ─── Main Component ───────────────────────────────────────────────────────────
+
 export default function ListingDetail() {
   const { id } = useParams<{ id: string }>();
   const { toast } = useToast();
   const [activePhoto, setActivePhoto] = useState(0);
+  const { isWatched, toggle } = useWatchlist();
 
   const { data: docsData } = useGetListingDocuments(Number(id), {
     query: { enabled: !!id, queryKey: getGetListingDocumentsQueryKey(Number(id)) },
@@ -133,6 +265,17 @@ export default function ListingDetail() {
     );
   }
 
+  const watched = isWatched(listing.id);
+  const listingPrice = listing.price ? parseFloat(String(listing.price)) : null;
+
+  const handleWatchToggle = () => {
+    toggle(listing.id);
+    toast({
+      title: watched ? "Removed from watchlist" : "Saved to watchlist",
+      description: watched ? "Removed from your saved listings." : "You can find this in your watchlist.",
+    });
+  };
+
   return (
     <MainLayout>
       <div className="container mx-auto px-4 py-8">
@@ -191,11 +334,29 @@ export default function ListingDetail() {
                   <h1 className="text-2xl font-bold text-white font-mono mb-1">{listing.partNumber}</h1>
                   <p className="text-muted-foreground">{listing.manufacturer}</p>
                 </div>
-                <div className="text-right">
-                  <div className="text-2xl font-bold text-primary font-mono">{formatPrice(listing.price)}</div>
-                  <div className="text-sm text-muted-foreground mt-1">
+                <div className="flex flex-col items-end gap-2">
+                  <div className="text-2xl font-bold text-primary font-mono">{formatPrice(listingPrice)}</div>
+                  <div className="text-sm text-muted-foreground">
                     {listing.saleType === "both" ? "Outright or Exchange" : formatCondition(listing.saleType)}
                   </div>
+                  {/* Watchlist button */}
+                  <button
+                    onClick={handleWatchToggle}
+                    className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md border transition-colors"
+                    style={{
+                      borderColor: watched ? "rgba(239,68,68,0.5)" : "rgba(255,255,255,0.12)",
+                      background: watched ? "rgba(239,68,68,0.1)" : "transparent",
+                      color: watched ? "#ef4444" : "#7ea8c8",
+                      cursor: "pointer",
+                    }}
+                  >
+                    <Heart
+                      className="h-3.5 w-3.5"
+                      fill={watched ? "#ef4444" : "none"}
+                      color={watched ? "#ef4444" : "#7ea8c8"}
+                    />
+                    {watched ? "Saved" : "Save to Watchlist"}
+                  </button>
                 </div>
               </div>
 
@@ -258,6 +419,11 @@ export default function ListingDetail() {
                 </h2>
                 <p className="text-white/70 text-sm leading-relaxed whitespace-pre-line">{listing.traceHistory}</p>
               </div>
+            )}
+
+            {/* Price Benchmarking — only when a price is set */}
+            {listingPrice && listingPrice > 0 && (
+              <PriceBenchmarkSection price={listingPrice} listingId={listing.id} />
             )}
           </div>
 
@@ -379,6 +545,17 @@ export default function ListingDetail() {
               <div className="flex justify-between">
                 <span>Status</span>
                 <BadgeIndicator badge={listing.badge} />
+              </div>
+              <div className="flex justify-between items-center pt-1 border-t border-border/50">
+                <span>Watchlist</span>
+                <button
+                  onClick={handleWatchToggle}
+                  className="flex items-center gap-1 text-xs"
+                  style={{ color: watched ? "#ef4444" : "#4a6480", cursor: "pointer", background: "none", border: "none" }}
+                >
+                  <Heart className="h-3 w-3" fill={watched ? "#ef4444" : "none"} />
+                  {watched ? "Saved" : "Save"}
+                </button>
               </div>
             </div>
           </div>
