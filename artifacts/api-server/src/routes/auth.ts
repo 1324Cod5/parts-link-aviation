@@ -327,20 +327,26 @@ router.post("/auth/login-form", async (req, res): Promise<void> => {
     .set({ failedLoginAttempts: 0, lockedUntil: null, updatedAt: new Date() })
     .where(eq(usersTable.id, user.id));
 
-  const activeRole = user.activeRole ?? user.role;
+  // For the admin portal (form-based login): if the user has "admin" anywhere
+  // in their roles array (or as their primary role), treat this as an admin
+  // login regardless of their current activeRole setting. This allows dual-role
+  // accounts (admin + seller on the same email) to reach /admin/dashboard while
+  // still having activeRole="seller" for main-site logins.
+  const userRoles = user.roles ?? [user.role];
+  const hasAdminRole = userRoles.includes("admin") || user.role === "admin";
+  const sessionActiveRole = hasAdminRole ? "admin" : (user.activeRole ?? user.role);
 
   // Map to a simple base role for session + redirect
-  const baseRole: string =
-    derived.computedRole === "admin"
-      ? "admin"
-      : derived.computedRole === "buyer"
-        ? "buyer"
-        : derived.computedRole.startsWith("mro_")
-          ? "mro"
-          : "seller";
+  const baseRole: string = hasAdminRole
+    ? "admin"
+    : derived.computedRole === "buyer"
+      ? "buyer"
+      : derived.computedRole.startsWith("mro_")
+        ? "mro"
+        : "seller";
 
   const effectivePlan = getEffectivePlan({
-    role: activeRole,
+    role: sessionActiveRole,
     plan: user.plan,
     subscriptionStatus: user.subscriptionStatus,
     gracePeriodEnd: user.gracePeriodEnd,
@@ -349,9 +355,9 @@ router.post("/auth/login-form", async (req, res): Promise<void> => {
   req.session!.user = {
     id: String(user.id),
     email: user.email,
-    role: activeRole,
-    roles: user.roles ?? [user.role],
-    activeRole,
+    role: sessionActiveRole,
+    roles: userRoles,
+    activeRole: sessionActiveRole,
     subscriptionTier: effectivePlan,
     subscriptionStatus: "active",
     permissions: {
@@ -364,7 +370,7 @@ router.post("/auth/login-form", async (req, res): Promise<void> => {
     req.session!.save(err => (err ? reject(err) : resolve()))
   );
 
-  console.log(`SESSION CREATED: yes | sessionId=${req.session!.id} | userId=${user.id} | activeRole=${activeRole}`);
+  console.log(`SESSION CREATED: yes | sessionId=${req.session!.id} | userId=${user.id} | activeRole=${sessionActiveRole} | baseRole=${baseRole}`);
 
   if (baseRole === "admin") {
     res.redirect(302, user.mustChangePassword ? "/admin/change-password" : "/admin/dashboard");
