@@ -57,6 +57,7 @@ function Router() {
       <Route path="/" component={Home} />
       <Route path="/marketplace" component={Marketplace} />
       <Route path="/listings/:id" component={ListingDetail} />
+      <Route path="/login" component={SellerLogin} />
       <Route path="/seller/register" component={SellerRegister} />
       <Route path="/seller/login" component={SellerLogin} />
       <Route path="/seller/dashboard" component={SellerDashboard} />
