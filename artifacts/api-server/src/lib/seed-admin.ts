@@ -3,14 +3,18 @@ import { db, usersTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { logger } from "./logger";
 
+// ── Standard admin accounts ──────────────────────────────────────────────────
 const ADMINS = [
   { email: "admin@aeroparts.com", password: "password",  name: "Administrator" },
   { email: "admin@test.com",      password: "Admin123!", name: "Test Administrator" },
+  { email: "kadainr@gmail.com",   password: "1324Tracy!", name: "Kadain" },
 ];
 
-// Site owner: dual-role account (admin + seller on the same email)
-const OWNER = {
-  email: "kadainr@gmail.com",
+// ── Owner seller account (separate from admin, persisted across restarts) ────
+// badboys6112@hotmail.com — seller-only, plan: pro, for the main marketplace.
+// Kept here (not in seed-test-accounts.ts) so it is never wiped on restart.
+const OWNER_SELLER = {
+  email: "badboys6112@hotmail.com",
   password: "1324Tracy!",
   contactName: "Kadain R",
   companyName: "Parts Link Aviation",
@@ -24,8 +28,9 @@ export async function seedAdmin(): Promise<void> {
 
       const rows = await db.select().from(usersTable).where(eq(usersTable.email, normalizedEmail));
 
+      const passwordHash = await bcrypt.hash(admin.password, 10);
+
       if (rows.length === 0) {
-        const passwordHash = await bcrypt.hash(admin.password, 10);
         await db.insert(usersTable).values({
           email: normalizedEmail,
           passwordHash,
@@ -47,7 +52,6 @@ export async function seedAdmin(): Promise<void> {
           logger.info({ id: dup.id }, "Removed duplicate admin account");
         }
 
-        const passwordHash = await bcrypt.hash(admin.password, 10);
         await db.update(usersTable)
           .set({
             role: "admin",
@@ -56,6 +60,7 @@ export async function seedAdmin(): Promise<void> {
             passwordHash,
             contactName: admin.name,
             companyName: "Parts Link Aviation Admin",
+            plan: "enterprise",
             mustChangePassword: false,
             updatedAt: new Date(),
           })
@@ -68,49 +73,49 @@ export async function seedAdmin(): Promise<void> {
     }
   }
 
-  // ── Owner account: admin + seller dual-role ────────────────────────────────
-  // Single row in users table; active_role="seller" so main-site login lands
-  // on the seller dashboard. The form-based admin portal login detects the
-  // "admin" entry in roles[] and redirects to /admin/dashboard regardless.
+  // ── Owner seller account ───────────────────────────────────────────────────
   try {
-    const ownerEmail = OWNER.email.trim().toLowerCase();
-    const rows = await db.select().from(usersTable).where(eq(usersTable.email, ownerEmail));
-
-    const passwordHash = await bcrypt.hash(OWNER.password, 10);
+    const sellerEmail = OWNER_SELLER.email.trim().toLowerCase();
+    const rows = await db.select().from(usersTable).where(eq(usersTable.email, sellerEmail));
 
     if (rows.length === 0) {
+      const passwordHash = await bcrypt.hash(OWNER_SELLER.password, 10);
       await db.insert(usersTable).values({
-        email: ownerEmail,
+        email: sellerEmail,
         passwordHash,
-        role: "admin",
-        roles: ["admin", "seller"],
+        role: "seller",
+        roles: ["seller"],
         activeRole: "seller",
-        companyName: OWNER.companyName,
-        contactName: OWNER.contactName,
+        companyName: OWNER_SELLER.companyName,
+        contactName: OWNER_SELLER.contactName,
         plan: "pro",
         subscriptionStatus: "active",
+        status: "active",
         mustChangePassword: false,
       });
-      logger.info({ email: ownerEmail }, "Owner account created");
+      logger.info({ email: sellerEmail }, "Owner seller account created");
     } else {
+      // Account exists — update credentials and plan but never wipe listings
       const canonical = [...rows].sort((a, b) => a.id - b.id)[0];
+      const passwordHash = await bcrypt.hash(OWNER_SELLER.password, 10);
       await db.update(usersTable)
         .set({
-          role: "admin",
-          roles: ["admin", "seller"],
+          role: "seller",
+          roles: ["seller"],
           activeRole: "seller",
           passwordHash,
-          companyName: OWNER.companyName,
-          contactName: OWNER.contactName,
+          companyName: OWNER_SELLER.companyName,
+          contactName: OWNER_SELLER.contactName,
           plan: "pro",
           subscriptionStatus: "active",
+          status: "active",
           mustChangePassword: false,
           updatedAt: new Date(),
         })
         .where(eq(usersTable.id, canonical.id));
-      logger.info({ id: canonical.id, email: ownerEmail }, "Owner account ensured");
+      logger.info({ id: canonical.id, email: sellerEmail }, "Owner seller account ensured");
     }
   } catch (err) {
-    logger.error({ err, email: OWNER.email }, "Failed to seed owner account");
+    logger.error({ err, email: OWNER_SELLER.email }, "Failed to seed owner seller account");
   }
 }
