@@ -51,6 +51,8 @@ A professional multi-vendor aircraft parts marketplace connecting verified MROs,
 ## Demo Credentials
 
 - Admin: `admin@aeroparts.com` / `password`
+- Admin (test): `admin@test.com` / `Admin123!`
+- Buyer (test): `buyer@test.com` / `Buyer123!` — role=buyer, can browse/RFQ, cannot access seller dashboard or admin
 - Seller: `avtech@example.com` / `password`
 - Other sellers: `globalair@example.com`, `euroaero@example.com`, `pacificparts@example.com` (all: `password`)
 
@@ -63,7 +65,8 @@ A professional multi-vendor aircraft parts marketplace connecting verified MROs,
 ## Gotchas
 
 - After schema changes, run `pnpm --filter @workspace/db run push` then `pnpm --filter @workspace/api-spec run codegen`
-- Sessions are in-memory; server restart logs everyone out (acceptable for dev)
+- Sessions are PostgreSQL-backed (connect-pg-simple, table: user_sessions) — persisted across restarts
+- Session cookie has `secure: true` + `sameSite: none` for Replit HTTPS proxy; curl over plain HTTP won't maintain sessions (browser works fine)
 - The `useSearch()` hook from wouter returns the raw query string (no leading `?` in some versions — use `new URLSearchParams(searchStr)`)
 
 ## Pointers

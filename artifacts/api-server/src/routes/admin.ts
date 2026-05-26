@@ -6,6 +6,42 @@ import { recomputeAndSave } from "../lib/trustScore";
 
 const router: IRouter = Router();
 
+const ADMIN_ROLES = new Set(["admin", "super_admin"]);
+
+// ── Admin auth guard ─────────────────────────────────────────────────────────
+router.use(async (_req, res, next) => {
+  const userId: number | undefined = (_req as any).session?.userId;
+  const sessionUser = (_req as any).session?.user;
+
+  // No session at all
+  if (!userId && !sessionUser) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+
+  // If we have a session.user object (form login), check role directly
+  if (sessionUser) {
+    const role: string = sessionUser.activeRole ?? sessionUser.role ?? "";
+    if (!ADMIN_ROLES.has(role)) { res.status(403).json({ error: "Forbidden" }); return; }
+    next();
+    return;
+  }
+
+  // JSON login path: only userId in session — do a DB lookup
+  try {
+    const [found] = await db.select({ role: usersTable.role, activeRole: usersTable.activeRole })
+      .from(usersTable).where(eq(usersTable.id, userId!)).limit(1);
+    if (!found || !ADMIN_ROLES.has(found.activeRole ?? found.role)) {
+      res.status(403).json({ error: "Forbidden" });
+      return;
+    }
+  } catch {
+    res.status(500).json({ error: "Internal server error" });
+    return;
+  }
+  next();
+});
+
 // ── In-memory admin activity log ────────────────────────────────────────────
 interface ActivityEntry {
   id: number;

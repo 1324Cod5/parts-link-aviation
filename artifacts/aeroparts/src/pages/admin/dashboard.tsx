@@ -228,11 +228,12 @@ function OverviewSection() {
       {/* Subscription breakdown */}
       <div className="border border-border rounded-lg p-6 bg-card">
         <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">Subscription Breakdown</h3>
-        <div className="grid grid-cols-3 gap-4 text-center">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 text-center">
           {[
-            { plan: "Free",          color: "text-muted-foreground", revenue: "$0/mo" },
-            { plan: "Solo Operator", color: "text-primary",          revenue: "$149/mo" },
-            { plan: "Fleet Manager", color: "text-amber-400",        revenue: "$349/mo" },
+            { plan: "Free",             color: "text-muted-foreground", revenue: "$0/mo" },
+            { plan: "Solo Operator",    color: "text-primary",          revenue: "$149/mo" },
+            { plan: "Fleet Manager",    color: "text-amber-400",        revenue: "$349/mo" },
+            { plan: "Mission Control",  color: "text-purple-400",       revenue: "$799/mo" },
           ].map(p => (
             <div key={p.plan} className="border border-border rounded-md p-4">
               <p className={`text-sm font-semibold ${p.color}`}>{p.plan}</p>
@@ -833,14 +834,8 @@ function SubscriptionsSection() {
     });
   }
 
-  const grouped = { free: [] as any[], pro: [] as any[], enterprise: [] as any[] };
+  const grouped = { free: [] as any[], pro: [] as any[], enterprise: [] as any[], mro_premium: [] as any[] };
   (sellers ?? []).forEach(s => { if (grouped[s.plan as keyof typeof grouped]) grouped[s.plan as keyof typeof grouped].push(s); });
-
-  const MRO_TIERS = [
-    { name: "Free MRO",      price: "$0",     seats: grouped.free.length,       color: "text-muted-foreground" },
-    { name: "MRO Provider",  price: "$10/mo", seats: grouped.pro.length,        color: "text-primary" },
-    { name: "Premium MRO",   price: "$149/mo (legacy)", seats: grouped.enterprise.length, color: "text-amber-400" },
-  ];
 
   return (
     <div className="space-y-6">
@@ -850,11 +845,12 @@ function SubscriptionsSection() {
       </div>
 
       {/* Plan overview */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { plan: "Free",       count: grouped.free.length,       revenue: "$0/mo",      color: "text-muted-foreground", bg: "border-border" },
-          { plan: "Pro",        count: grouped.pro.length,        revenue: `$${grouped.pro.length * 29}/mo`,        color: "text-primary",    bg: "border-primary/30" },
-          { plan: "Enterprise", count: grouped.enterprise.length, revenue: `$${grouped.enterprise.length * 99}/mo`, color: "text-amber-400",  bg: "border-amber-500/30" },
+          { plan: "Free",            count: grouped.free.length,        revenue: "$0/mo",                                             color: "text-muted-foreground", bg: "border-border" },
+          { plan: "Solo Operator",   count: grouped.pro.length,         revenue: `$${(grouped.pro.length * 149).toLocaleString()}/mo`,         color: "text-primary",    bg: "border-primary/30" },
+          { plan: "Fleet Manager",   count: grouped.enterprise.length,  revenue: `$${(grouped.enterprise.length * 349).toLocaleString()}/mo`,  color: "text-amber-400",  bg: "border-amber-500/30" },
+          { plan: "Mission Control", count: grouped.mro_premium.length, revenue: `$${(grouped.mro_premium.length * 799).toLocaleString()}/mo`, color: "text-purple-400", bg: "border-purple-500/30" },
         ].map(p => (
           <div key={p.plan} className={`border rounded-lg p-5 bg-card ${p.bg}`}>
             <p className={`text-sm font-semibold ${p.color} mb-1`}>{p.plan}</p>
@@ -1749,7 +1745,8 @@ function AnalyticsSection() {
   const proCount = (sellers ?? []).filter(s => s.plan === "pro").length;
   const enterpriseCount = (sellers ?? []).filter(s => s.plan === "enterprise").length;
   const freeCount = (sellers ?? []).filter(s => s.plan === "free").length;
-  const estRevenue = proCount * 149 + enterpriseCount * 349;
+  const missionControlCount = (sellers ?? []).filter(s => s.plan === "mro_premium").length;
+  const estRevenue = proCount * 149 + enterpriseCount * 349 + missionControlCount * 799;
 
   const kpis = [
     { label: "Total Listings",   value: stats?.totalListings,       color: "text-white"       as const, icon: Package },
@@ -1778,11 +1775,12 @@ function AnalyticsSection() {
           <BarChart2 className="w-4 h-4 text-primary" />
           Revenue Estimates
         </h3>
-        <div className="grid grid-cols-3 gap-4 mb-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
           {[
-            { label: "Free Tier",  count: freeCount,       revenue: "$0/mo",                                    color: "text-muted-foreground", bg: "border-border" },
-            { label: "Solo Operator", count: proCount,        revenue: `$${(proCount * 149).toLocaleString()}/mo`,        color: "text-primary",    bg: "border-primary/30" },
-            { label: "Fleet Manager", count: enterpriseCount, revenue: `$${(enterpriseCount * 349).toLocaleString()}/mo`, color: "text-amber-400",  bg: "border-amber-500/30" },
+            { label: "Free",            count: freeCount,           revenue: "$0/mo",                                                color: "text-muted-foreground", bg: "border-border" },
+            { label: "Solo Operator",   count: proCount,            revenue: `$${(proCount * 149).toLocaleString()}/mo`,             color: "text-primary",          bg: "border-primary/30" },
+            { label: "Fleet Manager",   count: enterpriseCount,     revenue: `$${(enterpriseCount * 349).toLocaleString()}/mo`,      color: "text-amber-400",        bg: "border-amber-500/30" },
+            { label: "Mission Control", count: missionControlCount, revenue: `$${(missionControlCount * 799).toLocaleString()}/mo`, color: "text-purple-400",       bg: "border-purple-500/30" },
           ].map(p => (
             <div key={p.label} className={`border rounded-lg p-4 bg-card/60 ${p.bg}`}>
               <p className={`text-sm font-semibold mb-1 ${p.color}`}>{p.label}</p>

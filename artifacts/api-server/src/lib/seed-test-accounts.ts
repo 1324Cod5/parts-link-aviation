@@ -6,7 +6,7 @@ import { logger } from "./logger";
 interface TestAccount {
   email: string;
   password: string;
-  role: "seller" | "admin" | "super_admin";
+  role: "buyer" | "seller" | "admin" | "super_admin";
   plan: "free" | "pro" | "enterprise" | "mro_verified" | "mro_premium";
   companyName: string;
   contactName: string;
@@ -37,6 +37,14 @@ const TEST_ACCOUNTS: TestAccount[] = [
     plan: "free",
     companyName: "Parts Link Aviation Test Admin",
     contactName: "Test Administrator",
+  },
+  {
+    email: "buyer@test.com",
+    password: "Buyer123!",
+    role: "buyer",
+    plan: "free",
+    companyName: "Test Airlines",
+    contactName: "Test Buyer",
   },
   {
     email: "freeseller@test.com",
@@ -193,9 +201,9 @@ export async function seedTestAccounts(): Promise<void> {
         .values({
           email,
           passwordHash,
-          role: account.role === "super_admin" ? "admin" : account.role,
-          activeRole: account.role === "admin" || account.role === "super_admin" ? "admin" : "seller",
-          roles: account.role === "admin" || account.role === "super_admin" ? ["admin"] : ["seller"],
+          role: account.role === "super_admin" ? "admin" : account.role === "buyer" ? "buyer" : account.role,
+          activeRole: account.role === "admin" || account.role === "super_admin" ? "admin" : account.role === "buyer" ? "buyer" : "seller",
+          roles: account.role === "admin" || account.role === "super_admin" ? ["admin"] : account.role === "buyer" ? ["buyer"] : ["seller"],
           plan: account.plan,
           companyName: account.companyName,
           contactName: account.contactName,
