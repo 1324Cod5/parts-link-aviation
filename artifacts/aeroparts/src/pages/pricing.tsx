@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
 import { MainLayout } from "@/components/layout/MainLayout";
-import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
 import {
   useGetSubscription,
@@ -9,98 +8,89 @@ import {
   useGetSubscriptionProducts,
   useCreateCheckoutSession,
 } from "@workspace/api-client-react";
-
 import { useToast } from "@/hooks/use-toast";
-import { Check, Zap, Building2, Package, Wrench, Star, Rocket, Clock, Loader2, CalendarDays, Brain, Radio, Upload } from "lucide-react";
+import { Check, Zap, Building2, Package, Wrench, Star, Brain, Radio, Upload, Loader2, CalendarDays } from "lucide-react";
+
+// ─── Brand tokens ─────────────────────────────────────────────────────────────
+const NAVY  = "#0a1628";
+const BLUE  = "#1976d2";
+const GOLD  = "#f5a623";
+const CARD  = "#0d1f38";
+const BORDER = "#1a3050";
+const MUTED  = "#7ea8c8";
 
 type BillingCycle = "monthly" | "yearly";
 
-const PARTS_TIERS = [
+// ─── Plan definitions ─────────────────────────────────────────────────────────
+// planKey maps to the backend Stripe product metadata.plan value
+const PLANS = [
   {
-    id: "free" as const,
-    planKey: "free",
-    name: "Free",
-    monthlyPrice: null,
-    yearlyPrice: null,
-    icon: Package,
-    listingLimit: 5,
-    description: "For individual brokers testing the platform.",
-    features: [
-      "Up to 5 active listings",
-      "Standard marketplace visibility",
-      "Buyer inquiry forms",
-      "Part number search indexing",
-      "Community support",
-    ],
-    lockedFeatures: [
-      "Bulk CSV upload",
-      "Full RFQ buyer contact details",
-      "Instant RFQ email alerts",
-      "AOG push notifications",
-    ],
-    cta: "Get Started Free",
-    highlight: false,
-    supportsYearly: false,
-  },
-  {
-    id: "pro" as const,
     planKey: "pro",
-    name: "Parts Pro",
-    monthlyPrice: 29,
-    yearlyPrice: 290,
-    icon: Zap,
-    listingLimit: 500,
-    description: "For growing MROs and active parts brokers.",
+    name: "Solo Operator",
+    tag: null as string | null,
+    monthlyPrice: 149,
+    yearlyPrice: 1430,   // ~20% off ($119/mo equiv)
+    yearlyMonthly: 119,
+    featured: false,
+    cta: "Start Free Trial",
+    ctaMode: "checkout" as "checkout" | "contact",
     features: [
-      "Up to 500 active listings",
-      "Priority placement in search results",
-      "Full buyer contact on all RFQs",
-      "Bulk CSV listing upload",
-      "Instant RFQ email alerts",
-      "AOG push notifications",
-      "Seller analytics dashboard",
-      "Priority email support",
+      "50 searches per month",
+      "1.2M part catalog access",
+      "Email support",
+      "PDF export reports",
+      "Basic price history",
     ],
-    lockedFeatures: [],
-    cta: "Upgrade to Pro",
-    highlight: true,
-    supportsYearly: true,
   },
   {
-    id: "enterprise" as const,
     planKey: "enterprise",
-    name: "Enterprise",
-    monthlyPrice: 99,
-    yearlyPrice: 990,
-    icon: Building2,
-    listingLimit: null,
-    description: "For airlines, large MROs, and global distributors.",
+    name: "Fleet Manager",
+    tag: "MOST POPULAR",
+    monthlyPrice: 349,
+    yearlyPrice: 3350,   // ~20% off ($279/mo equiv)
+    yearlyMonthly: 279,
+    featured: true,
+    cta: "Start Free Trial",
+    ctaMode: "checkout" as "checkout" | "contact",
     features: [
-      "Unlimited active listings",
-      "Highest RFQ priority ranking",
-      "Intelligence dashboard",
-      "Predictive demand alerts",
-      "Featured homepage placement",
-      "Full RFQ access + response metrics",
-      "Dedicated account manager",
-      "API access for inventory sync",
-      "SLA-backed support",
+      "Unlimited searches",
+      "Full 4.2M catalog",
+      "AOG hotline access",
+      "Real-time price benchmarking",
+      "Watchlist alerts",
+      "24/7 priority support",
+      "API access",
     ],
-    lockedFeatures: [],
-    cta: "Upgrade to Enterprise",
-    highlight: false,
-    supportsYearly: true,
+  },
+  {
+    planKey: "enterprise",   // falls back to enterprise Stripe product; CTA routes to demo
+    name: "Mission Control",
+    tag: "ENTERPRISE",
+    monthlyPrice: 799,
+    yearlyPrice: 7670,   // ~20% off ($639/mo equiv)
+    yearlyMonthly: 639,
+    featured: false,
+    cta: "Book a Demo",
+    ctaMode: "contact" as "checkout" | "contact",
+    features: [
+      "Everything in Fleet Manager",
+      "ERP & MRO integration",
+      "Dedicated account manager",
+      "Custom contracts & SLA",
+      "White-glove AOG response",
+      "Multi-user seats (unlimited)",
+      "On-site training",
+    ],
   },
 ];
 
 const MRO_TIER = {
-  id: "mro_provider" as const,
   planKey: "mro_provider",
   name: "MRO Provider",
   monthlyPrice: 10,
   yearlyPrice: 100,
-  icon: Wrench,
-  description: "For certified MROs seeking qualified service leads.",
+  yearlyMonthly: 8,
+  cta: "Get MRO Provider",
   features: [
     "Full MRO profile listing",
     "Unlimited service categories",
@@ -111,10 +101,47 @@ const MRO_TIER = {
     "Full RFQ buyer contact access",
     "Analytics & quote tracking",
   ],
-  cta: "Get MRO Provider",
-  supportsYearly: true,
 };
 
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+function fmtPrice(n: number) {
+  return n.toLocaleString();
+}
+
+// ─── Sub-components ───────────────────────────────────────────────────────────
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <div style={{
+      display: "inline-block",
+      background: `rgba(25,118,210,0.12)`,
+      border: `1px solid rgba(25,118,210,0.3)`,
+      borderRadius: 4, padding: "4px 14px", marginBottom: 16,
+    }}>
+      <span style={{
+        fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700,
+        fontSize: 12, color: BLUE, letterSpacing: "0.08em", textTransform: "uppercase",
+      }}>{children}</span>
+    </div>
+  );
+}
+
+function GoldLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <div style={{
+      display: "inline-block",
+      background: `rgba(245,166,35,0.12)`,
+      border: `1px solid rgba(245,166,35,0.3)`,
+      borderRadius: 4, padding: "4px 14px", marginBottom: 16,
+    }}>
+      <span style={{
+        fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700,
+        fontSize: 12, color: GOLD, letterSpacing: "0.08em", textTransform: "uppercase",
+      }}>{children}</span>
+    </div>
+  );
+}
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
 export default function Pricing() {
   const { user } = useAuth();
   const [, navigate] = useLocation();
@@ -127,7 +154,6 @@ export default function Pricing() {
   const { data: subscription } = useGetSubscription({
     query: { enabled: !!user && user.role === "seller", queryKey: getGetSubscriptionQueryKey() },
   });
-
   const { data: productsData } = useGetSubscriptionProducts();
 
   const currentPlan = (subscription as any)?.effectivePlan ?? subscription?.plan ?? user?.plan ?? "free";
@@ -145,40 +171,23 @@ export default function Pricing() {
     return null;
   };
 
-  const handleCheckout = async (planKey: string, cycle: BillingCycle = billingCycle) => {
-    if (!user) {
-      navigate("/seller/login");
-      return;
-    }
-
-    const priceId = getPriceId(planKey, cycle);
+  const handleCheckout = async (planKey: string) => {
+    if (!user) { navigate("/seller/login"); return; }
+    const priceId = getPriceId(planKey, billingCycle);
     if (!priceId) {
-      toast({
-        title: "Plan not available",
-        description: "This plan isn't configured yet. Contact support or check back soon.",
-        variant: "destructive",
-      });
+      toast({ title: "Plan not available", description: "This plan isn't configured yet. Contact support or check back soon.", variant: "destructive" });
       return;
     }
-
     setCheckingOutPlan(planKey);
     checkoutMutation.mutate(
       { data: { priceId } },
       {
         onSuccess: (data: any) => {
-          if (data?.url) {
-            window.location.href = data.url;
-          } else {
-            toast({ title: "Checkout error", description: "No redirect URL returned.", variant: "destructive" });
-            setCheckingOutPlan(null);
-          }
+          if (data?.url) { window.location.href = data.url; }
+          else { toast({ title: "Checkout error", description: "No redirect URL returned.", variant: "destructive" }); setCheckingOutPlan(null); }
         },
         onError: (err: any) => {
-          toast({
-            title: "Checkout failed",
-            description: err?.response?.data?.error ?? "Please try again.",
-            variant: "destructive",
-          });
+          toast({ title: "Checkout failed", description: err?.response?.data?.error ?? "Please try again.", variant: "destructive" });
           setCheckingOutPlan(null);
         },
       },
@@ -187,335 +196,371 @@ export default function Pricing() {
 
   return (
     <MainLayout>
-      <div className="container mx-auto px-4 py-16">
+      <div style={{ background: NAVY, minHeight: "100vh" }}>
+        <div style={{ maxWidth: 1140, margin: "0 auto", padding: "72px 24px 80px" }}>
 
-        {/* ── PARTS MARKETPLACE SECTION ── */}
-        <div className="text-center max-w-2xl mx-auto mb-10">
-          <div className="inline-flex items-center gap-2 text-xs text-muted-foreground uppercase tracking-widest border border-border rounded-full px-3 py-1 mb-4">
-            <Package className="w-3.5 h-3.5" /> Parts Marketplace
-          </div>
-          <h1 className="text-4xl font-bold text-white mb-4">Simple, Transparent Pricing</h1>
-          <p className="text-muted-foreground text-lg">
-            List your certified aircraft components to a global network of qualified buyers.
-            Scale your subscription as your inventory grows.
-          </p>
-        </div>
-
-        {/* Billing cycle toggle */}
-        <div className="flex flex-col items-center gap-3 mb-10">
-          <div className="inline-flex items-center bg-secondary/60 border border-border rounded-lg p-1 gap-1">
-            <button
-              onClick={() => setBillingCycle("monthly")}
-              className={`px-5 py-2 rounded-md text-sm font-medium transition-colors ${
-                billingCycle === "monthly"
-                  ? "bg-card text-white shadow"
-                  : "text-muted-foreground hover:text-white"
-              }`}
-            >
-              Monthly
-            </button>
-            <button
-              onClick={() => setBillingCycle("yearly")}
-              className={`px-5 py-2 rounded-md text-sm font-medium transition-colors flex items-center gap-2 ${
-                billingCycle === "yearly"
-                  ? "bg-card text-white shadow"
-                  : "text-muted-foreground hover:text-white"
-              }`}
-            >
-              <CalendarDays className="h-3.5 w-3.5" />
-              Yearly
-            </button>
-          </div>
-          {billingCycle === "yearly" && (
-            <div className="inline-flex items-center gap-1.5 text-xs font-semibold text-green-400 bg-green-500/10 border border-green-500/20 rounded-full px-3 py-1">
-              <Check className="h-3 w-3" />
-              Save ~$58–$198/yr — pay for 10 months, get 12
-            </div>
-          )}
-          {billingCycle === "monthly" && (
-            <p className="text-xs text-muted-foreground">Switch to yearly to save on Pro &amp; Enterprise</p>
-          )}
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto mb-24">
-          {PARTS_TIERS.map(tier => {
-            const Icon = tier.icon;
-            const isCurrentPlan = currentPlan === tier.id;
-            const isDowngrade = (
-              (currentPlan === "enterprise" && (tier.id === "pro" || tier.id === "free")) ||
-              (currentPlan === "pro" && tier.id === "free")
-            );
-            const isLoading = checkingOutPlan === tier.planKey;
-
-            const showYearly = billingCycle === "yearly" && tier.supportsYearly;
-            const displayedPrice = showYearly ? tier.yearlyPrice : tier.monthlyPrice;
-            const perMonthEquiv = showYearly && tier.yearlyPrice
-              ? Math.round(tier.yearlyPrice / 12)
-              : null;
-
-            let priceLabel: string;
-            if (displayedPrice == null) {
-              priceLabel = "Free";
-            } else if (showYearly) {
-              priceLabel = `$${displayedPrice.toLocaleString()}/yr`;
-            } else {
-              priceLabel = `$${displayedPrice}/mo`;
-            }
-
-            const savingsAmount = tier.monthlyPrice && tier.yearlyPrice
-              ? tier.monthlyPrice * 12 - tier.yearlyPrice
-              : null;
-
-            return (
-              <div
-                key={tier.id}
-                className={`relative rounded-lg border p-8 flex flex-col ${
-                  tier.highlight
-                    ? "border-primary bg-primary/5 shadow-lg shadow-primary/10"
-                    : "border-border bg-card"
-                }`}
-              >
-                {tier.highlight && (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                    <span className="bg-primary text-primary-foreground text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">
-                      Most Popular
-                    </span>
-                  </div>
-                )}
-
-                <div className="mb-6">
-                  <div className={`h-10 w-10 rounded-md flex items-center justify-center mb-4 ${
-                    tier.highlight ? "bg-primary/20" : "bg-secondary"
-                  }`}>
-                    <Icon className={`h-5 w-5 ${tier.highlight ? "text-primary" : "text-muted-foreground"}`} />
-                  </div>
-                  <h2 className="text-xl font-bold text-white mb-1">{tier.name}</h2>
-                  <p className="text-muted-foreground text-sm mb-4">{tier.description}</p>
-
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-4xl font-bold text-white font-mono">{priceLabel}</span>
-                  </div>
-                  {showYearly && perMonthEquiv && (
-                    <p className="text-xs text-muted-foreground mt-1">
-                      ~${perMonthEquiv}/mo · billed annually
-                    </p>
-                  )}
-                  {!showYearly && tier.monthlyPrice && (
-                    <p className="text-xs text-muted-foreground mt-1">billed monthly</p>
-                  )}
-                  {showYearly && savingsAmount && (
-                    <div className="inline-flex items-center gap-1 mt-2 text-xs text-green-400 font-medium bg-green-500/10 border border-green-500/20 rounded-full px-2.5 py-0.5">
-                      <Check className="h-3 w-3" /> Save ${savingsAmount}/yr
-                    </div>
-                  )}
-                </div>
-
-                <ul className="space-y-3 mb-4 flex-1">
-                  {tier.features.map(feature => (
-                    <li key={feature} className="flex items-start gap-2.5 text-sm">
-                      <Check className={`h-4 w-4 mt-0.5 flex-shrink-0 ${tier.highlight ? "text-primary" : "text-muted-foreground"}`} />
-                      <span className="text-white/80">{feature}</span>
-                    </li>
-                  ))}
-                  {tier.lockedFeatures.map(feature => (
-                    <li key={feature} className="flex items-start gap-2.5 text-sm opacity-40 line-through">
-                      <Check className="h-4 w-4 mt-0.5 flex-shrink-0 text-muted-foreground" />
-                      <span className="text-muted-foreground">{feature}</span>
-                    </li>
-                  ))}
-                </ul>
-
-                <div className="mb-8" />
-
-                {isCurrentPlan ? (
-                  <div className="w-full py-2.5 px-4 rounded-md border border-border text-center text-sm text-muted-foreground font-medium">
-                    Current Plan
-                  </div>
-                ) : tier.id === "free" ? (
-                  isDowngrade ? (
-                    <Link href="/seller/subscription">
-                      <Button variant="outline" className="w-full">Manage Plan</Button>
-                    </Link>
-                  ) : !user ? (
-                    <Link href="/seller/register">
-                      <Button variant="outline" className="w-full">{tier.cta}</Button>
-                    </Link>
-                  ) : (
-                    <div className="w-full py-2.5 px-4 rounded-md border border-border text-center text-sm text-muted-foreground font-medium">
-                      Current Plan
-                    </div>
-                  )
-                ) : (
-                  <Button
-                    className="w-full gap-2"
-                    variant={tier.highlight ? "default" : "outline"}
-                    disabled={!!checkingOutPlan || isDowngrade}
-                    onClick={() => handleCheckout(tier.planKey, billingCycle)}
-                  >
-                    {isLoading ? (
-                      <><Loader2 className="h-4 w-4 animate-spin" /> Redirecting…</>
-                    ) : isDowngrade ? "Downgrade" : tier.cta}
-                  </Button>
-                )}
-              </div>
-            );
-          })}
-        </div>
-
-        {/* ── MRO SERVICES SECTION ── */}
-        <div className="border-t border-border pt-20">
-          <div className="text-center max-w-2xl mx-auto mb-14">
-            <div className="inline-flex items-center gap-2 text-xs text-muted-foreground uppercase tracking-widest border border-border rounded-full px-3 py-1 mb-4">
-              <Wrench className="w-3.5 h-3.5" /> MRO Services
-            </div>
-            <h2 className="text-3xl font-bold text-white mb-4">MRO Directory Listings</h2>
-            <p className="text-muted-foreground">
-              Get discovered by airlines, operators, and fleet managers searching for certified maintenance, repair &amp; overhaul providers.
+          {/* ── Header ── */}
+          <div style={{ textAlign: "center", marginBottom: 48 }}>
+            <SectionLabel>Pricing</SectionLabel>
+            <h1 style={{
+              fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 900,
+              fontSize: "clamp(32px, 5vw, 56px)", color: "#fff",
+              textTransform: "uppercase", lineHeight: 1.05, marginBottom: 12,
+            }}>
+              Plans for Every <span style={{ color: GOLD }}>Operation</span>
+            </h1>
+            <p style={{ fontFamily: "'Barlow', sans-serif", fontSize: 16, color: MUTED, marginBottom: 0 }}>
+              No contracts. Cancel anytime. 14-day free trial on all plans.
             </p>
           </div>
 
-          {/* Single MRO Provider card + feature callouts */}
-          <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
-            {/* Card */}
-            <div className="relative rounded-lg border border-primary bg-primary/5 shadow-lg shadow-primary/10 p-8 flex flex-col">
-              <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                <span className="bg-primary text-primary-foreground text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">
-                  Single Plan
-                </span>
-              </div>
-
-              <div className="mb-6">
-                <div className="h-10 w-10 rounded-md flex items-center justify-center mb-4 bg-primary/20">
-                  <Wrench className="h-5 w-5 text-primary" />
-                </div>
-                <h3 className="text-xl font-bold text-white mb-1">{MRO_TIER.name}</h3>
-                <p className="text-muted-foreground text-sm mb-4">{MRO_TIER.description}</p>
-
-                {/* Price */}
-                <div className="flex items-baseline gap-1">
-                  <span className="text-4xl font-bold text-white font-mono">
-                    {billingCycle === "yearly" ? `$${MRO_TIER.yearlyPrice}/yr` : `$${MRO_TIER.monthlyPrice}/mo`}
-                  </span>
-                </div>
-                {billingCycle === "yearly" && (
-                  <p className="text-xs text-muted-foreground mt-1">~$8/mo · billed annually</p>
-                )}
-                {billingCycle === "monthly" && (
-                  <p className="text-xs text-muted-foreground mt-1">billed monthly</p>
-                )}
-                {billingCycle === "yearly" && (
-                  <div className="inline-flex items-center gap-1 mt-2 text-xs text-green-400 font-medium bg-green-500/10 border border-green-500/20 rounded-full px-2.5 py-0.5">
-                    <Check className="h-3 w-3" /> Save $20/yr
-                  </div>
-                )}
-              </div>
-
-              <ul className="space-y-3 mb-8 flex-1">
-                {MRO_TIER.features.map(feature => (
-                  <li key={feature} className="flex items-start gap-2.5 text-sm">
-                    <Check className="h-4 w-4 mt-0.5 flex-shrink-0 text-primary" />
-                    <span className="text-white/80">{feature}</span>
-                  </li>
-                ))}
-              </ul>
-
-              {currentPlan === "mro_provider" || currentPlan === "mro_verified" || currentPlan === "mro_premium" ? (
-                <div className="w-full py-2.5 px-4 rounded-md border border-border text-center text-sm text-muted-foreground font-medium">
-                  Current Plan
-                </div>
-              ) : (
-                <Button
-                  className="w-full gap-2"
-                  disabled={!!checkingOutPlan}
-                  onClick={() => handleCheckout(MRO_TIER.planKey, billingCycle)}
+          {/* ── Billing toggle ── */}
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12, marginBottom: 48 }}>
+            <div style={{
+              display: "inline-flex", background: CARD, border: `1px solid ${BORDER}`,
+              borderRadius: 10, padding: 4, gap: 4,
+            }}>
+              {(["monthly", "yearly"] as BillingCycle[]).map(cycle => (
+                <button
+                  key={cycle}
+                  onClick={() => setBillingCycle(cycle)}
+                  style={{
+                    padding: "9px 28px", borderRadius: 7, border: "none", cursor: "pointer",
+                    fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700,
+                    fontSize: 14, letterSpacing: "0.06em", textTransform: "uppercase",
+                    transition: "all 0.2s",
+                    background: billingCycle === cycle ? BLUE : "transparent",
+                    color: billingCycle === cycle ? "#fff" : MUTED,
+                    display: "flex", alignItems: "center", gap: 7,
+                  }}
                 >
-                  {checkingOutPlan === MRO_TIER.planKey ? (
-                    <><Loader2 className="h-4 w-4 animate-spin" /> Redirecting…</>
-                  ) : MRO_TIER.cta}
-                </Button>
-              )}
+                  {cycle === "yearly" && <CalendarDays size={13} />}
+                  {cycle === "monthly" ? "Monthly" : "Yearly"}
+                </button>
+              ))}
+            </div>
+            {billingCycle === "yearly" ? (
+              <div style={{
+                display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 600,
+                color: "#4ade80", background: "rgba(34,197,94,0.1)", border: "1px solid rgba(34,197,94,0.25)",
+                borderRadius: 20, padding: "4px 14px", fontFamily: "'Barlow', sans-serif",
+              }}>
+                <Check size={12} strokeWidth={3} /> Save ~20% — pay for 10 months, get 12
+              </div>
+            ) : (
+              <p style={{ fontFamily: "'Barlow', sans-serif", fontSize: 12, color: "#4a6480", margin: 0 }}>
+                Switch to yearly to save ~20% on all plans
+              </p>
+            )}
+          </div>
+
+          {/* ── Plan cards ── */}
+          <div style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))",
+            gap: 20, marginBottom: 80,
+          }}>
+            {PLANS.map((plan, i) => {
+              const isCurrentPlan = currentPlan === plan.planKey && plan.ctaMode !== "contact";
+              const isLoading = checkingOutPlan === plan.planKey && plan.ctaMode === "checkout";
+              const showYearly = billingCycle === "yearly";
+              const displayPrice = showYearly ? plan.yearlyPrice : plan.monthlyPrice;
+              const savings = plan.monthlyPrice * 12 - plan.yearlyPrice;
+
+              return (
+                <div
+                  key={i}
+                  style={{
+                    background: plan.featured
+                      ? `linear-gradient(180deg, rgba(25,118,210,0.15) 0%, ${CARD} 100%)`
+                      : CARD,
+                    border: plan.featured ? `2px solid ${BLUE}` : `1px solid ${BORDER}`,
+                    borderRadius: 14, padding: "36px 28px",
+                    position: "relative", overflow: "hidden", display: "flex", flexDirection: "column",
+                    boxShadow: plan.featured ? `0 0 48px rgba(25,118,210,0.18)` : "none",
+                  }}
+                >
+                  {/* Tag badge */}
+                  {plan.tag && (
+                    <div style={{
+                      position: "absolute", top: 20, right: 20,
+                      background: plan.featured ? BLUE : `rgba(245,166,35,0.15)`,
+                      border: `1px solid ${plan.featured ? BLUE : "rgba(245,166,35,0.4)"}`,
+                      borderRadius: 4, padding: "3px 10px",
+                      fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 800,
+                      fontSize: 11, color: plan.featured ? "#fff" : GOLD,
+                      letterSpacing: "0.06em", textTransform: "uppercase",
+                    }}>{plan.tag}</div>
+                  )}
+
+                  {/* Plan name */}
+                  <h2 style={{
+                    fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 800,
+                    fontSize: 24, color: "#fff", marginBottom: 16,
+                    textTransform: "uppercase", letterSpacing: "0.02em",
+                  }}>{plan.name}</h2>
+
+                  {/* Price */}
+                  <div style={{ marginBottom: 28 }}>
+                    <div style={{ display: "flex", alignItems: "baseline", gap: 3 }}>
+                      <span style={{
+                        fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 900,
+                        fontSize: 52, lineHeight: 1,
+                        color: plan.featured ? "#60a5fa" : "#fff",
+                      }}>
+                        ${fmtPrice(displayPrice)}
+                      </span>
+                      <span style={{ fontFamily: "'Barlow', sans-serif", fontSize: 14, color: MUTED }}>
+                        {showYearly ? "/yr" : "/mo"}
+                      </span>
+                    </div>
+                    {showYearly ? (
+                      <>
+                        <p style={{ fontFamily: "'Barlow', sans-serif", fontSize: 13, color: MUTED, marginTop: 4 }}>
+                          ~${plan.yearlyMonthly}/mo · billed annually
+                        </p>
+                        <div style={{
+                          display: "inline-flex", alignItems: "center", gap: 5, marginTop: 8,
+                          fontSize: 12, fontWeight: 600, color: "#4ade80",
+                          background: "rgba(34,197,94,0.1)", border: "1px solid rgba(34,197,94,0.25)",
+                          borderRadius: 20, padding: "3px 10px", fontFamily: "'Barlow', sans-serif",
+                        }}>
+                          <Check size={11} strokeWidth={3} /> Save ${fmtPrice(savings)}/yr
+                        </div>
+                      </>
+                    ) : (
+                      <p style={{ fontFamily: "'Barlow', sans-serif", fontSize: 13, color: MUTED, marginTop: 4 }}>
+                        per month, billed monthly
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Feature list */}
+                  <div style={{ borderTop: `1px solid ${BORDER}`, paddingTop: 24, marginBottom: 28, flex: 1 }}>
+                    {plan.features.map(f => (
+                      <div key={f} style={{ display: "flex", alignItems: "flex-start", gap: 10, marginBottom: 13 }}>
+                        <div style={{
+                          width: 18, height: 18, borderRadius: "50%",
+                          background: plan.featured ? "rgba(96,165,250,0.12)" : "rgba(34,197,94,0.1)",
+                          border: `1px solid ${plan.featured ? "rgba(96,165,250,0.4)" : "rgba(34,197,94,0.4)"}`,
+                          display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 1,
+                        }}>
+                          <Check size={10} color={plan.featured ? "#60a5fa" : "#4ade80"} strokeWidth={3} />
+                        </div>
+                        <span style={{ fontFamily: "'Barlow', sans-serif", fontSize: 14, color: "#c8daea", lineHeight: 1.45 }}>{f}</span>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* CTA */}
+                  {isCurrentPlan ? (
+                    <div style={{
+                      textAlign: "center", padding: "12px 0", borderRadius: 8,
+                      border: `1px solid ${BORDER}`,
+                      fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700,
+                      fontSize: 14, letterSpacing: "0.06em", textTransform: "uppercase",
+                      color: MUTED,
+                    }}>Current Plan</div>
+                  ) : plan.ctaMode === "contact" ? (
+                    <a
+                      href="mailto:sales@aeroparts.app"
+                      style={{
+                        display: "block", textAlign: "center", padding: "13px 0", borderRadius: 8,
+                        background: "rgba(255,255,255,0.06)", border: `1px solid ${BORDER}`,
+                        color: "#fff", textDecoration: "none",
+                        fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700,
+                        fontSize: 15, letterSpacing: "0.06em", textTransform: "uppercase",
+                        transition: "all 0.2s",
+                      }}
+                      onMouseEnter={e => { e.currentTarget.style.background = "rgba(255,255,255,0.12)"; }}
+                      onMouseLeave={e => { e.currentTarget.style.background = "rgba(255,255,255,0.06)"; }}
+                    >{plan.cta}</a>
+                  ) : !user ? (
+                    <Link
+                      href="/seller/register"
+                      style={{
+                        display: "block", textAlign: "center", padding: "13px 0", borderRadius: 8,
+                        background: plan.featured ? BLUE : "rgba(255,255,255,0.06)",
+                        border: plan.featured ? "none" : `1px solid ${BORDER}`,
+                        color: "#fff", textDecoration: "none",
+                        fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700,
+                        fontSize: 15, letterSpacing: "0.06em", textTransform: "uppercase",
+                      }}
+                    >{plan.cta}</Link>
+                  ) : (
+                    <button
+                      disabled={!!checkingOutPlan}
+                      onClick={() => handleCheckout(plan.planKey)}
+                      style={{
+                        width: "100%", padding: "13px 0", borderRadius: 8,
+                        background: plan.featured ? BLUE : "rgba(255,255,255,0.06)",
+                        border: plan.featured ? "none" : `1px solid ${BORDER}`,
+                        color: "#fff", cursor: checkingOutPlan ? "not-allowed" : "pointer",
+                        fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700,
+                        fontSize: 15, letterSpacing: "0.06em", textTransform: "uppercase",
+                        display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+                        opacity: checkingOutPlan && !isLoading ? 0.5 : 1,
+                        transition: "all 0.2s",
+                      }}
+                      onMouseEnter={e => { if (!checkingOutPlan) e.currentTarget.style.opacity = "0.88"; }}
+                      onMouseLeave={e => { e.currentTarget.style.opacity = "1"; }}
+                    >
+                      {isLoading ? (
+                        <><Loader2 size={16} className="animate-spin" /> Redirecting…</>
+                      ) : plan.cta}
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          {/* ── Compare note ── */}
+          <p style={{ textAlign: "center", fontFamily: "'Barlow', sans-serif", fontSize: 13, color: "#4a6480", marginBottom: 80 }}>
+            Need custom volume pricing?{" "}
+            <a href="mailto:sales@aeroparts.app" style={{ color: BLUE, textDecoration: "none" }}>Contact our sales team →</a>
+          </p>
+
+          {/* ── MRO Services section ── */}
+          <div style={{ borderTop: `1px solid ${BORDER}`, paddingTop: 72, marginBottom: 72 }}>
+            <div style={{ textAlign: "center", marginBottom: 48 }}>
+              <GoldLabel>MRO Services</GoldLabel>
+              <h2 style={{
+                fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 800,
+                fontSize: "clamp(26px, 4vw, 42px)", color: "#fff",
+                textTransform: "uppercase", marginBottom: 12,
+              }}>MRO Directory Listings</h2>
+              <p style={{ fontFamily: "'Barlow', sans-serif", fontSize: 15, color: MUTED, maxWidth: 540, margin: "0 auto" }}>
+                Get discovered by airlines, operators, and fleet managers searching for certified maintenance, repair &amp; overhaul providers.
+              </p>
             </div>
 
-            {/* Feature callout tiles */}
-            <div className="space-y-4">
+            <div style={{ maxWidth: 960, margin: "0 auto", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 28 }} className="mro-grid">
+              {/* MRO card */}
+              <div style={{
+                background: `linear-gradient(180deg, rgba(245,166,35,0.08) 0%, ${CARD} 100%)`,
+                border: `2px solid rgba(245,166,35,0.35)`,
+                borderRadius: 14, padding: "36px 28px",
+                position: "relative", display: "flex", flexDirection: "column",
+              }}>
+                <div style={{
+                  position: "absolute", top: 20, right: 20,
+                  background: `rgba(245,166,35,0.15)`, border: `1px solid rgba(245,166,35,0.4)`,
+                  borderRadius: 4, padding: "3px 10px",
+                  fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 800,
+                  fontSize: 11, color: GOLD, letterSpacing: "0.06em", textTransform: "uppercase",
+                }}>Single Plan</div>
+
+                <h3 style={{
+                  fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 800,
+                  fontSize: 24, color: "#fff", textTransform: "uppercase", marginBottom: 16,
+                }}>{MRO_TIER.name}</h3>
+
+                <div style={{ marginBottom: 24 }}>
+                  <div style={{ display: "flex", alignItems: "baseline", gap: 3 }}>
+                    <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 900, fontSize: 52, color: GOLD, lineHeight: 1 }}>
+                      ${billingCycle === "yearly" ? MRO_TIER.yearlyPrice : MRO_TIER.monthlyPrice}
+                    </span>
+                    <span style={{ fontFamily: "'Barlow', sans-serif", fontSize: 14, color: MUTED }}>
+                      {billingCycle === "yearly" ? "/yr" : "/mo"}
+                    </span>
+                  </div>
+                  {billingCycle === "yearly" ? (
+                    <>
+                      <p style={{ fontFamily: "'Barlow', sans-serif", fontSize: 13, color: MUTED, marginTop: 4 }}>~${MRO_TIER.yearlyMonthly}/mo · billed annually</p>
+                      <div style={{ display: "inline-flex", alignItems: "center", gap: 5, marginTop: 8, fontSize: 12, fontWeight: 600, color: "#4ade80", background: "rgba(34,197,94,0.1)", border: "1px solid rgba(34,197,94,0.25)", borderRadius: 20, padding: "3px 10px", fontFamily: "'Barlow', sans-serif" }}>
+                        <Check size={11} strokeWidth={3} /> Save $20/yr
+                      </div>
+                    </>
+                  ) : (
+                    <p style={{ fontFamily: "'Barlow', sans-serif", fontSize: 13, color: MUTED, marginTop: 4 }}>per month, billed monthly</p>
+                  )}
+                </div>
+
+                <div style={{ borderTop: `1px solid ${BORDER}`, paddingTop: 22, marginBottom: 28, flex: 1 }}>
+                  {MRO_TIER.features.map(f => (
+                    <div key={f} style={{ display: "flex", alignItems: "flex-start", gap: 10, marginBottom: 13 }}>
+                      <div style={{ width: 18, height: 18, borderRadius: "50%", background: "rgba(245,166,35,0.12)", border: "1px solid rgba(245,166,35,0.4)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 1 }}>
+                        <Check size={10} color={GOLD} strokeWidth={3} />
+                      </div>
+                      <span style={{ fontFamily: "'Barlow', sans-serif", fontSize: 14, color: "#c8daea" }}>{f}</span>
+                    </div>
+                  ))}
+                </div>
+
+                {currentPlan === "mro_provider" || currentPlan === "mro_verified" || currentPlan === "mro_premium" ? (
+                  <div style={{ textAlign: "center", padding: "12px 0", borderRadius: 8, border: `1px solid ${BORDER}`, fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, fontSize: 14, letterSpacing: "0.06em", textTransform: "uppercase", color: MUTED }}>
+                    Current Plan
+                  </div>
+                ) : !user ? (
+                  <Link
+                    href="/seller/register"
+                    style={{ display: "block", textAlign: "center", padding: "13px 0", borderRadius: 8, background: GOLD, border: "none", color: NAVY, textDecoration: "none", fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 800, fontSize: 15, letterSpacing: "0.06em", textTransform: "uppercase" }}
+                  >{MRO_TIER.cta}</Link>
+                ) : (
+                  <button
+                    disabled={!!checkingOutPlan}
+                    onClick={() => handleCheckout(MRO_TIER.planKey)}
+                    style={{ width: "100%", padding: "13px 0", borderRadius: 8, background: GOLD, border: "none", color: NAVY, cursor: checkingOutPlan ? "not-allowed" : "pointer", fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 800, fontSize: 15, letterSpacing: "0.06em", textTransform: "uppercase", opacity: checkingOutPlan ? 0.5 : 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}
+                  >
+                    {checkingOutPlan === MRO_TIER.planKey ? <><Loader2 size={16} className="animate-spin" /> Redirecting…</> : MRO_TIER.cta}
+                  </button>
+                )}
+              </div>
+
+              {/* Feature callouts */}
+              <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                {[
+                  { icon: Star,   title: "Verified MRO Badge",          desc: "Display a trust badge on your directory listing. Buyers filter by verified providers — stand out from unverified listings." },
+                  { icon: Radio,  title: "Quote Request Notifications",  desc: "Receive instant email alerts whenever a buyer submits a quote request matching your service categories." },
+                  { icon: Upload, title: "Unlimited Service Categories", desc: "List every capability — airframe, engine, avionics, NDT, and more — with no cap on categories or sub-types." },
+                  { icon: Brain,  title: "Analytics & Tracking",         desc: "See how many buyers viewed your profile, which services drive the most quote requests, and your response rate." },
+                ].map(({ icon: Icon, title, desc }) => (
+                  <div key={title} style={{ display: "flex", gap: 16, padding: "18px 20px", borderRadius: 10, border: `1px solid ${BORDER}`, background: CARD }}>
+                    <div style={{ width: 38, height: 38, borderRadius: 8, background: "rgba(25,118,210,0.12)", border: `1px solid rgba(25,118,210,0.2)`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                      <Icon size={16} color={BLUE} />
+                    </div>
+                    <div>
+                      <p style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, fontSize: 15, color: "#fff", marginBottom: 4 }}>{title}</p>
+                      <p style={{ fontFamily: "'Barlow', sans-serif", fontSize: 13, color: MUTED, lineHeight: 1.6, margin: 0 }}>{desc}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* ── FAQ ── */}
+          <div style={{ maxWidth: 700, margin: "0 auto", borderTop: `1px solid ${BORDER}`, paddingTop: 56 }}>
+            <div style={{ textAlign: "center", marginBottom: 36 }}>
+              <SectionLabel>FAQ</SectionLabel>
+              <h2 style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 800, fontSize: 34, color: "#fff", textTransform: "uppercase" }}>Common Questions</h2>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 28 }}>
               {[
-                {
-                  icon: Star,
-                  title: "Verified MRO Badge",
-                  desc: "Display a trust badge on your directory listing. Buyers filter by verified providers — stand out from unverified listings.",
-                },
-                {
-                  icon: Radio,
-                  title: "Quote Request Notifications",
-                  desc: "Receive instant email alerts whenever a buyer submits a quote request matching your service categories.",
-                },
-                {
-                  icon: Upload,
-                  title: "Unlimited Service Categories",
-                  desc: "List every capability — airframe, engine, avionics, NDT, and more — with no cap on categories or sub-types.",
-                },
-                {
-                  icon: Brain,
-                  title: "Analytics & Tracking",
-                  desc: "See how many buyers viewed your profile, which services drive the most quote requests, and your response conversion rate.",
-                },
-              ].map(({ icon: Icon, title, desc }) => (
-                <div key={title} className="flex gap-4 p-4 rounded-lg border border-border bg-card">
-                  <div className="h-9 w-9 rounded-md flex items-center justify-center bg-secondary flex-shrink-0">
-                    <Icon className="h-4 w-4 text-primary" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold text-white mb-0.5">{title}</p>
-                    <p className="text-xs text-muted-foreground leading-relaxed">{desc}</p>
-                  </div>
+                { q: "What's the difference between monthly and yearly billing?", a: "Monthly billing charges your card each month. Yearly billing charges once per year and saves you roughly 20% — you pay for 10 months and get 12." },
+                { q: "How does billing work?", a: "All plans are billed through Stripe. You'll be redirected to a secure Stripe Checkout page to enter your payment details. You can manage, upgrade, or cancel at any time via the billing portal." },
+                { q: "What happens when I hit my search limit?", a: "Solo Operator includes 50 searches per month. Once reached, you'll be prompted to upgrade to Fleet Manager for unlimited searches." },
+                { q: "What happens if my payment fails?", a: "You get a 7-day grace period while Stripe retries your payment. During that time your plan stays active. If payment isn't resolved after 7 days, your account is downgraded." },
+                { q: "What is the AOG hotline?", a: "Fleet Manager and Mission Control subscribers get priority phone access to our 24/7 AOG sourcing desk. We source critical aircraft parts globally with average response times under 4 hours." },
+                { q: "What does Mission Control include?", a: "Mission Control adds ERP & MRO system integrations, a dedicated account manager, custom SLA contracts, white-glove AOG response, and unlimited multi-user seats. Contact sales for a tailored quote." },
+                { q: "Can I cancel at any time?", a: "Yes. Cancelling through the billing portal keeps your access active until the end of the current billing period, then downgrades to free access. No penalties or lock-ins." },
+              ].map(({ q, a }) => (
+                <div key={q} style={{ borderBottom: `1px solid ${BORDER}`, paddingBottom: 24 }}>
+                  <h3 style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, fontSize: 18, color: "#fff", marginBottom: 8 }}>{q}</h3>
+                  <p style={{ fontFamily: "'Barlow', sans-serif", fontSize: 14, color: MUTED, lineHeight: 1.7, margin: 0 }}>{a}</p>
                 </div>
               ))}
             </div>
           </div>
-        </div>
 
-        {/* FAQ */}
-        <div className="max-w-2xl mx-auto mt-20 pt-12 border-t border-border">
-          <h2 className="text-xl font-bold text-white mb-6 text-center">Common Questions</h2>
-          <div className="space-y-6">
-            {[
-              {
-                q: "What's the difference between monthly and yearly billing?",
-                a: "Monthly billing charges your card each month. Yearly billing charges once per year and saves you roughly 2 months — Pro yearly is $290/yr vs $348/yr monthly; Enterprise yearly is $990/yr vs $1,188/yr; MRO Provider yearly is $100/yr vs $120/yr.",
-              },
-              {
-                q: "How does billing work?",
-                a: "All plans are billed through Stripe. You'll be redirected to a secure Stripe Checkout page to enter your payment details. You can manage, upgrade, or cancel at any time via the billing portal.",
-              },
-              {
-                q: "What happens when I hit my listing limit?",
-                a: "You'll be prompted to upgrade when you attempt to create a new listing beyond your plan's limit. Existing listings remain active. Free is capped at 5; Pro at 500; Enterprise is unlimited.",
-              },
-              {
-                q: "What happens if my payment fails?",
-                a: "You get a 7-day grace period while Stripe retries your payment. During that time your plan stays active. If payment isn't resolved after 7 days, your account is downgraded to Free.",
-              },
-              {
-                q: "What are AOG notifications?",
-                a: "AOG (Aircraft on Ground) alerts are real-time notifications pushed to Pro and Enterprise sellers when a buyer submits an urgent RFQ flagged as AOG. These appear on your dashboard and trigger instant email alerts.",
-              },
-              {
-                q: "What is the intelligence dashboard?",
-                a: "Available exclusively on Enterprise, the intelligence dashboard surfaces demand trends, fraud risk indicators, and predictive demand alerts for parts you stock — helping you price competitively and stock the right inventory.",
-              },
-              {
-                q: "Can I cancel at any time?",
-                a: "Yes. Cancelling through the billing portal keeps your access active until the end of the current billing period, then downgrades to Free. No penalties.",
-              },
-            ].map(({ q, a }) => (
-              <div key={q}>
-                <h3 className="text-white font-medium mb-1">{q}</h3>
-                <p className="text-muted-foreground text-sm leading-relaxed">{a}</p>
-              </div>
-            ))}
-          </div>
         </div>
       </div>
+
+      {/* Responsive MRO grid */}
+      <style>{`
+        @media (max-width: 700px) { .mro-grid { grid-template-columns: 1fr !important; } }
+      `}</style>
     </MainLayout>
   );
 }
