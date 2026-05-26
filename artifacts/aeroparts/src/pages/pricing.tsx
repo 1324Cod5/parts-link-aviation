@@ -158,10 +158,10 @@ export default function Pricing() {
 
   // Hardcoded price IDs (always available; API-fetched IDs used as fallback when present)
   const HARDCODED_PRICE_IDS: Record<string, string> = {
-    pro:             "price_1TbO7VLizlhnDGCHA637d5aj",
-    enterprise:      "price_1TbO7eLizlhnDGCHEnspozSd",
-    mission_control: "price_1TbO7pLizlhnDGCHIGNJLoUd",
-    mro_provider:    "price_1TbO7pLizlhnDGCHIGNJLoUd",
+    pro:             "price_1TbPBNL2wYC5N0L6b6LyJZoV",
+    enterprise:      "price_1TbPBNL2wYC5N0L6VFC2oaWB",
+    mission_control: "price_1TbPBNL2wYC5N0L6cSTJr7TG",
+    mro_provider:    "price_1TbPBNL2wYC5N0L6cSTJr7TG",
   };
 
   const getPriceId = (planKey: string, _cycle: BillingCycle): string | null => {
