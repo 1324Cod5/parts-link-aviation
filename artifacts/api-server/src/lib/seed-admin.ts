@@ -16,7 +16,7 @@ export async function seedAdmin(): Promise<void> {
         email: ADMIN_EMAIL,
         passwordHash,
         role: "super_admin",
-        companyName: "AeroParts Admin",
+        companyName: "Parts Link Aviation Admin",
         contactName: "Administrator",
         plan: "enterprise",
         mustChangePassword: true,

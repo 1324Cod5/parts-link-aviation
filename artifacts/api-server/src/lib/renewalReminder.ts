@@ -36,7 +36,7 @@ async function sendReminderEmail(user: {
         : user.plan;
 
   const body = {
-    from: "AeroParts <no-reply@aeroparts.com>",
+    from: "Parts Link Aviation <no-reply@aeroparts.com>",
     to: [user.email],
     subject: `Your ${planLabel} subscription renews in ${REMINDER_DAYS_BEFORE} days`,
     html: `
@@ -56,7 +56,7 @@ async function sendReminderEmail(user: {
         </p>
         <hr style="border: none; border-top: 1px solid #1e3a5f; margin: 24px 0;" />
         <p style="color: #475569; font-size: 12px;">
-          You're receiving this because you have an active yearly subscription on AeroParts Marketplace.
+          You're receiving this because you have an active yearly subscription on Parts Link Aviation.
         </p>
       </div>
     `,

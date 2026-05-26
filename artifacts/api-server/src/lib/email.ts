@@ -24,7 +24,7 @@ import {
 // ─── Client ───────────────────────────────────────────────────────────────────
 
 const KEY = process.env.RESEND_API_KEY;
-const FROM = process.env.RESEND_FROM_EMAIL ?? "AeroParts Notifications <notifications@aeroparts.app>";
+const FROM = process.env.RESEND_FROM_EMAIL ?? "Parts Link Aviation Notifications <notifications@aeroparts.app>";
 
 let resend: Resend | null = null;
 if (KEY) {
@@ -273,7 +273,7 @@ export async function sendBuyerReplyAlert(
   sellerCompany: string,
 ): Promise<void> {
   const html = sellerReplyTemplate(conv.buyerName, sellerCompany, messageContent);
-  await send(conv.buyerEmail, `Reply from ${sellerCompany} — AeroParts`, html);
+  await send(conv.buyerEmail, `Reply from ${sellerCompany} — Parts Link Aviation`, html);
 }
 
 export interface QuoteAwardedPayload {
@@ -346,7 +346,7 @@ export async function sendDailyDigest(data: DigestData): Promise<number> {
 
   let sent = 0;
   for (const s of eligible) {
-    const subject = `📊 AeroParts Daily Intelligence — ${new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}`;
+    const subject = `📊 Parts Link Aviation Daily Intelligence — ${new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}`;
     await send(s.email, subject, dailyDigestTemplate(s, data));
     sent++;
   }

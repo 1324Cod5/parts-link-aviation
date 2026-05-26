@@ -34,8 +34,8 @@ export default function Register() {
       {
         onSuccess: () => {
           const msg = accountType === "buyer"
-            ? "Welcome to AeroParts. Redirecting to the marketplace..."
-            : "Welcome to AeroParts. Redirecting to your dashboard...";
+            ? "Welcome to Parts Link Aviation. Redirecting to the marketplace..."
+            : "Welcome to Parts Link Aviation. Redirecting to your dashboard...";
           toast({ title: "Account created", description: msg });
           window.location.href = accountType === "buyer" ? "/marketplace" : "/seller/dashboard";
         },

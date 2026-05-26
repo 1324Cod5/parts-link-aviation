@@ -190,7 +190,7 @@ export default function MroRegisterPage() {
               <CheckCircle2 className="w-8 h-8 text-emerald-400" />
             </div>
             <h1 className="text-2xl font-bold text-white mb-2">MRO Profile Published</h1>
-            <p className="text-muted-foreground mb-8">Your MRO services are now listed in the AeroParts directory.</p>
+            <p className="text-muted-foreground mb-8">Your MRO services are now listed in the Parts Link Aviation directory.</p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <Link href={`/mro/${savedId}`}><Button className="w-full sm:w-auto">View Your Profile</Button></Link>
               <Link href="/mro"><Button variant="outline" className="w-full sm:w-auto border-border text-muted-foreground hover:text-white">Browse Directory</Button></Link>
@@ -218,7 +218,7 @@ export default function MroRegisterPage() {
               <div>
                 <h1 className="text-2xl font-bold text-white">{isEdit ? "Edit MRO Profile" : "List Your MRO Services"}</h1>
                 <p className="text-sm text-muted-foreground mt-0.5">
-                  {isEdit ? "Update your capability listing" : "Register your company in the AeroParts MRO directory"}
+                  {isEdit ? "Update your capability listing" : "Register your company in the Parts Link Aviation MRO directory"}
                 </p>
               </div>
             </div>

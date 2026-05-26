@@ -35,7 +35,7 @@ const TEST_ACCOUNTS: TestAccount[] = [
     password: "Admin123!",
     role: "admin",
     plan: "free",
-    companyName: "AeroParts Test Admin",
+    companyName: "Parts Link Aviation Test Admin",
     contactName: "Test Administrator",
   },
   {

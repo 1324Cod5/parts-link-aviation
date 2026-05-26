@@ -108,7 +108,7 @@ export default function AdminLogin() {
             <ShieldCheck className="w-7 h-7 text-primary" />
           </div>
           <h1 className="text-2xl font-bold text-white tracking-tight">Admin Portal</h1>
-          <p className="text-sm text-muted-foreground mt-1">AeroParts Marketplace — Restricted Access</p>
+          <p className="text-sm text-muted-foreground mt-1">Parts Link Aviation — Restricted Access</p>
         </div>
 
         {/* Session notice */}

@@ -1,5 +1,5 @@
 /**
- * Seed script: creates AeroParts subscription products and prices in Stripe.
+ * Seed script: creates Parts Link Aviation subscription products and prices in Stripe.
  * Idempotent — if a product already exists, checks for the expected monthly and
  * yearly price points at the correct amounts and creates any that are missing.
  *

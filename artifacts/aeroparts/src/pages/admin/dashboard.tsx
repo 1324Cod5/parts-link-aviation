@@ -161,7 +161,7 @@ function OverviewSection() {
     <div className="space-y-8">
       <div>
         <h2 className="text-lg font-semibold text-white mb-1">Marketplace Overview</h2>
-        <p className="text-sm text-muted-foreground">Real-time snapshot of AeroParts marketplace activity.</p>
+        <p className="text-sm text-muted-foreground">Real-time snapshot of Parts Link Aviation marketplace activity.</p>
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
@@ -3017,7 +3017,7 @@ export default function AdminDashboard() {
         {/* Logo */}
         <div className="p-5 border-b border-border">
           <Link href="/">
-            <span className="text-lg font-bold text-white tracking-tight">AeroParts</span>
+            <span className="text-lg font-bold text-white tracking-tight">Parts Link Aviation</span>
           </Link>
           <p className="text-xs text-muted-foreground mt-0.5 uppercase tracking-wider">Admin Portal</p>
         </div>
@@ -3069,7 +3069,7 @@ export default function AdminDashboard() {
             <h1 className="text-base font-semibold text-white">
               {NAV.find(n => n.id === section)?.label ?? "Admin"}
             </h1>
-            <p className="text-xs text-muted-foreground">AeroParts Admin Portal</p>
+            <p className="text-xs text-muted-foreground">Parts Link Aviation Admin Portal</p>
           </div>
           <div className="flex items-center gap-3">
             <Link href="/">

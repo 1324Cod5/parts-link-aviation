@@ -17,7 +17,7 @@ export default function SellerLogin() {
           <div className="mb-8">
             <h1 className="text-2xl font-bold text-white mb-2">Sign In</h1>
             <p className="text-muted-foreground text-sm">
-              Access your AeroParts seller dashboard.
+              Access your Parts Link Aviation seller dashboard.
             </p>
           </div>
 

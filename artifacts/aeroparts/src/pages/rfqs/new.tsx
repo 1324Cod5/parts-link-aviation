@@ -118,7 +118,7 @@ export default function NewRfqPage() {
                 </div>
                 <h1 className="text-2xl font-bold text-white mb-2">RFQ Posted Successfully</h1>
                 <p className="text-muted-foreground mb-8">
-                  Your request has been published to the AeroParts RFQ board. Qualified sellers will respond directly.
+                  Your request has been published to the Parts Link Aviation RFQ board. Qualified sellers will respond directly.
                 </p>
               </>
             )}

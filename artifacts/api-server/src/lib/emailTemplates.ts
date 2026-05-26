@@ -30,7 +30,7 @@ function base(content: string, accentColor = SILVER): string {
       <table width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;margin:0 auto 24px;">
         <tr>
           <td style="padding:0 0 16px;">
-            <span style="font-size:20px;font-weight:700;color:${WHITE};letter-spacing:-0.5px;">AeroParts</span>
+            <span style="font-size:20px;font-weight:700;color:${WHITE};letter-spacing:-0.5px;">Parts Link Aviation</span>
             <span style="display:inline-block;width:6px;height:6px;background:${accentColor};border-radius:50%;margin:0 0 2px 6px;vertical-align:middle;"></span>
           </td>
         </tr>
@@ -48,7 +48,7 @@ function base(content: string, accentColor = SILVER): string {
         <tr>
           <td style="padding:16px 0;border-top:1px solid ${BORDER};text-align:center;">
             <p style="margin:0;font-size:12px;color:${MUTED};">
-              You're receiving this as a registered AeroParts seller.<br>
+              You're receiving this as a registered Parts Link Aviation seller.<br>
               <a href="{{unsubscribe_url}}" style="color:${MUTED};text-decoration:underline;">Manage notification preferences</a>
             </p>
           </td>
@@ -266,7 +266,7 @@ export function newMessageAlertTemplate(
 
   const content = `
     <h2 style="margin:0 0 4px;font-size:20px;color:${WHITE};">New Message</h2>
-    <p style="margin:0 0 20px;color:${MUTED};font-size:14px;">A buyer has sent you a message on AeroParts Marketplace.</p>
+    <p style="margin:0 0 20px;color:${MUTED};font-size:14px;">A buyer has sent you a message on Parts Link Aviation.</p>
 
     <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:20px;">
       ${section("From", conv.buyerName)}
@@ -294,7 +294,7 @@ export function sellerReplyTemplate(
 ): string {
   const content = `
     <h2 style="margin:0 0 4px;font-size:20px;color:${WHITE};">Reply from ${sellerCompany}</h2>
-    <p style="margin:0 0 20px;color:${MUTED};font-size:14px;">The seller has responded to your inquiry on AeroParts Marketplace.</p>
+    <p style="margin:0 0 20px;color:${MUTED};font-size:14px;">The seller has responded to your inquiry on Parts Link Aviation.</p>
 
     <div style="background:${CARD};border:1px solid ${BORDER};border-radius:6px;padding:16px;margin-bottom:24px;">
       <p style="margin:0 0 8px;font-size:11px;text-transform:uppercase;color:${MUTED};letter-spacing:0.05em;">Message from ${sellerCompany}</p>
@@ -302,7 +302,7 @@ export function sellerReplyTemplate(
     </div>
 
     <p style="color:${MUTED};font-size:12px;text-align:center;margin:0;">
-      This message was sent via AeroParts Marketplace in response to your inquiry.
+      This message was sent via Parts Link Aviation in response to your inquiry.
     </p>
   `;
   return base(content, BLUE);

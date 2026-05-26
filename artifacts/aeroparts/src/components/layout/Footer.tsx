@@ -52,9 +52,9 @@ export function Footer() {
                 display: "flex", alignItems: "center", justifyContent: "center",
                 fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 900,
                 fontSize: 14, color: "#fff",
-              }}>AP</div>
+              }}>PL</div>
               <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, fontSize: 17, color: "#fff" }}>
-                AeroParts <span style={{ color: GOLD }}>Exchange</span>
+                Parts Link <span style={{ color: GOLD }}>Aviation</span>
               </span>
             </div>
             <p style={{ fontFamily: "'Barlow', sans-serif", fontSize: 13, color: MUTED, lineHeight: 1.7, marginBottom: 18, maxWidth: 260 }}>
@@ -96,7 +96,7 @@ export function Footer() {
 
         <div style={{ borderTop: `1px solid ${BORDER}`, paddingTop: 22, display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
           <span style={{ fontFamily: "'Barlow', sans-serif", fontSize: 12, color: "#2a4060" }}>
-            © {new Date().getFullYear()} AeroParts Exchange. All rights reserved.
+            © {new Date().getFullYear()} Parts Link Aviation. All rights reserved.
           </span>
           <div style={{ display: "flex", gap: 20 }}>
             {["Privacy Policy", "Terms of Service", "Cookie Policy"].map(l => (

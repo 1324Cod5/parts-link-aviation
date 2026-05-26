@@ -77,9 +77,9 @@ export function Navbar() {
               display: "flex", alignItems: "center", justifyContent: "center",
               fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 900,
               fontSize: 14, color: "#fff", letterSpacing: -0.5, flexShrink: 0,
-            }}>AP</div>
+            }}>PL</div>
             <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, fontSize: 18, color: "#fff", letterSpacing: 0.3, whiteSpace: "nowrap" }}>
-              AeroParts <span style={{ color: GOLD }}>Exchange</span>
+              Parts Link <span style={{ color: GOLD }}>Aviation</span>
             </span>
           </Link>
 

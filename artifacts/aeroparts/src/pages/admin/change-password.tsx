@@ -192,7 +192,7 @@ export default function ChangePasswordPage() {
         </div>
 
         <p className="text-center text-xs text-muted-foreground mt-6">
-          AeroParts Admin Portal · Secure Access
+          Parts Link Aviation Admin Portal · Secure Access
         </p>
       </div>
     </div>

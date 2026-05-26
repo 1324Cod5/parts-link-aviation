@@ -83,14 +83,14 @@ const PRICING = [
 const TESTIMONIALS = [
   {
     stars: 5,
-    quote: "AeroParts Exchange sourced a CFM56-7B HPT blade for us in under 3 hours during an AOG in Singapore. That's simply unmatched in this industry.",
+    quote: "Parts Link Aviation sourced a CFM56-7B HPT blade for us in under 3 hours during an AOG in Singapore. That's simply unmatched in this industry.",
     initials: "DM",
     name: "Capt. Daniel Morse",
     title: "VP of Maintenance, Pacific Air Cargo",
   },
   {
     stars: 5,
-    quote: "We migrated our entire parts procurement to AeroParts Exchange last year. The pricing intelligence alone has saved us over $2M in over-market purchases.",
+    quote: "We migrated our entire parts procurement to Parts Link Aviation last year. The pricing intelligence alone has saved us over $2M in over-market purchases.",
     initials: "SR",
     name: "Sarah Ramirez",
     title: "Director of Supply Chain, SkyBridge Airlines",
@@ -168,11 +168,11 @@ function Navbar() {
               display: "flex", alignItems: "center", justifyContent: "center",
               fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 900,
               fontSize: 16, color: "#fff", letterSpacing: -0.5, flexShrink: 0,
-            }}>AP</div>
+            }}>PL</div>
             <span style={{
               fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700,
               fontSize: 20, color: "#fff", letterSpacing: 0.5, whiteSpace: "nowrap",
-            }}>AeroParts <span style={{ color: GOLD }}>Exchange</span></span>
+            }}>Parts Link <span style={{ color: GOLD }}>Aviation</span></span>
           </Link>
 
           {/* Desktop links */}
@@ -739,7 +739,7 @@ function CtaSection() {
           Ready to Fly<br /><span style={{ color: GOLD }}>Faster?</span>
         </h2>
         <p style={{ fontFamily: "'Barlow', sans-serif", fontSize: 17, color: "#7ea8c8", marginBottom: 40, lineHeight: 1.6 }}>
-          Join 4,200+ aviation operators already using AeroParts Exchange to source critical components faster, smarter, and with full documentation compliance.
+          Join 4,200+ aviation operators already using Parts Link Aviation to source critical components faster, smarter, and with full documentation compliance.
         </p>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 12, justifyContent: "center" }}>
           <Link
@@ -788,7 +788,7 @@ function HomeFooter() {
     {
       heading: "Company",
       links: [
-        { label: "About AeroParts", href: "#" },
+        { label: "About Parts Link Aviation", href: "#" },
         { label: "Contact Sales", href: "mailto:sales@aeroparts.app" },
         { label: "Become a Supplier", href: "/seller/register" },
         { label: "Admin Portal", href: "/admin" },
@@ -806,8 +806,8 @@ function HomeFooter() {
           {/* Brand column */}
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
-              <div style={{ width: 36, height: 36, borderRadius: 8, background: `linear-gradient(135deg, ${BLUE}, #0d47a1)`, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 900, fontSize: 15, color: "#fff" }}>AP</div>
-              <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, fontSize: 18, color: "#fff" }}>AeroParts <span style={{ color: GOLD }}>Exchange</span></span>
+              <div style={{ width: 36, height: 36, borderRadius: 8, background: `linear-gradient(135deg, ${BLUE}, #0d47a1)`, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 900, fontSize: 15, color: "#fff" }}>PL</div>
+              <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, fontSize: 18, color: "#fff" }}>Parts Link <span style={{ color: GOLD }}>Aviation</span></span>
             </div>
             <p style={{ fontFamily: "'Barlow', sans-serif", fontSize: 13, color: "#4a6480", lineHeight: 1.7, marginBottom: 20, maxWidth: 280 }}>
               The aviation industry's trusted procurement marketplace. Source certified parts from 4,200+ verified operators worldwide.
@@ -841,7 +841,7 @@ function HomeFooter() {
 
         <div style={{ borderTop: `1px solid ${BORDER}`, paddingTop: 24, display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
           <span style={{ fontFamily: "'Barlow', sans-serif", fontSize: 12, color: "#2a4060" }}>
-            © {new Date().getFullYear()} AeroParts Exchange. All rights reserved.
+            © {new Date().getFullYear()} Parts Link Aviation. All rights reserved.
           </span>
           <div style={{ display: "flex", gap: 20 }}>
             {["Privacy Policy", "Terms of Service", "Cookie Policy"].map(l => (
