@@ -1529,6 +1529,21 @@ paths:
         "401":
           description: Unauthorized
 
+  /admin/activity:
+    get:
+      operationId: getAdminActivity
+      tags: [admin]
+      summary: Get recent admin activity log
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AdminActivityEntry"
+
   /admin/sellers/{id}/plan:
     patch:
       operationId: adminSetSellerPlan
@@ -2785,6 +2800,8 @@ components:
           type: integer
         totalInquiries:
           type: integer
+        trustScore:
+          type: integer
 
     AdminSellerStatusUpdate:
       type: object
@@ -2800,7 +2817,24 @@ components:
       properties:
         plan:
           type: string
-          enum: [free, pro, enterprise, mro_verified, mro_premium]
+          enum: [free, pro, enterprise, mro_verified, mro_premium, mro_provider]
+
+    AdminActivityEntry:
+      type: object
+      required: [id, timestamp, actionType, target, adminEmail]
+      properties:
+        id:
+          type: integer
+        timestamp:
+          type: string
+        actionType:
+          type: string
+        target:
+          type: string
+        reason:
+          type: ["string", "null"]
+        adminEmail:
+          type: string
 
     Rfq:
       type: object

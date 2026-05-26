@@ -193,7 +193,9 @@ export async function seedTestAccounts(): Promise<void> {
         .values({
           email,
           passwordHash,
-          role: account.role,
+          role: account.role === "super_admin" ? "admin" : account.role,
+          activeRole: account.role === "admin" || account.role === "super_admin" ? "admin" : "seller",
+          roles: account.role === "admin" || account.role === "super_admin" ? ["admin"] : ["seller"],
           plan: account.plan,
           companyName: account.companyName,
           contactName: account.contactName,

@@ -42,7 +42,7 @@ function LockoutBanner({ lockedUntil }: { lockedUntil: Date }) {
 
 export default function AdminLogin() {
   const { toast } = useToast();
-  const [form, setForm] = useState({ email: "admin@aeroparts.com", password: "" });
+  const [form, setForm] = useState({ email: "", password: "" });
   const [showPassword, setShowPassword] = useState(false);
   const [lockedUntil, setLockedUntil] = useState<Date | null>(null);
   const [attemptsWarning, setAttemptsWarning] = useState<string | null>(null);
@@ -206,12 +206,17 @@ export default function AdminLogin() {
           {/* Divider */}
           <div className="mt-6 pt-5 border-t border-border">
             <div className="bg-secondary/30 rounded-lg p-3 border border-border">
-              <p className="text-xs text-muted-foreground mb-1.5 font-medium">Default credentials</p>
-              <div className="space-y-0.5">
-                <p className="font-mono text-xs text-white">admin@aeroparts.com</p>
-                <p className="font-mono text-xs text-white">password</p>
+              <p className="text-xs text-muted-foreground mb-1.5 font-medium">Available credentials</p>
+              <div className="space-y-1.5">
+                <div className="border-b border-border/50 pb-1.5">
+                  <p className="font-mono text-xs text-white">admin@aeroparts.com</p>
+                  <p className="font-mono text-xs text-muted-foreground">password</p>
+                </div>
+                <div>
+                  <p className="font-mono text-xs text-white">admin@test.com</p>
+                  <p className="font-mono text-xs text-muted-foreground">Admin123!</p>
+                </div>
               </div>
-              <p className="text-xs text-amber-400 mt-2">You will be prompted to set a new password on first login.</p>
             </div>
           </div>
 

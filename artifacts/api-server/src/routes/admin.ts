@@ -1,11 +1,40 @@
 import { Router, type IRouter } from "express";
 import { db, listingsTable, usersTable, inquiriesTable, mroProfilesTable, listingAuditLogsTable } from "@workspace/db";
-import { eq, and, count, sql } from "drizzle-orm";
+import { eq, and, count, inArray } from "drizzle-orm";
 import { GetAdminListingsQueryParams, AdminRemoveListingParams } from "@workspace/api-zod";
 import { recomputeAndSave } from "../lib/trustScore";
 
 const router: IRouter = Router();
 
+// ── In-memory admin activity log ────────────────────────────────────────────
+interface ActivityEntry {
+  id: number;
+  timestamp: string;
+  actionType: string;
+  target: string;
+  reason: string | null;
+  adminEmail: string;
+}
+
+const activityLog: ActivityEntry[] = [];
+let activityCounter = 0;
+
+function logActivity(actionType: string, target: string, adminEmail: string, reason?: string) {
+  activityLog.unshift({
+    id: ++activityCounter,
+    timestamp: new Date().toISOString(),
+    actionType,
+    target,
+    reason: reason ?? null,
+    adminEmail,
+  });
+  if (activityLog.length > 200) activityLog.pop();
+}
+
+// ── In-memory seller strikes ─────────────────────────────────────────────────
+const sellerStrikes: Record<number, number> = {};
+
+// ── Serializers ──────────────────────────────────────────────────────────────
 function serializeListing(listing: any, seller: any) {
   return {
     id: listing.id,
@@ -52,8 +81,11 @@ function serializeSeller(seller: any, activeListings: number, totalInquiries: nu
     createdAt: seller.createdAt.toISOString(),
     activeListings,
     totalInquiries,
+    trustScore: seller.trustScore ?? 0,
   };
 }
+
+// ── Routes ───────────────────────────────────────────────────────────────────
 
 router.get("/admin/listings", async (req, res): Promise<void> => {
   const parsed = GetAdminListingsQueryParams.safeParse(req.query);
@@ -117,6 +149,9 @@ router.patch("/admin/listings/:id/remove", async (req, res): Promise<void> => {
     });
   }
 
+  const adminEmail = req.session?.user?.email ?? "admin";
+  logActivity("remove_listing", `Listing #${updated.id} (${updated.partNumber})`, adminEmail);
+
   const [seller] = await db.select().from(usersTable).where(eq(usersTable.id, updated.sellerId));
   void recomputeAndSave(updated.sellerId);
   res.json(serializeListing(updated, seller));
@@ -161,9 +196,10 @@ router.get("/admin/sellers", async (_req, res): Promise<void> => {
 
     let totalInquiriesCount = 0;
     if (listingIds.length > 0) {
+      const ids = listingIds.map(l => l.id);
       const [inquiriesRow] = await db.select({ count: count() })
         .from(inquiriesTable)
-        .where(sql`${inquiriesTable.listingId} = ANY(${listingIds.map(l => l.id)})`);
+        .where(inArray(inquiriesTable.listingId, ids));
       totalInquiriesCount = Number(inquiriesRow?.count ?? 0);
     }
 
@@ -175,7 +211,7 @@ router.get("/admin/sellers", async (_req, res): Promise<void> => {
 
 router.patch("/admin/sellers/:id/status", async (req, res): Promise<void> => {
   const id = parseInt(req.params.id as string, 10);
-  const { status } = req.body as { status: string };
+  const { status, reason } = req.body as { status: string; reason?: string };
 
   if (!["active", "suspended"].includes(status)) {
     res.status(400).json({ error: "Invalid status" });
@@ -192,6 +228,10 @@ router.patch("/admin/sellers/:id/status", async (req, res): Promise<void> => {
     return;
   }
 
+  const adminEmail = req.session?.user?.email ?? "admin";
+  const actionType = status === "suspended" ? "suspend_seller" : "activate_seller";
+  logActivity(actionType, `${updated.companyName} (${updated.email})`, adminEmail, reason);
+
   const [activeListingsRow] = await db.select({ count: count() })
     .from(listingsTable)
     .where(and(eq(listingsTable.sellerId, updated.id), eq(listingsTable.status, "active")));
@@ -203,7 +243,7 @@ router.patch("/admin/sellers/:id/plan", async (req, res): Promise<void> => {
   const id = parseInt(req.params.id as string, 10);
   const { plan } = req.body as { plan: string };
 
-  if (!["free", "pro", "enterprise"].includes(plan)) {
+  if (!["free", "pro", "enterprise", "mro_verified", "mro_premium", "mro_provider"].includes(plan)) {
     res.status(400).json({ error: "Invalid plan" });
     return;
   }
@@ -218,11 +258,65 @@ router.patch("/admin/sellers/:id/plan", async (req, res): Promise<void> => {
     return;
   }
 
+  const adminEmail = req.session?.user?.email ?? "admin";
+  logActivity("update_plan", `${updated.companyName} → ${plan}`, adminEmail);
+
   const [activeListingsRow] = await db.select({ count: count() })
     .from(listingsTable)
     .where(and(eq(listingsTable.sellerId, updated.id), eq(listingsTable.status, "active")));
 
   res.json(serializeSeller(updated, Number(activeListingsRow?.count ?? 0), 0));
+});
+
+router.post("/admin/sellers/:id/warn", async (req, res): Promise<void> => {
+  const id = parseInt(req.params.id as string, 10);
+  const { reason, strike } = req.body as { reason: string; strike?: number };
+
+  if (!reason) {
+    res.status(400).json({ error: "Reason is required" });
+    return;
+  }
+
+  const [seller] = await db.select().from(usersTable)
+    .where(and(eq(usersTable.id, id), eq(usersTable.role, "seller")));
+
+  if (!seller) {
+    res.status(404).json({ error: "Seller not found" });
+    return;
+  }
+
+  const newStrikeCount = Math.min(3, strike ?? (sellerStrikes[id] ?? 0) + 1);
+  sellerStrikes[id] = newStrikeCount;
+
+  const adminEmail = req.session?.user?.email ?? "admin";
+  logActivity(`warn_seller_strike_${newStrikeCount}`, `${seller.companyName} (${seller.email})`, adminEmail, reason);
+
+  res.json({ success: true, strikeCount: newStrikeCount });
+});
+
+router.get("/admin/activity", async (_req, res): Promise<void> => {
+  // Supplement in-memory log with recent listing audit log entries
+  const auditRows = await db.select({ log: listingAuditLogsTable, listing: listingsTable, admin: usersTable })
+    .from(listingAuditLogsTable)
+    .leftJoin(listingsTable, eq(listingAuditLogsTable.listingId, listingsTable.id))
+    .leftJoin(usersTable, eq(listingAuditLogsTable.adminId, usersTable.id))
+    .orderBy(listingAuditLogsTable.createdAt)
+    .limit(50);
+
+  const auditEntries: ActivityEntry[] = auditRows.map((r, i) => ({
+    id: -(i + 1),
+    timestamp: r.log.createdAt?.toISOString() ?? new Date().toISOString(),
+    actionType: r.log.action ?? "listing_action",
+    target: r.listing ? `${r.listing.partNumber} (Listing #${r.listing.id})` : `Listing #${r.log.listingId}`,
+    reason: r.log.metadata ? String(r.log.metadata) : null,
+    adminEmail: r.admin?.email ?? "admin",
+  }));
+
+  const combined = [...activityLog, ...auditEntries]
+    .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+    .slice(0, 30);
+
+  res.json(combined);
 });
 
 export default router;

@@ -6,8 +6,12 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface RfqResponseInput {
-  message: string;
+export interface AdminActivityEntry {
+  id: number;
+  timestamp: string;
+  actionType: string;
+  target: string;
   /** @nullable */
-  listingId?: number | null;
+  reason?: string | null;
+  adminEmail: string;
 }

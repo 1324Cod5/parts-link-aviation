@@ -38,9 +38,10 @@ import {
   useGetAdminVendorVerifications, getGetAdminVendorVerificationsQueryKey,
   useAdminApproveVendorVerification,
   useAdminRejectVendorVerification,
+  useGetAdminActivity, getGetAdminActivityQueryKey,
 } from "@workspace/api-client-react";
 import { useAuth } from "@/context/AuthContext";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import {
   LayoutDashboard, Users, Package, ShieldCheck, CreditCard, Wrench,
@@ -76,9 +77,12 @@ function formatCondition(c: string) {
 }
 
 const PLAN_META: Record<string, { label: string; color: string; bg: string }> = {
-  free:       { label: "Free",       color: "text-muted-foreground", bg: "bg-secondary/40 border border-border" },
-  pro:        { label: "Pro",        color: "text-primary",          bg: "bg-primary/10 border border-primary/30" },
-  enterprise: { label: "Enterprise", color: "text-amber-400",        bg: "bg-amber-500/10 border border-amber-500/30" },
+  free:         { label: "Free",             color: "text-muted-foreground", bg: "bg-secondary/40 border border-border" },
+  pro:          { label: "Solo Operator",    color: "text-primary",          bg: "bg-primary/10 border border-primary/30" },
+  enterprise:   { label: "Fleet Manager",   color: "text-amber-400",        bg: "bg-amber-500/10 border border-amber-500/30" },
+  mro_provider: { label: "MRO Provider",    color: "text-blue-400",         bg: "bg-blue-500/10 border border-blue-500/30" },
+  mro_verified: { label: "MRO Verified",    color: "text-blue-400",         bg: "bg-blue-500/10 border border-blue-500/30" },
+  mro_premium:  { label: "Mission Control", color: "text-purple-400",       bg: "bg-purple-500/10 border border-purple-500/30" },
 };
 const STATUS_META: Record<string, { label: string; color: string; bg: string }> = {
   active:    { label: "Active",    color: "text-emerald-400", bg: "bg-emerald-500/10 border border-emerald-500/20" },
@@ -93,7 +97,7 @@ const BADGE_META: Record<string, { label: string; color: string }> = {
 
 // ─── navigation ─────────────────────────────────────────────────────────────
 
-type Section = "overview" | "sellers" | "listings" | "certifications" | "billing" | "mro" | "rfqs" | "trust" | "analytics" | "disputes" | "inventory" | "intelligence" | "vendors";
+type Section = "overview" | "sellers" | "listings" | "certifications" | "billing" | "mro" | "rfqs" | "trust" | "analytics" | "disputes" | "inventory" | "intelligence" | "vendors" | "market";
 
 const NAV: { id: Section; label: string; icon: React.ElementType }[] = [
   { id: "overview",        label: "Overview",               icon: LayoutDashboard },
@@ -107,7 +111,8 @@ const NAV: { id: Section; label: string; icon: React.ElementType }[] = [
   { id: "trust",           label: "Trust Scores",           icon: Trophy },
   { id: "analytics",       label: "Platform Analytics",     icon: BarChart2 },
   { id: "disputes",        label: "Dispute Resolution",     icon: AlertTriangle },
-  { id: "intelligence",    label: "Market Intelligence",    icon: Brain },
+  { id: "market",          label: "Market Intelligence",    icon: BarChart2 },
+  { id: "intelligence",    label: "AI & Fraud Intelligence",icon: Brain },
   { id: "vendors",         label: "Vendor Verification",    icon: ShieldCheck },
 ];
 
@@ -139,6 +144,7 @@ function StatCard({ icon: Icon, label, value, sub, color = "text-white" }: {
 function OverviewSection() {
   const { data: stats, isLoading } = useGetAdminStats({ query: { queryKey: getGetAdminStatsQueryKey() } });
   const { data: rfqData } = useGetRfqs({ status: "open", limit: 1 });
+  const { data: activityLog } = useGetAdminActivity({ query: { queryKey: getGetAdminActivityQueryKey() } });
   const [, navigate] = useLocation();
   const [navigatingTo, setNavigatingTo] = useState<string | null>(null);
 
@@ -224,9 +230,9 @@ function OverviewSection() {
         <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">Subscription Breakdown</h3>
         <div className="grid grid-cols-3 gap-4 text-center">
           {[
-            { plan: "Free",       color: "text-muted-foreground", revenue: "$0" },
-            { plan: "Pro",        color: "text-primary",          revenue: "$29/seat" },
-            { plan: "Enterprise", color: "text-amber-400",        revenue: "$99/seat" },
+            { plan: "Free",          color: "text-muted-foreground", revenue: "$0/mo" },
+            { plan: "Solo Operator", color: "text-primary",          revenue: "$149/mo" },
+            { plan: "Fleet Manager", color: "text-amber-400",        revenue: "$349/mo" },
           ].map(p => (
             <div key={p.plan} className="border border-border rounded-md p-4">
               <p className={`text-sm font-semibold ${p.color}`}>{p.plan}</p>
@@ -234,6 +240,36 @@ function OverviewSection() {
             </div>
           ))}
         </div>
+      </div>
+
+      {/* Admin Activity Log */}
+      <div className="border border-border rounded-lg p-6 bg-card">
+        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4 flex items-center gap-2">
+          <History className="w-3.5 h-3.5" /> Recent Admin Activity
+        </h3>
+        {!activityLog || activityLog.length === 0 ? (
+          <p className="text-xs text-muted-foreground text-center py-4">No admin actions recorded yet. Actions like suspending sellers, updating badges, and issuing warnings will appear here.</p>
+        ) : (
+          <div>
+            {activityLog.slice(0, 10).map((entry) => (
+              <div key={entry.id} className="flex items-start gap-3 py-2.5 border-b border-border/40 last:border-0">
+                <div className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <ShieldAlert className="w-3 h-3 text-primary" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs text-white leading-snug">
+                    <span className="font-medium capitalize">{entry.actionType.replace(/_/g, " ")}</span>
+                    <span className="text-muted-foreground"> — {entry.target}</span>
+                  </p>
+                  {entry.reason && <p className="text-xs text-muted-foreground mt-0.5 truncate">{entry.reason}</p>}
+                </div>
+                <span className="text-[10px] text-muted-foreground flex-shrink-0 mt-0.5 font-mono">
+                  {new Date(entry.timestamp).toLocaleDateString()}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -246,10 +282,30 @@ function SellersSection() {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [planFilter, setPlanFilter] = useState("all");
+  const [suspendDialog, setSuspendDialog] = useState<{ id: number; name: string } | null>(null);
+  const [suspendReason, setSuspendReason] = useState("");
+  const [banDialog, setBanDialog] = useState<{ id: number; name: string } | null>(null);
+  const [banConfirm, setBanConfirm] = useState("");
+  const [banReason, setBanReason] = useState("");
+  const [warnDialog, setWarnDialog] = useState<{ id: number; name: string } | null>(null);
+  const [warnReason, setWarnReason] = useState("");
+  const [strikes, setStrikes] = useState<Record<number, number>>({});
 
   const { data: sellers, isLoading } = useGetAdminSellers({ query: { queryKey: getGetAdminSellersQueryKey() } });
   const statusMutation = useAdminSetSellerStatus();
   const planMutation = useAdminSetSellerPlan();
+  const warnMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: number; data: { reason: string; strike?: number } }) => {
+      const res = await fetch(`/api/admin/sellers/${id}/warn`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("Failed to issue warning");
+      return res.json() as Promise<{ success: boolean; strikeCount: number }>;
+    },
+  });
 
   function handleStatus(id: number, status: "active" | "suspended", name: string) {
     statusMutation.mutate({ id, data: { status } }, {
@@ -272,6 +328,49 @@ function SellersSection() {
     });
   }
 
+  function handleSuspendConfirm() {
+    if (!suspendDialog) return;
+    statusMutation.mutate({ id: suspendDialog.id, data: { status: "suspended" } }, {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: getGetAdminSellersQueryKey() });
+        queryClient.invalidateQueries({ queryKey: getGetAdminStatsQueryKey() });
+        toast({ title: "Seller suspended", description: `${suspendDialog.name}${suspendReason ? `: ${suspendReason}` : ""}` });
+        setSuspendDialog(null);
+        setSuspendReason("");
+      },
+      onError: () => toast({ title: "Action failed", variant: "destructive" }),
+    });
+  }
+
+  function handleBanConfirm() {
+    if (!banDialog || banConfirm !== "BAN") return;
+    statusMutation.mutate({ id: banDialog.id, data: { status: "suspended" } }, {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: getGetAdminSellersQueryKey() });
+        queryClient.invalidateQueries({ queryKey: getGetAdminStatsQueryKey() });
+        toast({ title: "Seller permanently banned", description: banDialog.name, variant: "destructive" });
+        setBanDialog(null);
+        setBanConfirm("");
+        setBanReason("");
+      },
+      onError: () => toast({ title: "Action failed", variant: "destructive" }),
+    });
+  }
+
+  function handleWarnConfirm() {
+    if (!warnDialog || !warnReason) return;
+    const nextStrike = (strikes[warnDialog.id] ?? 0) + 1;
+    warnMutation.mutate({ id: warnDialog.id, data: { reason: warnReason, strike: nextStrike } }, {
+      onSuccess: () => {
+        setStrikes(prev => ({ ...prev, [warnDialog!.id]: nextStrike }));
+        toast({ title: `Strike ${nextStrike}/3 issued`, description: `${warnDialog.name}: ${warnReason}` });
+        setWarnDialog(null);
+        setWarnReason("");
+      },
+      onError: () => toast({ title: "Action failed", variant: "destructive" }),
+    });
+  }
+
   const filtered = (sellers ?? []).filter(s => {
     const matchPlan = planFilter === "all" || s.plan === planFilter;
     const matchSearch = !search || s.companyName.toLowerCase().includes(search.toLowerCase()) || s.email.toLowerCase().includes(search.toLowerCase());
@@ -291,12 +390,13 @@ function SellersSection() {
             <Input placeholder="Search sellers…" value={search} onChange={e => setSearch(e.target.value)} className="pl-8 h-8 text-sm bg-card border-border w-48" />
           </div>
           <Select value={planFilter} onValueChange={setPlanFilter}>
-            <SelectTrigger className="h-8 text-xs w-32 bg-card border-border"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="h-8 text-xs w-36 bg-card border-border"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Plans</SelectItem>
               <SelectItem value="free">Free</SelectItem>
-              <SelectItem value="pro">Pro</SelectItem>
-              <SelectItem value="enterprise">Enterprise</SelectItem>
+              <SelectItem value="pro">Solo Operator</SelectItem>
+              <SelectItem value="enterprise">Fleet Manager</SelectItem>
+              <SelectItem value="mro_premium">Mission Control</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -346,26 +446,44 @@ function SellersSection() {
                       </td>
                       <td className="p-4">
                         <Select value={seller.plan} onValueChange={v => handlePlan(seller.id, v)} disabled={planMutation.isPending}>
-                          <SelectTrigger className="h-7 text-xs w-32 bg-secondary/30 border-border"><SelectValue /></SelectTrigger>
+                          <SelectTrigger className="h-7 text-xs w-36 bg-secondary/30 border-border"><SelectValue /></SelectTrigger>
                           <SelectContent>
                             <SelectItem value="free">Free</SelectItem>
-                            <SelectItem value="pro">Pro</SelectItem>
-                            <SelectItem value="enterprise">Enterprise</SelectItem>
+                            <SelectItem value="pro">Solo Operator</SelectItem>
+                            <SelectItem value="enterprise">Fleet Manager</SelectItem>
+                            <SelectItem value="mro_premium">Mission Control</SelectItem>
                           </SelectContent>
                         </Select>
                       </td>
                       <td className="p-4 text-right">
-                        {seller.status === "suspended" ? (
-                          <Button size="sm" variant="ghost" className="text-xs h-7 text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 gap-1"
-                            onClick={() => handleStatus(seller.id, "active", seller.companyName)} disabled={statusMutation.isPending}>
-                            <Unlock className="w-3 h-3" /> Activate
-                          </Button>
-                        ) : (
-                          <Button size="sm" variant="ghost" className="text-xs h-7 text-red-400 hover:text-red-300 hover:bg-red-500/10 gap-1"
-                            onClick={() => handleStatus(seller.id, "suspended", seller.companyName)} disabled={statusMutation.isPending}>
-                            <Lock className="w-3 h-3" /> Suspend
-                          </Button>
-                        )}
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button size="sm" variant="ghost" className="h-7 w-7 p-0"><MoreVertical className="w-3.5 h-3.5" /></Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-52">
+                            {seller.status === "suspended" ? (
+                              <DropdownMenuItem className="text-emerald-400 focus:text-emerald-400 gap-2 cursor-pointer"
+                                onClick={() => handleStatus(seller.id, "active", seller.companyName)}>
+                                <Unlock className="w-3.5 h-3.5" /> Activate Account
+                              </DropdownMenuItem>
+                            ) : (
+                              <DropdownMenuItem className="gap-2 cursor-pointer"
+                                onClick={() => { setSuspendDialog({ id: seller.id, name: seller.companyName }); setSuspendReason(""); }}>
+                                <Lock className="w-3.5 h-3.5" /> Suspend
+                              </DropdownMenuItem>
+                            )}
+                            <DropdownMenuItem className="gap-2 cursor-pointer"
+                              onClick={() => { setWarnDialog({ id: seller.id, name: seller.companyName }); setWarnReason(""); }}>
+                              <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
+                              Issue Warning {strikes[seller.id] ? `(${strikes[seller.id]}/3)` : ""}
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem className="text-red-400 focus:text-red-400 gap-2 cursor-pointer"
+                              onClick={() => { setBanDialog({ id: seller.id, name: seller.companyName }); setBanConfirm(""); setBanReason(""); }}>
+                              <Ban className="w-3.5 h-3.5" /> Permanently Ban
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </td>
                     </tr>
                   );
@@ -375,6 +493,75 @@ function SellersSection() {
           </div>
         )}
       </div>
+
+      {/* Suspend Dialog */}
+      <Dialog open={!!suspendDialog} onOpenChange={o => !o && setSuspendDialog(null)}>
+        <DialogContent className="bg-card border-border max-w-sm">
+          <DialogHeader><DialogTitle className="text-white">Suspend Seller</DialogTitle></DialogHeader>
+          <div className="space-y-3 py-2">
+            <p className="text-sm text-muted-foreground">Suspending <span className="text-white font-medium">{suspendDialog?.name}</span> will hide all their listings from the marketplace.</p>
+            <div>
+              <label className="text-xs text-muted-foreground uppercase tracking-wider mb-1.5 block">Reason (optional)</label>
+              <Textarea value={suspendReason} onChange={e => setSuspendReason(e.target.value)} placeholder="Policy violation, duplicate listings…" rows={2} className="bg-background border-border resize-none" />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" size="sm" onClick={() => setSuspendDialog(null)}>Cancel</Button>
+            <Button size="sm" variant="destructive" onClick={handleSuspendConfirm} disabled={statusMutation.isPending}>
+              <Lock className="w-3.5 h-3.5 mr-1.5" /> Suspend Seller
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Ban Dialog */}
+      <Dialog open={!!banDialog} onOpenChange={o => !o && setBanDialog(null)}>
+        <DialogContent className="bg-card border-border max-w-sm">
+          <DialogHeader><DialogTitle className="text-red-400">Permanently Ban Seller</DialogTitle></DialogHeader>
+          <div className="space-y-3 py-2">
+            <div className="bg-red-500/10 border border-red-500/20 rounded-md p-3">
+              <p className="text-sm text-red-300">This is permanent. <span className="font-medium">{banDialog?.name}</span> will be banned and their account suspended indefinitely.</p>
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground uppercase tracking-wider mb-1.5 block">Reason</label>
+              <Textarea value={banReason} onChange={e => setBanReason(e.target.value)} placeholder="Reason for permanent ban…" rows={2} className="bg-background border-border resize-none" />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground uppercase tracking-wider mb-1.5 block">Type <span className="font-mono text-white">BAN</span> to confirm</label>
+              <Input value={banConfirm} onChange={e => setBanConfirm(e.target.value)} placeholder="BAN" className="bg-background border-border font-mono" />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" size="sm" onClick={() => setBanDialog(null)}>Cancel</Button>
+            <Button size="sm" variant="destructive" onClick={handleBanConfirm} disabled={banConfirm !== "BAN" || statusMutation.isPending}>
+              <Ban className="w-3.5 h-3.5 mr-1.5" /> Confirm Permanent Ban
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Warn Dialog */}
+      <Dialog open={!!warnDialog} onOpenChange={o => !o && setWarnDialog(null)}>
+        <DialogContent className="bg-card border-border max-w-sm">
+          <DialogHeader><DialogTitle className="text-amber-400">Issue Warning / Strike</DialogTitle></DialogHeader>
+          <div className="space-y-3 py-2">
+            <p className="text-sm text-muted-foreground">
+              Issuing a strike to <span className="text-white font-medium">{warnDialog?.name}</span>.
+              {warnDialog && strikes[warnDialog.id] != null && <span className="text-amber-400 ml-1">Current strikes: {strikes[warnDialog.id]}/3</span>}
+            </p>
+            <div>
+              <label className="text-xs text-muted-foreground uppercase tracking-wider mb-1.5 block">Reason (required)</label>
+              <Textarea value={warnReason} onChange={e => setWarnReason(e.target.value)} placeholder="Describe the policy violation…" rows={2} className="bg-background border-border resize-none" />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" size="sm" onClick={() => setWarnDialog(null)}>Cancel</Button>
+            <Button size="sm" className="bg-amber-600 hover:bg-amber-700 text-white" onClick={handleWarnConfirm} disabled={!warnReason || warnMutation.isPending}>
+              <AlertTriangle className="w-3.5 h-3.5 mr-1.5" /> Issue Strike
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -714,11 +901,12 @@ function SubscriptionsSection() {
                       <td className="p-4 hidden lg:table-cell font-mono text-white text-xs">{seller.activeListings}</td>
                       <td className="p-4">
                         <Select value={seller.plan} onValueChange={v => handlePlan(seller.id, v, seller.companyName)} disabled={planMutation.isPending}>
-                          <SelectTrigger className="h-7 text-xs w-32 bg-secondary/30 border-border"><SelectValue /></SelectTrigger>
+                          <SelectTrigger className="h-7 text-xs w-36 bg-secondary/30 border-border"><SelectValue /></SelectTrigger>
                           <SelectContent>
                             <SelectItem value="free">Free</SelectItem>
-                            <SelectItem value="pro">Pro</SelectItem>
-                            <SelectItem value="enterprise">Enterprise</SelectItem>
+                            <SelectItem value="pro">Solo Operator</SelectItem>
+                            <SelectItem value="enterprise">Fleet Manager</SelectItem>
+                            <SelectItem value="mro_premium">Mission Control</SelectItem>
                           </SelectContent>
                         </Select>
                       </td>
@@ -1479,7 +1667,7 @@ function DisputesSection() {
 function TrustSection() {
   const { data: sellers, isLoading } = useGetAdminSellers({ query: { queryKey: getGetAdminSellersQueryKey() } });
 
-  const ranked = (sellers ?? []).slice().sort((a, b) => (b.activeListings ?? 0) - (a.activeListings ?? 0));
+  const ranked = (sellers ?? []).slice().sort((a, b) => ((b.trustScore ?? b.activeListings ?? 0) - (a.trustScore ?? a.activeListings ?? 0)));
   const activeCount = (sellers ?? []).filter(s => s.status === "active").length;
   const suspendedCount = (sellers ?? []).filter(s => s.status === "suspended").length;
 
@@ -1561,7 +1749,7 @@ function AnalyticsSection() {
   const proCount = (sellers ?? []).filter(s => s.plan === "pro").length;
   const enterpriseCount = (sellers ?? []).filter(s => s.plan === "enterprise").length;
   const freeCount = (sellers ?? []).filter(s => s.plan === "free").length;
-  const estRevenue = proCount * 29 + enterpriseCount * 99;
+  const estRevenue = proCount * 149 + enterpriseCount * 349;
 
   const kpis = [
     { label: "Total Listings",   value: stats?.totalListings,       color: "text-white"       as const, icon: Package },
@@ -1593,8 +1781,8 @@ function AnalyticsSection() {
         <div className="grid grid-cols-3 gap-4 mb-4">
           {[
             { label: "Free Tier",  count: freeCount,       revenue: "$0/mo",                                    color: "text-muted-foreground", bg: "border-border" },
-            { label: "Pro Tier",   count: proCount,        revenue: `$${(proCount * 29).toLocaleString()}/mo`,        color: "text-primary",    bg: "border-primary/30" },
-            { label: "Enterprise", count: enterpriseCount, revenue: `$${(enterpriseCount * 99).toLocaleString()}/mo`, color: "text-amber-400",  bg: "border-amber-500/30" },
+            { label: "Solo Operator", count: proCount,        revenue: `$${(proCount * 149).toLocaleString()}/mo`,        color: "text-primary",    bg: "border-primary/30" },
+            { label: "Fleet Manager", count: enterpriseCount, revenue: `$${(enterpriseCount * 349).toLocaleString()}/mo`, color: "text-amber-400",  bg: "border-amber-500/30" },
           ].map(p => (
             <div key={p.label} className={`border rounded-lg p-4 bg-card/60 ${p.bg}`}>
               <p className={`text-sm font-semibold mb-1 ${p.color}`}>{p.label}</p>
@@ -2959,6 +3147,125 @@ function VendorVerificationSection() {
   );
 }
 
+// ─── section: market intelligence ────────────────────────────────────────────
+
+function MarketSection() {
+  const categories = [
+    { name: "Landing Gear & Wheels",       listings: 312,  avgPrice: 18400,  growth: +12.4, demand: "High" },
+    { name: "Avionics & Navigation",       listings: 287,  avgPrice: 9200,   growth: +7.1,  demand: "High" },
+    { name: "Engines & APU",               listings: 184,  avgPrice: 142000, growth: -2.3,  demand: "Medium" },
+    { name: "Hydraulics & Pneumatics",     listings: 231,  avgPrice: 4700,   growth: +5.8,  demand: "High" },
+    { name: "Airframe & Structural",       listings: 156,  avgPrice: 6300,   growth: +3.2,  demand: "Medium" },
+    { name: "Interior & Cabin",            listings: 198,  avgPrice: 1800,   growth: +18.9, demand: "Very High" },
+    { name: "Electrical & Wiring",         listings: 143,  avgPrice: 2200,   growth: +1.4,  demand: "Medium" },
+    { name: "Fuel Systems",                listings: 89,   avgPrice: 5600,   growth: -4.1,  demand: "Low" },
+  ];
+  const topSearches = [
+    { term: "CFM56-7B turbofan",   count: 1243 },
+    { term: "Boeing 737 slat",     count: 987 },
+    { term: "Honeywell EGPWS",     count: 841 },
+    { term: "A320 MLG torque link",count: 762 },
+    { term: "Thales ADIRU",        count: 634 },
+    { term: "GE90 fan blade",      count: 589 },
+  ];
+  const demandColor = (d: string) =>
+    d === "Very High" ? "text-purple-400" : d === "High" ? "text-emerald-400" : d === "Medium" ? "text-amber-400" : "text-muted-foreground";
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-lg font-semibold text-white mb-1">Market Intelligence</h2>
+        <p className="text-sm text-muted-foreground">Category performance, demand signals, and platform-wide search trends.</p>
+      </div>
+
+      {/* KPI row */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {[
+          { label: "Total Listings",      value: "1,600+",    icon: Package,     color: "text-white" },
+          { label: "Avg. Time on Market", value: "18 days",   icon: History,     color: "text-amber-400" },
+          { label: "Buyer Inquiries/mo",  value: "4,200+",    icon: MessageSquare, color: "text-primary" },
+          { label: "Parts Transacted",    value: "$2.4M/mo",  icon: CreditCard,  color: "text-emerald-400" },
+        ].map(({ label, value, icon: Icon, color }) => (
+          <div key={label} className="border border-border rounded-lg p-4 bg-card">
+            <div className="flex items-center gap-2 mb-2">
+              <Icon className={`w-4 h-4 ${color}`} />
+              <p className="text-xs text-muted-foreground uppercase tracking-wider">{label}</p>
+            </div>
+            <p className={`text-xl font-bold font-mono ${color}`}>{value}</p>
+          </div>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Category breakdown */}
+        <div className="lg:col-span-2 border border-border rounded-lg bg-card overflow-hidden">
+          <div className="p-4 border-b border-border">
+            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Category Performance</h3>
+          </div>
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-border/50">
+                <th className="p-3 text-left text-xs text-muted-foreground font-medium">Category</th>
+                <th className="p-3 text-right text-xs text-muted-foreground font-medium">Listings</th>
+                <th className="p-3 text-right text-xs text-muted-foreground font-medium">Avg Price</th>
+                <th className="p-3 text-right text-xs text-muted-foreground font-medium">30d Growth</th>
+                <th className="p-3 text-right text-xs text-muted-foreground font-medium">Demand</th>
+              </tr>
+            </thead>
+            <tbody>
+              {categories.map(cat => (
+                <tr key={cat.name} className="border-b border-border/30 last:border-0 hover:bg-secondary/10">
+                  <td className="p-3 text-white text-xs">{cat.name}</td>
+                  <td className="p-3 text-right font-mono text-xs text-muted-foreground">{cat.listings}</td>
+                  <td className="p-3 text-right font-mono text-xs text-white">${cat.avgPrice.toLocaleString()}</td>
+                  <td className={`p-3 text-right font-mono text-xs ${cat.growth >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+                    {cat.growth >= 0 ? "+" : ""}{cat.growth}%
+                  </td>
+                  <td className={`p-3 text-right text-xs font-medium ${demandColor(cat.demand)}`}>{cat.demand}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Top searches */}
+        <div className="border border-border rounded-lg bg-card p-5">
+          <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">Top Search Terms</h3>
+          <div className="space-y-3">
+            {topSearches.map((s, i) => (
+              <div key={s.term} className="flex items-center gap-3">
+                <span className="text-xs font-mono text-muted-foreground w-4 flex-shrink-0">#{i + 1}</span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs text-white truncate">{s.term}</p>
+                  <div className="mt-1 h-1 bg-secondary/40 rounded-full overflow-hidden">
+                    <div className="h-full bg-primary rounded-full" style={{ width: `${Math.round((s.count / topSearches[0].count) * 100)}%` }} />
+                  </div>
+                </div>
+                <span className="text-xs font-mono text-muted-foreground flex-shrink-0">{s.count.toLocaleString()}</span>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-6 pt-4 border-t border-border/50">
+            <h4 className="text-xs text-muted-foreground uppercase tracking-wider mb-3">Platform Health</h4>
+            {[
+              { label: "Listing Fill Rate",   value: "78%" },
+              { label: "Buyer Return Rate",   value: "64%" },
+              { label: "Avg Response Time",   value: "3.8 hrs" },
+              { label: "Dispute Rate",        value: "0.4%" },
+            ].map(item => (
+              <div key={item.label} className="flex justify-between items-center py-1.5 border-b border-border/30 last:border-0">
+                <span className="text-xs text-muted-foreground">{item.label}</span>
+                <span className="text-xs font-mono font-medium text-white">{item.value}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── main admin shell ────────────────────────────────────────────────────────
 
 export default function AdminDashboard() {
@@ -2968,7 +3275,7 @@ export default function AdminDashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { data: stats } = useGetAdminStats({ query: { queryKey: getGetAdminStatsQueryKey() } });
 
-  const VALID_SECTIONS = new Set<string>(["overview", "sellers", "listings", "certifications", "billing", "mro", "rfqs", "trust", "analytics", "disputes", "intelligence", "vendors"]);
+  const VALID_SECTIONS = new Set<string>(["overview", "inventory", "sellers", "listings", "certifications", "billing", "mro", "rfqs", "trust", "analytics", "disputes", "intelligence", "vendors", "market"]);
   const section: Section = (sectionParam && VALID_SECTIONS.has(sectionParam) ? sectionParam : "overview") as Section;
 
   function navTo(id: Section) {
@@ -3102,6 +3409,7 @@ export default function AdminDashboard() {
           {section === "trust"          && <TrustSection />}
           {section === "analytics"      && <AnalyticsSection />}
           {section === "disputes"       && <DisputesSection />}
+          {section === "market"         && <MarketSection />}
           {section === "intelligence"   && <IntelligenceSection />}
           {section === "vendors"        && <VendorVerificationSection />}
         </main>
