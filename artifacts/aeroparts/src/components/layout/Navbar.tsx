@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Zap } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
 import {
@@ -14,10 +14,23 @@ import {
   getGetConversationsUnreadCountQueryKey,
 } from "@workspace/api-client-react";
 
+// ─── Brand tokens (match homepage) ────────────────────────────────────────────
+const BLUE = "#1976d2";
+const GOLD = "#f5a623";
+const NAVY = "#0a1628";
+
 const ROLE_LABELS: Record<string, string> = {
   buyer: "Buyer View",
   seller: "Seller View",
   admin: "Admin View",
+};
+
+const PLAN_LABELS: Record<string, string> = {
+  pro: "PRO",
+  enterprise: "ENTERPRISE",
+  mro_verified: "MRO",
+  mro_premium: "MRO+",
+  mro_provider: "MRO",
 };
 
 export function Navbar() {
@@ -38,57 +51,143 @@ export function Navbar() {
   });
   const unreadCount = unreadData?.count ?? 0;
 
+  const navLinkStyle = (active: boolean) => ({
+    fontFamily: "'Barlow Condensed', sans-serif",
+    fontWeight: 600,
+    fontSize: 14,
+    letterSpacing: "0.06em",
+    textTransform: "uppercase" as const,
+    textDecoration: "none",
+    color: active ? "#fff" : "#7ea8c8",
+    transition: "color 0.2s",
+    position: "relative" as const,
+  });
+
   return (
-    <nav className="border-b border-border bg-background sticky top-0 z-50">
-      <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-        <div className="flex items-center gap-8">
-          <Link href="/" className="flex items-center gap-2">
-            <span className="text-xl font-bold tracking-tight text-white">AeroParts</span>
+    <nav style={{ background: "rgba(10,22,40,0.97)", borderBottom: "1px solid #1a3050", position: "sticky", top: 0, zIndex: 50, backdropFilter: "blur(12px)" }}>
+      <div className="container mx-auto px-4" style={{ height: 64, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+
+        {/* Left: Logo + nav links */}
+        <div style={{ display: "flex", alignItems: "center", gap: 32 }}>
+          {/* Logo */}
+          <Link href="/" style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none", flexShrink: 0 }}>
+            <div style={{
+              width: 34, height: 34, borderRadius: 7,
+              background: `linear-gradient(135deg, ${BLUE}, #0d47a1)`,
+              display: "flex", alignItems: "center", justifyContent: "center",
+              fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 900,
+              fontSize: 14, color: "#fff", letterSpacing: -0.5, flexShrink: 0,
+            }}>AP</div>
+            <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, fontSize: 18, color: "#fff", letterSpacing: 0.3, whiteSpace: "nowrap" }}>
+              AeroParts <span style={{ color: GOLD }}>Exchange</span>
+            </span>
           </Link>
-          <div className="hidden md:flex items-center gap-4">
-            <Link href="/marketplace" className={`text-sm font-medium transition-colors hover:text-primary ${location === '/marketplace' ? 'text-primary' : 'text-muted-foreground'}`}>
-              Marketplace
-            </Link>
-            <Link href="/rfqs" className={`text-sm font-medium transition-colors hover:text-primary ${location.startsWith('/rfqs') ? 'text-primary' : 'text-muted-foreground'}`}>
-              RFQ Board
-            </Link>
-            <Link href="/mro" className={`text-sm font-medium transition-colors hover:text-primary ${location.startsWith('/mro') ? 'text-primary' : 'text-muted-foreground'}`}>
-              MRO Services
-            </Link>
-            <Link href="/pricing" className={`text-sm font-medium transition-colors hover:text-primary ${location === '/pricing' ? 'text-primary' : 'text-muted-foreground'}`}>
-              Pricing
-            </Link>
-            {activeRole === 'seller' && (
-              <Link href="/seller/dashboard" className={`relative text-sm font-medium transition-colors hover:text-primary ${location.startsWith('/seller') ? 'text-primary' : 'text-muted-foreground'}`}>
+
+          {/* Nav links */}
+          <div className="hidden md:flex" style={{ alignItems: "center", gap: 24 }}>
+            <Link
+              href="/marketplace"
+              style={navLinkStyle(location === "/marketplace")}
+              onMouseEnter={e => (e.currentTarget.style.color = "#fff")}
+              onMouseLeave={e => (e.currentTarget.style.color = location === "/marketplace" ? "#fff" : "#7ea8c8")}
+            >Marketplace</Link>
+
+            <Link
+              href="/rfqs"
+              style={navLinkStyle(location.startsWith("/rfqs"))}
+              onMouseEnter={e => (e.currentTarget.style.color = "#fff")}
+              onMouseLeave={e => (e.currentTarget.style.color = location.startsWith("/rfqs") ? "#fff" : "#7ea8c8")}
+            >RFQ Board</Link>
+
+            <Link
+              href="/mro"
+              style={navLinkStyle(location.startsWith("/mro"))}
+              onMouseEnter={e => (e.currentTarget.style.color = "#fff")}
+              onMouseLeave={e => (e.currentTarget.style.color = location.startsWith("/mro") ? "#fff" : "#7ea8c8")}
+            >MRO Services</Link>
+
+            <Link
+              href="/pricing"
+              style={navLinkStyle(location === "/pricing")}
+              onMouseEnter={e => (e.currentTarget.style.color = "#fff")}
+              onMouseLeave={e => (e.currentTarget.style.color = location === "/pricing" ? "#fff" : "#7ea8c8")}
+            >Pricing</Link>
+
+            {activeRole === "seller" && (
+              <Link
+                href="/seller/dashboard"
+                style={{ ...navLinkStyle(location.startsWith("/seller")), position: "relative" }}
+                onMouseEnter={e => (e.currentTarget.style.color = "#fff")}
+                onMouseLeave={e => (e.currentTarget.style.color = location.startsWith("/seller") ? "#fff" : "#7ea8c8")}
+              >
                 Dashboard
                 {unreadCount > 0 && (
-                  <span className="absolute -top-2 -right-3.5 h-4 min-w-[1rem] flex items-center justify-center rounded-full bg-blue-500 text-[9px] font-bold text-white px-1 leading-none">
+                  <span style={{
+                    position: "absolute", top: -8, right: -14,
+                    height: 16, minWidth: 16, display: "flex", alignItems: "center", justifyContent: "center",
+                    borderRadius: 8, background: BLUE, color: "#fff",
+                    fontSize: 9, fontWeight: 700, padding: "0 3px", lineHeight: 1,
+                  }}>
                     {unreadCount > 99 ? "99+" : unreadCount}
                   </span>
                 )}
               </Link>
             )}
-            {activeRole === 'admin' && (
-              <Link href="/admin" className={`text-sm font-medium transition-colors hover:text-primary ${location.startsWith('/admin') ? 'text-primary' : 'text-muted-foreground'}`}>
-                Admin Portal
-              </Link>
+
+            {activeRole === "admin" && (
+              <Link
+                href="/admin"
+                style={navLinkStyle(location.startsWith("/admin"))}
+                onMouseEnter={e => (e.currentTarget.style.color = "#fff")}
+                onMouseLeave={e => (e.currentTarget.style.color = location.startsWith("/admin") ? "#fff" : "#7ea8c8")}
+              >Admin Portal</Link>
             )}
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
+        {/* Right: AOG button + auth */}
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          {/* AOG 24/7 button */}
+          <a
+            href="tel:+18002376247"
+            className="hidden md:inline-flex aog-pulse"
+            style={{
+              alignItems: "center", gap: 5, padding: "7px 14px", borderRadius: 6,
+              background: "#991b1b", color: "#fff",
+              fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, fontSize: 13,
+              letterSpacing: "0.06em", textDecoration: "none", textTransform: "uppercase",
+            }}
+          >
+            <Zap size={12} />⚡ AOG 24/7
+          </a>
+
           {!user ? (
             <>
               <Link href="/seller/login">
-                <Button variant="ghost" className="text-white hover:text-primary">Sign In</Button>
+                <button style={{
+                  background: "none", border: "none", color: "#7ea8c8", cursor: "pointer",
+                  fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 600, fontSize: 14,
+                  letterSpacing: "0.06em", textTransform: "uppercase", padding: "7px 12px",
+                  transition: "color 0.2s",
+                }}
+                onMouseEnter={e => (e.currentTarget.style.color = "#fff")}
+                onMouseLeave={e => (e.currentTarget.style.color = "#7ea8c8")}
+                >Sign In</button>
               </Link>
               <Link href="/seller/register">
-                <Button className="bg-primary text-primary-foreground hover:bg-primary/90">Become a Seller</Button>
+                <button style={{
+                  padding: "8px 18px", borderRadius: 6, background: BLUE, border: "none",
+                  color: "#fff", cursor: "pointer",
+                  fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, fontSize: 14,
+                  letterSpacing: "0.06em", textTransform: "uppercase",
+                }}>
+                  Get Started
+                </button>
               </Link>
             </>
           ) : (
-            <div className="flex items-center gap-3">
-              {/* Role switcher — shown only when the account has multiple roles */}
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              {/* Role switcher */}
               {hasMultipleRoles && (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
@@ -124,19 +223,37 @@ export function Navbar() {
                 </DropdownMenu>
               )}
 
-              <span className="text-sm text-muted-foreground hidden md:inline-flex items-center gap-2">
+              {/* User name + plan badge */}
+              <span className="hidden md:inline-flex" style={{ alignItems: "center", gap: 8, fontFamily: "'Barlow', sans-serif", fontSize: 13, color: "#7ea8c8" }}>
                 {user.contactName}
-                {user.plan && user.plan !== 'free' && (
-                  <span className={`text-xs px-1.5 py-0.5 rounded font-medium uppercase tracking-wide ${
-                    user.plan === 'enterprise' ? 'bg-amber-500/20 text-amber-400' : 'bg-primary/20 text-primary'
-                  }`}>
-                    {user.plan}
+                {user.plan && user.plan !== "free" && PLAN_LABELS[user.plan] && (
+                  <span style={{
+                    fontFamily: "'Barlow Condensed', sans-serif",
+                    fontSize: 10, fontWeight: 800, letterSpacing: "0.08em",
+                    textTransform: "uppercase",
+                    background: GOLD, color: NAVY,
+                    padding: "2px 7px", borderRadius: 3,
+                  }}>
+                    {PLAN_LABELS[user.plan]}
                   </span>
                 )}
               </span>
-              <Button variant="ghost" onClick={logout} className="text-muted-foreground hover:text-white">
+
+              {/* Sign out */}
+              <button
+                onClick={logout}
+                style={{
+                  background: "rgba(255,255,255,0.06)", border: "1px solid #1a3050",
+                  color: "#7ea8c8", cursor: "pointer", borderRadius: 6,
+                  fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 600,
+                  fontSize: 13, letterSpacing: "0.06em", textTransform: "uppercase",
+                  padding: "7px 14px", transition: "all 0.2s",
+                }}
+                onMouseEnter={e => { e.currentTarget.style.color = "#fff"; e.currentTarget.style.background = "rgba(255,255,255,0.1)"; }}
+                onMouseLeave={e => { e.currentTarget.style.color = "#7ea8c8"; e.currentTarget.style.background = "rgba(255,255,255,0.06)"; }}
+              >
                 Sign Out
-              </Button>
+              </button>
             </div>
           )}
         </div>

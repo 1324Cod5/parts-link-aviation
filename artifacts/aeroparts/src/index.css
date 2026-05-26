@@ -141,6 +141,34 @@
   }
 }
 
+/* ─── AeroParts Exchange — global brand typography ───────────────────────── */
+
+h1, h2, h3, h4 {
+  font-family: 'Barlow Condensed', sans-serif;
+}
+
+/* AOG pulsing button animation */
+@keyframes aog-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(153, 27, 27, 0.6); }
+  50%       { box-shadow: 0 0 0 7px rgba(153, 27, 27, 0); }
+}
+.aog-pulse {
+  animation: aog-pulse 2s ease-in-out infinite;
+}
+
+/* Footer responsive grid */
+@media (max-width: 900px) {
+  .ap-footer-grid {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 28px !important;
+  }
+}
+@media (max-width: 560px) {
+  .ap-footer-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
 /* ─── Interaction utilities ───────────────────────────────────────────────── */
 
 @layer utilities {
