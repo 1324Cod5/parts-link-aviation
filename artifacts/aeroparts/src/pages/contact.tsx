@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { useToast } from "@/hooks/use-toast";
-import { Mail, Phone, Clock, CheckCircle2 } from "lucide-react";
+import { Mail, Clock, CheckCircle2 } from "lucide-react";
 
 const BLUE = "#1976d2";
 const MUTED = "#7ea8c8";
@@ -42,37 +42,38 @@ export default function ContactPage() {
           Contact <span style={{ color: "#f5a623" }}>Support</span>
         </h1>
         <p style={{ fontFamily: "'Barlow', sans-serif", fontSize: 16, color: MUTED, marginBottom: 48 }}>
-          Our aviation specialist team is available 24/7 for AOG emergencies and responds to general inquiries within 1 business day.
+          Have a question or need help? Fill out the form below or email us directly — we respond within 1 business day.
         </p>
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1.6fr", gap: 32 }} className="contact-grid">
           {/* Contact info */}
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-            {[
-              { icon: Mail,  label: "Support Email",  value: "support@partslinkaviation.com", href: "mailto:support@partslinkaviation.com" },
-              { icon: Phone, label: "AOG Hotline",    value: "1-800-AERO-247", href: "tel:+18002376247" },
-              { icon: Phone, label: "Sales",          value: "+1 (302) 555-0147", href: "tel:+13025550147" },
-              { icon: Clock, label: "Support Hours",  value: "Mon–Fri 08:00–20:00 EST\nAOG line: 24/7/365", href: null },
-            ].map(({ icon: Icon, label, value, href }) => (
-              <div key={label} style={{ background: CARD, border: `1px solid ${BORDER}`, borderRadius: 12, padding: "18px 20px", display: "flex", gap: 14, alignItems: "flex-start" }}>
-                <div style={{ width: 38, height: 38, borderRadius: 8, background: "rgba(25,118,210,0.1)", border: "1px solid rgba(25,118,210,0.2)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                  <Icon size={16} color={BLUE} />
-                </div>
-                <div>
-                  <p style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, fontSize: 13, color: "#fff", letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 4 }}>{label}</p>
-                  {href ? (
-                    <a href={href} style={{ fontFamily: "'Barlow', sans-serif", fontSize: 14, color: MUTED, textDecoration: "none" }}>{value}</a>
-                  ) : (
-                    <p style={{ fontFamily: "'Barlow', sans-serif", fontSize: 14, color: MUTED, whiteSpace: "pre-line", margin: 0 }}>{value}</p>
-                  )}
-                </div>
+            {/* Email card */}
+            <div style={{ background: CARD, border: `1px solid ${BORDER}`, borderRadius: 12, padding: "18px 20px", display: "flex", gap: 14, alignItems: "flex-start" }}>
+              <div style={{ width: 38, height: 38, borderRadius: 8, background: "rgba(25,118,210,0.1)", border: "1px solid rgba(25,118,210,0.2)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                <Mail size={16} color={BLUE} />
               </div>
-            ))}
+              <div>
+                <p style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, fontSize: 13, color: "#fff", letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 4 }}>Support Email</p>
+                <a href="mailto:support@partslinkaviation.com" style={{ fontFamily: "'Barlow', sans-serif", fontSize: 14, color: MUTED, textDecoration: "none" }}>support@partslinkaviation.com</a>
+              </div>
+            </div>
 
-            <div style={{ background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.25)", borderRadius: 12, padding: "18px 20px" }}>
-              <p style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 800, fontSize: 15, color: "#ef4444", letterSpacing: "0.05em", textTransform: "uppercase", marginBottom: 6 }}>⚡ AOG Emergency</p>
-              <p style={{ fontFamily: "'Barlow', sans-serif", fontSize: 14, color: "#fca5a5", margin: 0 }}>
-                For aircraft-on-ground situations, call our 24/7 AOG hotline: <strong>1-800-AERO-247</strong>. Average sourcing response: under 4 hours.
+            {/* Hours card */}
+            <div style={{ background: CARD, border: `1px solid ${BORDER}`, borderRadius: 12, padding: "18px 20px", display: "flex", gap: 14, alignItems: "flex-start" }}>
+              <div style={{ width: 38, height: 38, borderRadius: 8, background: "rgba(25,118,210,0.1)", border: "1px solid rgba(25,118,210,0.2)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                <Clock size={16} color={BLUE} />
+              </div>
+              <div>
+                <p style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, fontSize: 13, color: "#fff", letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 4 }}>Support Hours</p>
+                <p style={{ fontFamily: "'Barlow', sans-serif", fontSize: 14, color: MUTED, margin: 0 }}>Mon–Fri, 08:00–20:00 EST</p>
+              </div>
+            </div>
+
+            {/* Honest note */}
+            <div style={{ background: CARD, border: `1px solid ${BORDER}`, borderRadius: 12, padding: "18px 20px" }}>
+              <p style={{ fontFamily: "'Barlow', sans-serif", fontSize: 14, color: MUTED, margin: 0, lineHeight: 1.6 }}>
+                We're a growing team — email is the fastest way to reach us. We aim to respond to every message within one business day.
               </p>
             </div>
           </div>
