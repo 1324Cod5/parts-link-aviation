@@ -32,7 +32,8 @@ const PLANS = [
     yearlyPrice: 1430,   // ~20% off ($119/mo equiv)
     yearlyMonthly: 119,
     featured: false,
-    cta: "Start Free Trial",
+    founding: true,
+    cta: "Claim Your Free Spot",
     ctaMode: "checkout" as "checkout" | "contact",
     features: [
       "50 searches per month",
@@ -267,6 +268,8 @@ export default function Pricing() {
               const displayPrice = showYearly ? plan.yearlyPrice : plan.monthlyPrice;
               const savings = plan.monthlyPrice * 12 - plan.yearlyPrice;
 
+              const isFoundingPlan = (plan as any).founding === true;
+
               return (
                 <div
                   key={i}
@@ -274,12 +277,36 @@ export default function Pricing() {
                     background: plan.featured
                       ? `linear-gradient(180deg, rgba(25,118,210,0.15) 0%, ${CARD} 100%)`
                       : CARD,
-                    border: plan.featured ? `2px solid ${BLUE}` : `1px solid ${BORDER}`,
-                    borderRadius: 14, padding: "36px 28px",
+                    border: isFoundingPlan
+                      ? `2px solid rgba(245,166,35,0.55)`
+                      : plan.featured ? `2px solid ${BLUE}` : `1px solid ${BORDER}`,
+                    borderRadius: 14, padding: 0,
                     position: "relative", overflow: "hidden", display: "flex", flexDirection: "column",
-                    boxShadow: plan.featured ? `0 0 48px rgba(25,118,210,0.18)` : "none",
+                    boxShadow: isFoundingPlan
+                      ? `0 0 36px rgba(245,166,35,0.1)`
+                      : plan.featured ? `0 0 48px rgba(25,118,210,0.18)` : "none",
                   }}
                 >
+                  {/* Founding seller gold banner */}
+                  {isFoundingPlan && (
+                    <div style={{
+                      background: `linear-gradient(135deg, rgba(245,166,35,0.22), rgba(245,166,35,0.1))`,
+                      borderBottom: `1px solid rgba(245,166,35,0.3)`,
+                      padding: "10px 20px",
+                      display: "flex", alignItems: "center", gap: 8,
+                    }}>
+                      <Star size={13} color={GOLD} fill={GOLD} />
+                      <span style={{
+                        fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 800,
+                        fontSize: 12, color: GOLD, letterSpacing: "0.06em", textTransform: "uppercase",
+                      }}>
+                        Founding Seller — First 6 Months Free
+                      </span>
+                    </div>
+                  )}
+
+                  <div style={{ padding: "28px 28px 28px", flex: 1, display: "flex", flexDirection: "column" }}>
+
                   {/* Tag badge */}
                   {plan.tag && (
                     <div style={{
@@ -302,36 +329,56 @@ export default function Pricing() {
 
                   {/* Price */}
                   <div style={{ marginBottom: 28 }}>
-                    <div style={{ display: "flex", alignItems: "baseline", gap: 3 }}>
-                      <span style={{
-                        fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 900,
-                        fontSize: 52, lineHeight: 1,
-                        color: plan.featured ? "#60a5fa" : "#fff",
-                      }}>
-                        ${fmtPrice(displayPrice)}
-                      </span>
-                      <span style={{ fontFamily: "'Barlow', sans-serif", fontSize: 14, color: MUTED }}>
-                        {showYearly ? "/yr" : "/mo"}
-                      </span>
-                    </div>
-                    {showYearly ? (
+                    {isFoundingPlan ? (
                       <>
-                        <p style={{ fontFamily: "'Barlow', sans-serif", fontSize: 13, color: MUTED, marginTop: 4 }}>
-                          ~${plan.yearlyMonthly}/mo · billed annually
-                        </p>
-                        <div style={{
-                          display: "inline-flex", alignItems: "center", gap: 5, marginTop: 8,
-                          fontSize: 12, fontWeight: 600, color: "#4ade80",
-                          background: "rgba(34,197,94,0.1)", border: "1px solid rgba(34,197,94,0.25)",
-                          borderRadius: 20, padding: "3px 10px", fontFamily: "'Barlow', sans-serif",
-                        }}>
-                          <Check size={11} strokeWidth={3} /> Save ${fmtPrice(savings)}/yr
+                        <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
+                          <span style={{
+                            fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 900,
+                            fontSize: 52, lineHeight: 1, color: "#4ade80",
+                          }}>Free</span>
+                          <span style={{
+                            fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700,
+                            fontSize: 22, color: MUTED, textDecoration: "line-through", opacity: 0.5,
+                          }}>${fmtPrice(plan.monthlyPrice)}/mo</span>
                         </div>
+                        <p style={{ fontFamily: "'Barlow', sans-serif", fontSize: 13, color: MUTED, marginTop: 6 }}>
+                          Free during founding period, then ${fmtPrice(plan.monthlyPrice)}/mo
+                        </p>
                       </>
                     ) : (
-                      <p style={{ fontFamily: "'Barlow', sans-serif", fontSize: 13, color: MUTED, marginTop: 4 }}>
-                        per month, billed monthly
-                      </p>
+                      <>
+                        <div style={{ display: "flex", alignItems: "baseline", gap: 3 }}>
+                          <span style={{
+                            fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 900,
+                            fontSize: 52, lineHeight: 1,
+                            color: plan.featured ? "#60a5fa" : "#fff",
+                          }}>
+                            ${fmtPrice(displayPrice)}
+                          </span>
+                          <span style={{ fontFamily: "'Barlow', sans-serif", fontSize: 14, color: MUTED }}>
+                            {showYearly ? "/yr" : "/mo"}
+                          </span>
+                        </div>
+                        {showYearly ? (
+                          <>
+                            <p style={{ fontFamily: "'Barlow', sans-serif", fontSize: 13, color: MUTED, marginTop: 4 }}>
+                              ~${plan.yearlyMonthly}/mo · billed annually
+                            </p>
+                            <div style={{
+                              display: "inline-flex", alignItems: "center", gap: 5, marginTop: 8,
+                              fontSize: 12, fontWeight: 600, color: "#4ade80",
+                              background: "rgba(34,197,94,0.1)", border: "1px solid rgba(34,197,94,0.25)",
+                              borderRadius: 20, padding: "3px 10px", fontFamily: "'Barlow', sans-serif",
+                            }}>
+                              <Check size={11} strokeWidth={3} /> Save ${fmtPrice(savings)}/yr
+                            </div>
+                          </>
+                        ) : (
+                          <p style={{ fontFamily: "'Barlow', sans-serif", fontSize: 13, color: MUTED, marginTop: 4 }}>
+                            per month, billed monthly
+                          </p>
+                        )}
+                      </>
                     )}
                   </div>
 
@@ -410,6 +457,7 @@ export default function Pricing() {
                       ) : plan.cta}
                     </button>
                   )}
+                </div>
                 </div>
               );
             })}

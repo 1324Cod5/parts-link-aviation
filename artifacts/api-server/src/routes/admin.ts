@@ -9,7 +9,7 @@ const router: IRouter = Router();
 const ADMIN_ROLES = new Set(["admin", "super_admin"]);
 
 // ── Admin auth guard ─────────────────────────────────────────────────────────
-router.use(async (_req, res, next) => {
+router.use("/admin", async (_req, res, next) => {
   const userId: number | undefined = (_req as any).session?.userId;
   const sessionUser = (_req as any).session?.user;
 

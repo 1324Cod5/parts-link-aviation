@@ -17,6 +17,7 @@ import messagesRouter from "./messages";
 import debugRouter from "./debug";
 import intelligenceRouter from "./intelligence";
 import vendorVerificationRouter from "./vendor-verification";
+import waitlistRouter from "./waitlist";
 
 const router: IRouter = Router();
 
@@ -37,6 +38,7 @@ router.use(mroRouter);
 router.use(messagesRouter);
 router.use(intelligenceRouter);
 router.use(vendorVerificationRouter);
+router.use(waitlistRouter);
 router.use(debugRouter);
 
 export default router;

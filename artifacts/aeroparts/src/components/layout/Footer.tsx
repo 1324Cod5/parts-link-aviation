@@ -36,7 +36,7 @@ export function Footer() {
     },
   ];
 
-  const badges = ["FAA Approved", "EASA Part 145", "AS9120", "ISO 9001:2015"];
+  const badges: string[] = [];
 
   const bottomLinks: Record<string, string> = {
     "Privacy Policy": "/privacy",
@@ -63,18 +63,12 @@ export function Footer() {
                 Parts Link <span style={{ color: GOLD }}>Aviation</span>
               </span>
             </div>
-            <p style={{ fontFamily: "'Barlow', sans-serif", fontSize: 13, color: MUTED, lineHeight: 1.7, marginBottom: 18, maxWidth: 260 }}>
-              The precision marketplace for certified aircraft components. Built for MROs, airlines, and brokers worldwide.
+            <p style={{ fontFamily: "'Barlow', sans-serif", fontSize: 13, color: MUTED, lineHeight: 1.7, marginBottom: 18, maxWidth: 280 }}>
+              Parts Link Aviation is launching now. A transparent marketplace connecting verified aircraft parts sellers with professional buyers worldwide.
             </p>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-              {badges.map(b => (
-                <span key={b} style={{
-                  fontFamily: "'Barlow', sans-serif", fontSize: 10, fontWeight: 600,
-                  color: "#22c55e", background: "rgba(34,197,94,0.08)", border: "1px solid rgba(34,197,94,0.2)",
-                  borderRadius: 3, padding: "2px 8px", letterSpacing: 0.3, textTransform: "uppercase",
-                }}>{b}</span>
-              ))}
-            </div>
+            <p style={{ fontFamily: "'Barlow', sans-serif", fontSize: 11, color: "#3a5470", lineHeight: 1.6, maxWidth: 280, fontStyle: "italic" }}>
+              All sellers are required to provide documentation for listed parts. Parts Link Aviation does not independently verify certifications.
+            </p>
           </div>
 
           {/* Link columns */}

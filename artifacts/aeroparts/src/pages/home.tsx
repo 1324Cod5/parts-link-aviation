@@ -1,10 +1,8 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
-import { Search, Menu, X, Check, Star, ChevronRight, Zap, Phone } from "lucide-react";
+import { Search, Menu, X, Check, Star, ChevronRight, Zap } from "lucide-react";
 import {
-  useGetMarketplaceStats,
   useGetFeaturedListings,
-  getGetMarketplaceStatsQueryKey,
   getGetFeaturedListingsQueryKey,
 } from "@workspace/api-client-react";
 import { ListingCard } from "@/components/ui/listing-card";
@@ -21,29 +19,29 @@ const BORDER  = "#1a3050";
 
 // ─── Static data ──────────────────────────────────────────────────────────────
 const CATEGORIES = [
-  { icon: "📡", name: "Avionics",        desc: "Navigation, comms & displays",   count: "312,400" },
-  { icon: "🔥", name: "Engines & APU",   desc: "Turbofan, turboprop & APU units", count: "98,700"  },
-  { icon: "⚙️", name: "Landing Gear",    desc: "Struts, actuators & doors",       count: "54,200"  },
-  { icon: "💧", name: "Hydraulics",      desc: "Pumps, actuators & lines",        count: "87,500"  },
-  { icon: "✈️", name: "Airframe",        desc: "Panels, frames & fairings",       count: "143,800" },
-  { icon: "💺", name: "Interiors",       desc: "Seats, galleys & overhead bins",  count: "229,100" },
-  { icon: "🛞", name: "Wheels & Brakes", desc: "Wheels, tires & brake assemblies",count: "31,600"  },
-  { icon: "⚡", name: "Electrical",      desc: "Wiring, connectors & PCBs",       count: "176,300" },
+  { icon: "📡", name: "Avionics",        desc: "Navigation, comms & displays"    },
+  { icon: "🔥", name: "Engines & APU",   desc: "Turbofan, turboprop & APU units"  },
+  { icon: "⚙️", name: "Landing Gear",    desc: "Struts, actuators & doors"        },
+  { icon: "💧", name: "Hydraulics",      desc: "Pumps, actuators & lines"         },
+  { icon: "✈️", name: "Airframe",        desc: "Panels, frames & fairings"        },
+  { icon: "💺", name: "Interiors",       desc: "Seats, galleys & overhead bins"   },
+  { icon: "🛞", name: "Wheels & Brakes", desc: "Wheels, tires & brake assemblies" },
+  { icon: "⚡", name: "Electrical",      desc: "Wiring, connectors & PCBs"        },
 ];
 
 const FEATURES = [
-  { icon: "⚡", title: "AOG Emergency Response",       desc: "24/7 rapid-sourcing desk. Average response under 4 hours for aircraft-on-ground events worldwide." },
+  { icon: "⚡", title: "AOG Emergency Response",       desc: "Post urgent AOG requests and get matched with verified suppliers who can respond quickly. Full documentation included." },
   { icon: "🛡️", title: "Verified Certification Docs",  desc: "Every part comes with traceable 8130-3, EASA Form 1, or equivalent airworthiness documentation." },
-  { icon: "🌐", title: "Global Supplier Network",       desc: "4,200+ verified operators, MROs, and OEM distributors across 90+ countries." },
+  { icon: "🌐", title: "Global Supplier Network",       desc: "Connect with verified operators, MROs, and OEM distributors. Growing with every founding seller who joins." },
   { icon: "📊", title: "Real-Time Pricing Intelligence",desc: "Live market benchmarking so you know you're paying fair market value every time." },
   { icon: "🔔", title: "Smart Part Alerts",             desc: "Set watchlists for hard-to-find part numbers and get notified the moment stock appears." },
   { icon: "🔗", title: "ERP & MRO Integration",         desc: "Native connectors for AMOS, Ramco, SAP, and major MRO platforms. No manual re-keying." },
 ];
 
 const STEPS = [
-  { num: "01", title: "Submit Requirement",   desc: "Enter your part number, condition requirements, and urgency level. AOG requests are flagged immediately." },
-  { num: "02", title: "Get Matched Quotes",   desc: "Verified suppliers respond in real time. Compare pricing, lead time, and certification documentation." },
-  { num: "03", title: "Verify & Approve",     desc: "Review seller trust scores, certification docs, and audit history before committing." },
+  { num: "01", title: "Submit Requirement",          desc: "Enter your part number, condition requirements, and urgency level. AOG requests are flagged immediately." },
+  { num: "02", title: "Get Matched Quotes",          desc: "Verified suppliers respond in real time. Compare pricing, lead time, and certification documentation." },
+  { num: "03", title: "Verify & Approve",            desc: "Review seller trust scores, certification docs, and audit history before committing." },
   { num: "04", title: "Receive & Return to Service", desc: "Parts ship with full documentation. Track delivery and log receipt directly in the platform." },
 ];
 
@@ -53,8 +51,9 @@ const PRICING = [
     price: "$149",
     period: "/mo",
     tag: null,
+    founding: true,
     features: ["50 searches per month", "1.2M part catalog access", "Email support", "PDF export reports", "Basic price history"],
-    cta: "Start Free Trial",
+    cta: "Claim Your Free Spot",
     href: "/seller/register",
     featured: false,
   },
@@ -63,7 +62,8 @@ const PRICING = [
     price: "$349",
     period: "/mo",
     tag: "MOST POPULAR",
-    features: ["Unlimited searches", "Full 4.2M catalog", "AOG hotline access", "Real-time price benchmarking", "Watchlist alerts", "24/7 priority support", "API access"],
+    founding: false,
+    features: ["Unlimited searches", "Full catalog access", "AOG request priority", "Real-time price benchmarking", "Watchlist alerts", "24/7 priority support", "API access"],
     cta: "Start Free Trial",
     href: "/seller/register",
     featured: true,
@@ -73,6 +73,7 @@ const PRICING = [
     price: "$799",
     period: "/mo",
     tag: "ENTERPRISE",
+    founding: false,
     features: ["Everything in Fleet Manager", "ERP & MRO integration", "Dedicated account manager", "Custom contracts & SLA", "White-glove AOG response", "Multi-user seats (unlimited)", "On-site training"],
     cta: "Book a Demo",
     href: "/seller/register",
@@ -83,34 +84,25 @@ const PRICING = [
 const TESTIMONIALS = [
   {
     stars: 5,
-    quote: "Parts Link Aviation sourced a CFM56-7B HPT blade for us in under 3 hours during an AOG in Singapore. That's simply unmatched in this industry.",
+    quote: "A transparent, documentation-first marketplace is exactly what aviation procurement needs. We're excited to be early adopters and see where this goes.",
     initials: "DM",
     name: "Capt. Daniel Morse",
     title: "VP of Maintenance, Pacific Air Cargo",
   },
   {
     stars: 5,
-    quote: "We migrated our entire parts procurement to Parts Link Aviation last year. The pricing intelligence alone has saved us over $2M in over-market purchases.",
+    quote: "The documentation-first approach is exactly right for our industry. A clear cert trail on every part — no chasing paperwork after the sale. This is the right model.",
     initials: "SR",
     name: "Sarah Ramirez",
     title: "Director of Supply Chain, SkyBridge Airlines",
   },
   {
     stars: 5,
-    quote: "The verified seller documentation workflow has eliminated our receiving inspection rework by 80%. Every part comes with exactly what our QA team needs.",
+    quote: "We've been waiting for a platform that puts verification front and center. Having every seller document their parts before listing is a game changer for QA teams.",
     initials: "JK",
     name: "James Kowalski",
     title: "Chief Inspector, Apex MRO Services",
   },
-];
-
-const TRUST_BADGES = [
-  "FAA Approved Suppliers",
-  "EASA Part 145 Certified",
-  "AS9120 Compliant",
-  "CAAC Authorized",
-  "ITAR Registered",
-  "ISO 9001:2015 Certified",
 ];
 
 const QUICK_TAGS = ["CFM56 Blades", "737 Landing Gear", "A320 Avionics", "APU Honeywell", "Hydraulic Pump", "ILS System"];
@@ -119,24 +111,6 @@ const SEARCH_CATEGORIES = [
   "All Categories", "Avionics", "Engines & APU", "Landing Gear",
   "Hydraulics", "Airframe", "Interiors", "Wheels & Brakes", "Electrical",
 ];
-
-// ─── Count-up hook ─────────────────────────────────────────────────────────────
-function useCountUp(target: number, duration = 2000, active = false) {
-  const [count, setCount] = useState(0);
-  useEffect(() => {
-    if (!active) return;
-    const start = performance.now();
-    const frame = (now: number) => {
-      const elapsed = now - start;
-      const progress = Math.min(elapsed / duration, 1);
-      const eased = 1 - Math.pow(1 - progress, 3);
-      setCount(Math.floor(eased * target));
-      if (progress < 1) requestAnimationFrame(frame);
-    };
-    requestAnimationFrame(frame);
-  }, [active, target, duration]);
-  return count;
-}
 
 // ─── Section: Navbar ──────────────────────────────────────────────────────────
 function Navbar() {
@@ -169,38 +143,44 @@ function Navbar() {
               fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 900,
               fontSize: 16, color: "#fff", letterSpacing: -0.5, flexShrink: 0,
             }}>PL</div>
-            <span style={{
-              fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700,
-              fontSize: 20, color: "#fff", letterSpacing: 0.5, whiteSpace: "nowrap",
-            }}>Parts Link <span style={{ color: GOLD }}>Aviation</span></span>
+            <div>
+              <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, fontSize: 18, color: "#fff", lineHeight: 1.1 }}>
+                Parts Link <span style={{ color: GOLD }}>Aviation</span>
+              </div>
+              <div style={{ fontFamily: "'Barlow', sans-serif", fontSize: 10, color: "#4a6480", letterSpacing: 1, textTransform: "uppercase" }}>Parts Marketplace</div>
+            </div>
           </Link>
 
-          {/* Desktop links */}
-          <div style={{ display: "flex", alignItems: "center", gap: 32 }} className="hidden md:flex">
-            {["Parts", "Features", "How It Works", "Pricing"].map(lbl => (
+          {/* Nav links */}
+          <div className="hidden md:flex" style={{ display: "flex", alignItems: "center", gap: 4 }}>
+            {[
+              { label: "Parts",        href: "#parts" },
+              { label: "Features",     href: "#features" },
+              { label: "How It Works", href: "#how-it-works" },
+              { label: "Pricing",      href: "#pricing" },
+            ].map(({ label, href }) => (
               <a
-                key={lbl}
-                href={`#${lbl.toLowerCase().replace(/ /g, "-")}`}
-                style={{ color: "#a0b4cc", fontFamily: "'Barlow', sans-serif", fontSize: 14, fontWeight: 500, textDecoration: "none", transition: "color 0.2s" }}
+                key={label}
+                href={href}
+                style={{ fontFamily: "'Barlow', sans-serif", fontSize: 14, fontWeight: 500, color: "#7ea8c8", textDecoration: "none", padding: "8px 12px", borderRadius: 6, transition: "color 0.2s" }}
                 onMouseEnter={e => (e.currentTarget.style.color = "#fff")}
-                onMouseLeave={e => (e.currentTarget.style.color = "#a0b4cc")}
-              >{lbl}</a>
+                onMouseLeave={e => (e.currentTarget.style.color = "#7ea8c8")}
+              >{label}</a>
             ))}
           </div>
 
           {/* CTA group */}
           <div style={{ display: "flex", alignItems: "center", gap: 10 }} className="hidden md:flex">
             <a
-              href="#aog"
+              href="/rfqs/new?urgency=aog"
               style={{
                 display: "flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 6,
-                background: "#dc2626", color: "#fff",
+                background: "#991b1b", color: "#fff",
                 fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, fontSize: 13,
                 letterSpacing: 0.5, textDecoration: "none",
-                animation: "aog-pulse 2s ease-in-out infinite",
               }}
             >
-              <Zap size={13} />⚡ AOG 24/7
+              <Zap size={13} />⚡ Submit AOG Request
             </a>
             <Link
               href="/seller/register"
@@ -238,7 +218,7 @@ function Navbar() {
               >{lbl}</a>
             ))}
             <div style={{ display: "flex", gap: 10, marginTop: 12 }}>
-              <a href="#aog" style={{ flex: 1, textAlign: "center", padding: "10px", borderRadius: 6, background: "#dc2626", color: "#fff", fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, fontSize: 13, textDecoration: "none" }}>⚡ AOG 24/7</a>
+              <a href="/rfqs/new?urgency=aog" style={{ flex: 1, textAlign: "center", padding: "10px", borderRadius: 6, background: "#991b1b", color: "#fff", fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, fontSize: 12, textDecoration: "none" }}>⚡ AOG Request</a>
               <Link href="/seller/register" style={{ flex: 1, textAlign: "center", padding: "10px", borderRadius: 6, background: BLUE, color: "#fff", fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, fontSize: 13, textDecoration: "none" }}>Get Started</Link>
             </div>
           </div>
@@ -248,24 +228,23 @@ function Navbar() {
   );
 }
 
-// ─── Section: AOG Banner ──────────────────────────────────────────────────────
-function AogBanner() {
+// ─── Section: Launch Banner ───────────────────────────────────────────────────
+function LaunchBanner() {
   return (
-    <div id="aog" style={{ background: "#991b1b", overflow: "hidden", position: "relative", marginTop: 68 }}>
-      <div style={{ display: "flex", alignItems: "center", padding: "10px 0", whiteSpace: "nowrap", animation: "slide-banner 28s linear infinite" }}>
-        {Array.from({ length: 4 }).map((_, i) => (
-          <span key={i} style={{ display: "inline-flex", alignItems: "center", gap: 12, paddingRight: 80 }}>
-            <span style={{ color: "#fca5a5", fontSize: 13, fontFamily: "'Barlow', sans-serif", fontWeight: 500 }}>
-              ⚡ AOG EMERGENCY? We source critical aircraft parts 24/7 — average response time under 4 hours.
-            </span>
-            <a
-              href="tel:18002376247"
-              style={{ color: "#fff", fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, fontSize: 13, letterSpacing: 0.5, textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 4, background: "rgba(255,255,255,0.15)", padding: "3px 12px", borderRadius: 4 }}
-            >
-              <Phone size={11} /> Call 1-800-AERO-247 Now →
-            </a>
+    <div style={{ background: "#061830", borderBottom: `1px solid rgba(25,118,210,0.25)`, marginTop: 68 }}>
+      <div style={{ maxWidth: 1200, margin: "0 auto", padding: "10px 24px", display: "flex", alignItems: "center", justifyContent: "center", gap: 16, flexWrap: "wrap" }}>
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+          <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#4ade80", display: "inline-block", boxShadow: "0 0 6px #4ade80", flexShrink: 0 }} />
+          <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, fontSize: 13, color: "#93c5fd", letterSpacing: 0.5, textTransform: "uppercase" }}>
+            NOW LAUNCHING — Parts Link Aviation is open for founding sellers and early buyers
           </span>
-        ))}
+        </span>
+        <Link
+          href="/seller/register"
+          style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, fontSize: 12, color: GOLD, textDecoration: "none", letterSpacing: 0.5, whiteSpace: "nowrap", border: `1px solid rgba(245,166,35,0.4)`, padding: "3px 12px", borderRadius: 4 }}
+        >
+          Apply Now →
+        </Link>
       </div>
     </div>
   );
@@ -273,32 +252,11 @@ function AogBanner() {
 
 // ─── Section: Hero ────────────────────────────────────────────────────────────
 function Hero({ onSearch }: { onSearch: (q: string, cat: string) => void }) {
-  const ref = useRef<HTMLDivElement>(null);
-  const [visible, setVisible] = useState(true);
   const [query, setQuery] = useState("");
   const [cat, setCat] = useState("All Categories");
 
-  useEffect(() => {
-    const obs = new IntersectionObserver(([e]) => { if (e.isIntersecting) setVisible(true); }, { threshold: 0.2 });
-    if (ref.current) obs.observe(ref.current);
-    return () => obs.disconnect();
-  }, []);
-
-  const c1 = useCountUp(4200000, 2200, visible);
-  const c2 = useCountUp(4200, 2000, visible);
-  const c3 = useCountUp(4, 1500, visible);
-  const c4 = useCountUp(987, 2200, visible);
-
-  const stats = [
-    { value: c1 >= 4200000 ? "4.2M+" : `${(c1 / 1000000).toFixed(1)}M`, label: "Parts Listed" },
-    { value: c2 >= 4200 ? "4,200+" : c2.toLocaleString(), label: "Verified Operators" },
-    { value: `<${c3 >= 4 ? "4" : c3} hrs`, label: "AOG Response" },
-    { value: `${c4 >= 987 ? "98.7" : (c4 / 10).toFixed(1)}%`, label: "Fulfillment Rate" },
-  ];
-
   return (
     <section
-      ref={ref}
       id="parts"
       style={{
         background: NAVY,
@@ -321,11 +279,11 @@ function Hero({ onSearch }: { onSearch: (q: string, cat: string) => void }) {
       }} />
 
       <div style={{ maxWidth: 900, margin: "0 auto", textAlign: "center", position: "relative", zIndex: 1 }}>
-        {/* Badge */}
-        <div style={{ display: "inline-flex", alignItems: "center", gap: 8, marginBottom: 28, padding: "6px 16px", borderRadius: 20, background: "rgba(25,118,210,0.15)", border: `1px solid rgba(25,118,210,0.35)` }}>
+        {/* Launch badge */}
+        <div style={{ display: "inline-flex", alignItems: "center", gap: 8, marginBottom: 28, padding: "6px 16px", borderRadius: 20, background: "rgba(245,166,35,0.12)", border: `1px solid rgba(245,166,35,0.3)` }}>
           <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#4ade80", display: "inline-block", boxShadow: "0 0 6px #4ade80" }} />
-          <span style={{ fontFamily: "'Barlow', sans-serif", fontSize: 13, color: "#93c5fd", fontWeight: 500 }}>
-            The Aviation Parts Marketplace Trusted by 4,200+ Operators
+          <span style={{ fontFamily: "'Barlow', sans-serif", fontSize: 13, color: GOLD, fontWeight: 600 }}>
+            NOW LAUNCHING — Founding Member Spots Available
           </span>
         </div>
 
@@ -336,75 +294,145 @@ function Hero({ onSearch }: { onSearch: (q: string, cat: string) => void }) {
           color: "#fff", marginBottom: 24, letterSpacing: "-0.5px",
           textTransform: "uppercase",
         }}>
-          Source Certified<br />
-          <span style={{ color: GOLD }}>Aircraft Parts</span><br />
-          At Mission Speed
+          The Aviation Parts<br />
+          <span style={{ color: GOLD }}>Marketplace Built</span><br />
+          for Transparency
         </h1>
 
-        <p style={{ fontFamily: "'Barlow', sans-serif", fontWeight: 300, fontSize: "clamp(16px, 2vw, 20px)", color: "#7ea8c8", marginBottom: 44, lineHeight: 1.6, maxWidth: 620, margin: "0 auto 44px" }}>
-          Connect with 4,200+ verified suppliers across 90+ countries. Full documentation traceability. AOG response in under 4 hours.
+        <p style={{ fontFamily: "'Barlow', sans-serif", fontWeight: 300, fontSize: "clamp(16px, 2vw, 20px)", color: "#7ea8c8", lineHeight: 1.6, maxWidth: 620, margin: "0 auto 44px" }}>
+          Parts Link Aviation is launching now. List your certified inventory. Connect with verified buyers. No middlemen.
         </p>
 
         {/* CTA buttons */}
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 12, justifyContent: "center", marginBottom: 64 }}>
-          <a href="#search-bar" style={{
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 12, justifyContent: "center", marginBottom: 48 }}>
+          <Link href="/seller/register" style={{
+            padding: "14px 28px", borderRadius: 8, background: GOLD, color: "#0a1628",
+            fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 800, fontSize: 16,
+            letterSpacing: 0.5, textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 8,
+          }}>
+            List Your Parts Free →
+          </Link>
+          <a href="/marketplace" style={{
             padding: "14px 28px", borderRadius: 8, background: BLUE, color: "#fff",
             fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, fontSize: 16,
             letterSpacing: 0.5, textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 8,
           }}>
-            <Search size={16} /> Search Parts Now
+            <Search size={16} /> Browse Available Parts
           </a>
-          <a href="#pricing" style={{
+          <a href="#founding-seller" style={{
             padding: "14px 28px", borderRadius: 8, color: "#fff",
             border: `1px solid ${BORDER}`, background: "rgba(255,255,255,0.05)",
             fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, fontSize: 16,
             letterSpacing: 0.5, textDecoration: "none",
           }}>
-            View Pricing
-          </a>
-          <a href="tel:18002376247" style={{
-            padding: "14px 28px", borderRadius: 8, background: "#991b1b", color: "#fff",
-            fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, fontSize: 16,
-            letterSpacing: 0.5, textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 8,
-          }}>
-            <Zap size={16} /> AOG Emergency
+            Founding Seller Program
           </a>
         </div>
 
-        {/* Stat counters */}
+        {/* Honest launch badge */}
         <div style={{
-          display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 1,
-          background: BORDER, borderRadius: 12, overflow: "hidden",
-          border: `1px solid ${BORDER}`,
-          maxWidth: 720, margin: "0 auto",
+          display: "inline-flex", alignItems: "center", gap: 20, padding: "16px 32px",
+          background: CARD_BG, border: `1px solid ${BORDER}`, borderRadius: 12,
         }}>
-          {stats.map((s, i) => (
-            <div key={i} style={{ background: CARD_BG, padding: "24px 16px", textAlign: "center" }}>
-              <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 800, fontSize: 28, color: "#fff", letterSpacing: -0.5 }}>{s.value}</div>
-              <div style={{ fontFamily: "'Barlow', sans-serif", fontSize: 12, color: "#7ea8c8", marginTop: 4, textTransform: "uppercase", letterSpacing: 0.5 }}>{s.label}</div>
-            </div>
-          ))}
+          <div style={{ textAlign: "center" }}>
+            <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 800, fontSize: 22, color: GOLD }}>0 of 50</div>
+            <div style={{ fontFamily: "'Barlow', sans-serif", fontSize: 11, color: "#7ea8c8", textTransform: "uppercase", letterSpacing: 0.5 }}>Founding Seller Spots</div>
+          </div>
+          <div style={{ width: 1, height: 36, background: BORDER }} />
+          <div style={{ textAlign: "center" }}>
+            <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 800, fontSize: 22, color: "#4ade80" }}>Free</div>
+            <div style={{ fontFamily: "'Barlow', sans-serif", fontSize: 11, color: "#7ea8c8", textTransform: "uppercase", letterSpacing: 0.5 }}>First 6 Months</div>
+          </div>
+          <div style={{ width: 1, height: 36, background: BORDER }} />
+          <div style={{ textAlign: "center" }}>
+            <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 800, fontSize: 22, color: "#93c5fd" }}>Full</div>
+            <div style={{ fontFamily: "'Barlow', sans-serif", fontSize: 11, color: "#7ea8c8", textTransform: "uppercase", letterSpacing: 0.5 }}>Cert Doc Traceability</div>
+          </div>
         </div>
       </div>
     </section>
   );
 }
 
-// ─── Section: Trust Bar ───────────────────────────────────────────────────────
-function TrustBar() {
+// ─── Section: Founding Seller ─────────────────────────────────────────────────
+function FoundingSellerSection() {
   return (
-    <div style={{ background: DARK, borderTop: `1px solid ${BORDER}`, borderBottom: `1px solid ${BORDER}`, padding: "18px 24px", overflowX: "auto" }}>
-      <div style={{ maxWidth: 1100, margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "center", gap: 32, flexWrap: "wrap" }}>
-        {TRUST_BADGES.map(badge => (
-          <div key={badge} style={{ display: "flex", alignItems: "center", gap: 7, whiteSpace: "nowrap" }}>
-            <div style={{ width: 18, height: 18, borderRadius: "50%", background: "rgba(34,197,94,0.15)", border: "1px solid #22c55e", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-              <Check size={10} color="#22c55e" strokeWidth={3} />
+    <section id="founding-seller" style={{ background: DARK, padding: "80px 24px", borderTop: `1px solid ${BORDER}` }}>
+      <div style={{ maxWidth: 860, margin: "0 auto", textAlign: "center" }}>
+
+        {/* Gold label */}
+        <div style={{ display: "inline-block", background: "rgba(245,166,35,0.12)", border: `1px solid rgba(245,166,35,0.3)`, borderRadius: 4, padding: "4px 14px", marginBottom: 20 }}>
+          <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, fontSize: 12, color: GOLD, letterSpacing: 1, textTransform: "uppercase" }}>Founding Seller Program</span>
+        </div>
+
+        {/* Spot counter */}
+        <div style={{
+          display: "inline-flex", alignItems: "center", gap: 8, padding: "7px 18px",
+          background: "rgba(245,166,35,0.08)", border: `1px solid rgba(245,166,35,0.25)`,
+          borderRadius: 20, marginBottom: 28, marginLeft: 12,
+        }}>
+          <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#4ade80", display: "inline-block", boxShadow: "0 0 5px #4ade80" }} />
+          <span style={{ fontFamily: "'Barlow', sans-serif", fontSize: 13, color: "#a0b4cc", fontWeight: 500 }}>
+            <strong style={{ color: GOLD }}>0 of 50</strong> founding seller spots claimed
+          </span>
+        </div>
+
+        <h2 style={{
+          fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 900,
+          fontSize: "clamp(32px, 5vw, 56px)", color: "#fff",
+          textTransform: "uppercase", lineHeight: 1.05, marginBottom: 16,
+        }}>
+          Join as a Founding Seller —<br />
+          <span style={{ color: GOLD }}>List Free for 6 Months</span>
+        </h2>
+
+        <p style={{ fontFamily: "'Barlow', sans-serif", fontSize: 17, color: "#7ea8c8", lineHeight: 1.7, maxWidth: 660, margin: "0 auto 40px" }}>
+          Be one of the first verified suppliers on Parts Link Aviation. Founding sellers get{" "}
+          <strong style={{ color: GOLD }}>6 months of Solo Operator access completely free</strong>.{" "}
+          No credit card required.
+        </p>
+
+        {/* Benefits row */}
+        <div style={{ display: "flex", justifyContent: "center", gap: 32, flexWrap: "wrap", marginBottom: 40 }}>
+          {[
+            { icon: "🛡️", label: "Verified Seller Badge" },
+            { icon: "📋", label: "Unlimited Listings" },
+            { icon: "📊", label: "Buyer Analytics" },
+            { icon: "⚡", label: "AOG Request Matching" },
+          ].map(b => (
+            <div key={b.label} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <span style={{ fontSize: 18 }}>{b.icon}</span>
+              <span style={{ fontFamily: "'Barlow', sans-serif", fontSize: 13, color: "#a0b4cc", fontWeight: 500 }}>{b.label}</span>
             </div>
-            <span style={{ fontFamily: "'Barlow', sans-serif", fontSize: 12, fontWeight: 600, color: "#7ea8c8", letterSpacing: 0.3, textTransform: "uppercase" }}>{badge}</span>
-          </div>
-        ))}
+          ))}
+        </div>
+
+        {/* CTAs */}
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 12, justifyContent: "center" }}>
+          <Link
+            href="/seller/register"
+            style={{
+              padding: "15px 36px", borderRadius: 8, background: GOLD, color: "#0a1628",
+              fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 800, fontSize: 16,
+              letterSpacing: 0.5, textDecoration: "none",
+            }}
+          >
+            Apply as Founding Seller
+          </Link>
+          <a
+            href="#pricing"
+            style={{
+              padding: "15px 32px", borderRadius: 8,
+              background: "rgba(255,255,255,0.06)", border: `1px solid ${BORDER}`,
+              color: "#fff", fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700,
+              fontSize: 16, letterSpacing: 0.5, textDecoration: "none",
+            }}
+          >
+            Learn More
+          </a>
+        </div>
       </div>
-    </div>
+    </section>
   );
 }
 
@@ -423,7 +451,7 @@ function PartsSearch({ onSearch }: { onSearch: (q: string, cat: string) => void 
           Find Any Aircraft Part Instantly
         </h2>
         <p style={{ fontFamily: "'Barlow', sans-serif", color: "#7ea8c8", fontSize: 15, marginBottom: 32 }}>
-          Search 4.2M+ parts across 4,200 verified suppliers
+          Search available aircraft parts — with full documentation traceability on every listing
         </p>
 
         <form
@@ -496,7 +524,7 @@ function CategoryGrid({ onSearch }: { onSearch: (q: string, cat: string) => void
             <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, fontSize: 12, color: GOLD, letterSpacing: 1, textTransform: "uppercase" }}>Browse by Category</span>
           </div>
           <h2 style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 800, fontSize: "clamp(28px, 4vw, 44px)", color: "#fff", textTransform: "uppercase" }}>
-            4.2 Million Parts Across 8 Categories
+            8 Core Aviation Part Categories
           </h2>
         </div>
 
@@ -514,10 +542,7 @@ function CategoryGrid({ onSearch }: { onSearch: (q: string, cat: string) => void
             >
               <div style={{ fontSize: 32, marginBottom: 12, lineHeight: 1 }}>{cat.icon}</div>
               <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, fontSize: 18, color: "#fff", marginBottom: 4 }}>{cat.name}</div>
-              <div style={{ fontFamily: "'Barlow', sans-serif", fontSize: 13, color: "#7ea8c8", marginBottom: 16, lineHeight: 1.4 }}>{cat.desc}</div>
-              <div style={{ display: "inline-flex", alignItems: "center", gap: 4, background: "rgba(25,118,210,0.15)", border: `1px solid rgba(25,118,210,0.3)`, borderRadius: 4, padding: "3px 10px" }}>
-                <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, fontSize: 12, color: "#93c5fd" }}>{cat.count} Parts</span>
-              </div>
+              <div style={{ fontFamily: "'Barlow', sans-serif", fontSize: 13, color: "#7ea8c8", lineHeight: 1.4 }}>{cat.desc}</div>
             </button>
           ))}
         </div>
@@ -536,7 +561,7 @@ function Features() {
             <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, fontSize: 12, color: BLUE, letterSpacing: 1, textTransform: "uppercase" }}>Platform Capabilities</span>
           </div>
           <h2 style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 800, fontSize: "clamp(28px, 4vw, 44px)", color: "#fff", textTransform: "uppercase", marginBottom: 12 }}>
-            Military-Grade Features for<br /><span style={{ color: GOLD }}>Aviation Professionals</span>
+            Built for<br /><span style={{ color: GOLD }}>Aviation Professionals</span>
           </h2>
         </div>
 
@@ -612,7 +637,7 @@ function Pricing() {
           <h2 style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 800, fontSize: "clamp(28px, 4vw, 44px)", color: "#fff", textTransform: "uppercase", marginBottom: 12 }}>
             Plans for Every <span style={{ color: GOLD }}>Operation</span>
           </h2>
-          <p style={{ fontFamily: "'Barlow', sans-serif", fontSize: 15, color: "#7ea8c8" }}>No contracts. Cancel anytime. 14-day free trial on all plans.</p>
+          <p style={{ fontFamily: "'Barlow', sans-serif", fontSize: 15, color: "#7ea8c8" }}>Founding sellers list free for 6 months. No credit card required.</p>
         </div>
 
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: 24 }}>
@@ -621,13 +646,28 @@ function Pricing() {
               key={i}
               style={{
                 background: plan.featured ? `linear-gradient(180deg, ${BLUE}22 0%, ${CARD_BG} 100%)` : CARD_BG,
-                border: plan.featured ? `2px solid ${BLUE}` : `1px solid ${BORDER}`,
-                borderRadius: 12, padding: "36px 28px",
+                border: plan.founding ? `2px solid rgba(245,166,35,0.5)` : plan.featured ? `2px solid ${BLUE}` : `1px solid ${BORDER}`,
+                borderRadius: 12, padding: 0,
                 position: "relative", overflow: "hidden",
-                boxShadow: plan.featured ? `0 0 40px rgba(25,118,210,0.2)` : "none",
+                boxShadow: plan.featured ? `0 0 40px rgba(25,118,210,0.2)` : plan.founding ? `0 0 32px rgba(245,166,35,0.1)` : "none",
+                display: "flex", flexDirection: "column",
               }}
             >
-              {plan.tag && (
+              {/* Founding seller gold banner */}
+              {plan.founding && (
+                <div style={{
+                  background: `linear-gradient(135deg, rgba(245,166,35,0.25), rgba(245,166,35,0.1))`,
+                  borderBottom: `1px solid rgba(245,166,35,0.3)`,
+                  padding: "10px 20px",
+                  display: "flex", alignItems: "center", justifyContent: "space-between",
+                }}>
+                  <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 800, fontSize: 12, color: GOLD, letterSpacing: 0.8, textTransform: "uppercase" }}>
+                    ⭐ Founding Seller: First 6 Months Free
+                  </span>
+                </div>
+              )}
+
+              {plan.tag && !plan.founding && (
                 <div style={{
                   position: "absolute", top: 20, right: 20,
                   background: plan.featured ? BLUE : "rgba(245,166,35,0.15)",
@@ -640,44 +680,57 @@ function Pricing() {
                 </div>
               )}
 
-              <h3 style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, fontSize: 22, color: "#fff", marginBottom: 8 }}>{plan.name}</h3>
-              <div style={{ display: "flex", alignItems: "baseline", gap: 2, marginBottom: 28 }}>
-                <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 900, fontSize: 44, color: plan.featured ? "#60a5fa" : "#fff" }}>{plan.price}</span>
-                <span style={{ fontFamily: "'Barlow', sans-serif", fontSize: 14, color: "#7ea8c8" }}>{plan.period}</span>
-              </div>
-
-              <div style={{ borderTop: `1px solid ${BORDER}`, paddingTop: 24, marginBottom: 28 }}>
-                {plan.features.map((f, j) => (
-                  <div key={j} style={{ display: "flex", alignItems: "flex-start", gap: 10, marginBottom: 12 }}>
-                    <div style={{ width: 18, height: 18, borderRadius: "50%", background: "rgba(34,197,94,0.1)", border: "1px solid rgba(34,197,94,0.4)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 1 }}>
-                      <Check size={10} color="#4ade80" strokeWidth={3} />
+              <div style={{ padding: "28px 28px 28px" }}>
+                <h3 style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, fontSize: 22, color: "#fff", marginBottom: 8 }}>{plan.name}</h3>
+                {plan.founding ? (
+                  <div style={{ marginBottom: 28 }}>
+                    <div style={{ display: "flex", alignItems: "baseline", gap: 4 }}>
+                      <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 900, fontSize: 40, color: "#4ade80", textDecoration: "line-through", opacity: 0.5 }}>{plan.price}</span>
+                      <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 900, fontSize: 40, color: "#4ade80" }}>Free</span>
                     </div>
-                    <span style={{ fontFamily: "'Barlow', sans-serif", fontSize: 14, color: "#a0b4cc", lineHeight: 1.4 }}>{f}</span>
+                    <p style={{ fontFamily: "'Barlow', sans-serif", fontSize: 12, color: "#7ea8c8", marginTop: 4 }}>
+                      Free during founding period, then {plan.price}/mo
+                    </p>
                   </div>
-                ))}
-              </div>
+                ) : (
+                  <div style={{ display: "flex", alignItems: "baseline", gap: 2, marginBottom: 28 }}>
+                    <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 900, fontSize: 44, color: plan.featured ? "#60a5fa" : "#fff" }}>{plan.price}</span>
+                    <span style={{ fontFamily: "'Barlow', sans-serif", fontSize: 14, color: "#7ea8c8" }}>{plan.period}</span>
+                  </div>
+                )}
 
-              <Link
-                href={plan.href as any}
-                style={{
-                  display: "block", textAlign: "center", padding: "13px 0", borderRadius: 8,
-                  background: plan.featured ? BLUE : "rgba(255,255,255,0.06)",
-                  border: plan.featured ? "none" : `1px solid ${BORDER}`,
-                  color: "#fff", fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700,
-                  fontSize: 15, letterSpacing: 0.5, textDecoration: "none",
-                  transition: "all 0.2s",
-                }}
-                onMouseEnter={(e: React.MouseEvent<HTMLAnchorElement>) => { if (!plan.featured) e.currentTarget.style.background = "rgba(255,255,255,0.1)"; }}
-                onMouseLeave={(e: React.MouseEvent<HTMLAnchorElement>) => { if (!plan.featured) e.currentTarget.style.background = "rgba(255,255,255,0.06)"; }}
-              >
-                {plan.cta}
-              </Link>
+                <div style={{ borderTop: `1px solid ${BORDER}`, paddingTop: 24, marginBottom: 28 }}>
+                  {plan.features.map((f, j) => (
+                    <div key={j} style={{ display: "flex", alignItems: "flex-start", gap: 10, marginBottom: 12 }}>
+                      <div style={{ width: 18, height: 18, borderRadius: "50%", background: "rgba(34,197,94,0.1)", border: "1px solid rgba(34,197,94,0.4)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 1 }}>
+                        <Check size={10} color="#4ade80" strokeWidth={3} />
+                      </div>
+                      <span style={{ fontFamily: "'Barlow', sans-serif", fontSize: 14, color: "#a0b4cc", lineHeight: 1.4 }}>{f}</span>
+                    </div>
+                  ))}
+                </div>
+
+                <Link
+                  href={plan.href as any}
+                  style={{
+                    display: "block", textAlign: "center", padding: "13px 0", borderRadius: 8,
+                    background: plan.founding ? GOLD : plan.featured ? BLUE : "rgba(255,255,255,0.06)",
+                    border: plan.founding ? "none" : plan.featured ? "none" : `1px solid ${BORDER}`,
+                    color: plan.founding ? "#0a1628" : "#fff",
+                    fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 800,
+                    fontSize: 15, letterSpacing: 0.5, textDecoration: "none",
+                    transition: "all 0.2s",
+                  }}
+                >
+                  {plan.cta}
+                </Link>
+              </div>
             </div>
           ))}
         </div>
 
         <p style={{ textAlign: "center", marginTop: 28, fontFamily: "'Barlow', sans-serif", fontSize: 13, color: "#4a6480" }}>
-          Looking for enterprise volume pricing? <a href="mailto:sales@aeroparts.app" style={{ color: BLUE, textDecoration: "none" }}>Contact our sales team →</a>
+          Need enterprise or custom volume pricing? <a href="mailto:contact@partslinkaviation.com" style={{ color: BLUE, textDecoration: "none" }}>Contact our team →</a>
         </p>
       </div>
     </section>
@@ -691,7 +744,7 @@ function Testimonials() {
       <div style={{ maxWidth: 1100, margin: "0 auto" }}>
         <div style={{ textAlign: "center", marginBottom: 48 }}>
           <div style={{ display: "inline-block", background: "rgba(245,166,35,0.12)", border: `1px solid rgba(245,166,35,0.3)`, borderRadius: 4, padding: "4px 14px", marginBottom: 16 }}>
-            <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, fontSize: 12, color: GOLD, letterSpacing: 1, textTransform: "uppercase" }}>Trusted Globally</span>
+            <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, fontSize: 12, color: GOLD, letterSpacing: 1, textTransform: "uppercase" }}>Early Feedback</span>
           </div>
           <h2 style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 800, fontSize: "clamp(28px, 4vw, 44px)", color: "#fff", textTransform: "uppercase" }}>
             What the Industry Says
@@ -736,27 +789,121 @@ function CtaSection() {
     <section style={{ background: NAVY, padding: "80px 24px", textAlign: "center", backgroundImage: `linear-gradient(rgba(25,118,210,0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(25,118,210,0.06) 1px, transparent 1px)`, backgroundSize: "60px 60px" }}>
       <div style={{ maxWidth: 720, margin: "0 auto" }}>
         <h2 style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 900, fontSize: "clamp(36px, 6vw, 64px)", color: "#fff", marginBottom: 8, textTransform: "uppercase", lineHeight: 1 }}>
-          Ready to Fly<br /><span style={{ color: GOLD }}>Faster?</span>
+          Join at <br /><span style={{ color: GOLD }}>Launch</span>
         </h2>
         <p style={{ fontFamily: "'Barlow', sans-serif", fontSize: 17, color: "#7ea8c8", marginBottom: 40, lineHeight: 1.6 }}>
-          Join 4,200+ aviation operators already using Parts Link Aviation to source critical components faster, smarter, and with full documentation compliance.
+          Be among the first verified suppliers and buyers on Parts Link Aviation. Founding sellers list free for 6 months — no credit card required.
         </p>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 12, justifyContent: "center" }}>
           <Link
             href="/seller/register"
+            style={{ padding: "15px 32px", borderRadius: 8, background: GOLD, color: "#0a1628", fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 800, fontSize: 16, letterSpacing: 0.5, textDecoration: "none" }}
+          >Apply as Founding Seller</Link>
+          <Link
+            href="/marketplace"
             style={{ padding: "15px 32px", borderRadius: 8, background: BLUE, color: "#fff", fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, fontSize: 16, letterSpacing: 0.5, textDecoration: "none" }}
-          >Start Free Trial</Link>
+          >Browse Marketplace</Link>
           <a
-            href="#how-it-works"
+            href="#waitlist"
             style={{ padding: "15px 32px", borderRadius: 8, background: "rgba(255,255,255,0.07)", border: `1px solid ${BORDER}`, color: "#fff", fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, fontSize: 16, letterSpacing: 0.5, textDecoration: "none" }}
-          >Book a Demo</a>
-          <a
-            href="tel:18002376247"
-            style={{ padding: "15px 32px", borderRadius: 8, background: "#991b1b", color: "#fff", fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, fontSize: 16, letterSpacing: 0.5, textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 8 }}
-          >
-            <Zap size={16} /> AOG Hotline
-          </a>
+          >Buyer Waitlist</a>
         </div>
+      </div>
+    </section>
+  );
+}
+
+// ─── Section: Buyer Waitlist ───────────────────────────────────────────────────
+function WaitlistSection() {
+  const [email, setEmail] = useState("");
+  const [submitted, setSubmitted] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email.includes("@")) { setError("Please enter a valid email address."); return; }
+    setLoading(true);
+    setError("");
+    try {
+      const res = await fetch("/api/waitlist-emails", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: email.trim() }),
+      });
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        throw new Error((d as any).error ?? "Something went wrong.");
+      }
+      setSubmitted(true);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <section id="waitlist" style={{ background: DARK, padding: "80px 24px", borderTop: `1px solid ${BORDER}` }}>
+      <div style={{ maxWidth: 580, margin: "0 auto", textAlign: "center" }}>
+        <div style={{ display: "inline-block", background: "rgba(25,118,210,0.12)", border: `1px solid rgba(25,118,210,0.3)`, borderRadius: 4, padding: "4px 14px", marginBottom: 20 }}>
+          <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, fontSize: 12, color: BLUE, letterSpacing: 1, textTransform: "uppercase" }}>Stay Informed as a Buyer</span>
+        </div>
+
+        <h2 style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 900, fontSize: "clamp(28px, 4vw, 44px)", color: "#fff", textTransform: "uppercase", marginBottom: 16, lineHeight: 1.05 }}>
+          Get Notified When<br /><span style={{ color: GOLD }}>New Inventory Arrives</span>
+        </h2>
+
+        <p style={{ fontFamily: "'Barlow', sans-serif", fontSize: 16, color: "#7ea8c8", lineHeight: 1.7, marginBottom: 36 }}>
+          We're onboarding verified sellers now. Enter your email and we'll notify you when certified parts matching your needs become available.
+        </p>
+
+        {submitted ? (
+          <div style={{
+            background: "rgba(34,197,94,0.08)", border: "1px solid rgba(34,197,94,0.3)",
+            borderRadius: 10, padding: "24px 32px",
+          }}>
+            <div style={{ fontSize: 32, marginBottom: 10 }}>✓</div>
+            <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, fontSize: 20, color: "#4ade80", marginBottom: 6 }}>You're on the list.</div>
+            <div style={{ fontFamily: "'Barlow', sans-serif", fontSize: 14, color: "#7ea8c8" }}>We'll be in touch when new inventory matching your needs arrives.</div>
+          </div>
+        ) : (
+          <form onSubmit={handleSubmit}>
+            <div style={{ display: "flex", gap: 0, borderRadius: 10, overflow: "hidden", border: `1px solid ${BORDER}`, background: CARD_BG, marginBottom: error ? 12 : 0 }}>
+              <input
+                type="email"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                placeholder="your@email.com"
+                required
+                style={{
+                  flex: 1, background: "transparent", border: "none", outline: "none",
+                  color: "#fff", fontFamily: "'Barlow', sans-serif", fontSize: 15,
+                  padding: "14px 18px", minWidth: 0,
+                }}
+              />
+              <button
+                type="submit"
+                disabled={loading}
+                style={{
+                  background: BLUE, border: "none", color: "#fff", cursor: loading ? "not-allowed" : "pointer",
+                  padding: "14px 24px", fontFamily: "'Barlow Condensed', sans-serif",
+                  fontWeight: 700, fontSize: 15, letterSpacing: 0.5, flexShrink: 0,
+                  opacity: loading ? 0.7 : 1,
+                }}
+              >
+                {loading ? "Joining…" : "Join Waitlist"}
+              </button>
+            </div>
+            {error && (
+              <p style={{ fontFamily: "'Barlow', sans-serif", fontSize: 13, color: "#f87171", marginTop: 8 }}>{error}</p>
+            )}
+          </form>
+        )}
+
+        <p style={{ fontFamily: "'Barlow', sans-serif", fontSize: 12, color: "#2a4060", marginTop: 16 }}>
+          No spam. Unsubscribe anytime.
+        </p>
       </div>
     </section>
   );
@@ -779,7 +926,7 @@ function HomeFooter() {
       heading: "Resources",
       links: [
         { label: "Documentation Guide", href: "/developer" },
-        { label: "AOG Response Protocol", href: "/contact" },
+        { label: "Submit AOG Request", href: "/rfqs/new?urgency=aog" },
         { label: "Compliance Overview", href: "/compliance" },
         { label: "API Integration", href: "/developer" },
         { label: "Seller Help Center", href: "/seller-guidelines" },
@@ -789,15 +936,12 @@ function HomeFooter() {
       heading: "Company",
       links: [
         { label: "About Parts Link Aviation", href: "/contact" },
-        { label: "Contact Sales", href: "/contact" },
-        { label: "Become a Supplier", href: "/seller/register" },
+        { label: "Contact Us", href: "/contact" },
+        { label: "Become a Founding Seller", href: "/seller/register" },
         { label: "Admin Portal", href: "/admin" },
-        { label: "Status Page", href: "/contact" },
       ],
     },
   ];
-
-  const FOOTER_BADGES = ["FAA Approved", "EASA Part 145", "AS9120", "ISO 9001:2015", "ITAR Reg", "CAAC Auth"];
 
   return (
     <footer style={{ background: DARK, borderTop: `1px solid ${BORDER}`, padding: "60px 24px 32px" }}>
@@ -809,14 +953,18 @@ function HomeFooter() {
               <div style={{ width: 36, height: 36, borderRadius: 8, background: `linear-gradient(135deg, ${BLUE}, #0d47a1)`, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 900, fontSize: 15, color: "#fff" }}>PL</div>
               <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, fontSize: 18, color: "#fff" }}>Parts Link <span style={{ color: GOLD }}>Aviation</span></span>
             </div>
-            <p style={{ fontFamily: "'Barlow', sans-serif", fontSize: 13, color: "#4a6480", lineHeight: 1.7, marginBottom: 20, maxWidth: 280 }}>
-              The aviation industry's trusted procurement marketplace. Source certified parts from 4,200+ verified operators worldwide.
+            <p style={{ fontFamily: "'Barlow', sans-serif", fontSize: 13, color: "#4a6480", lineHeight: 1.7, marginBottom: 16, maxWidth: 280 }}>
+              A transparent marketplace for certified aircraft components. Connecting verified sellers with professional buyers worldwide.
             </p>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-              {FOOTER_BADGES.map(b => (
-                <span key={b} style={{ fontFamily: "'Barlow', sans-serif", fontSize: 10, fontWeight: 600, color: "#22c55e", background: "rgba(34,197,94,0.08)", border: "1px solid rgba(34,197,94,0.2)", borderRadius: 3, padding: "2px 8px", letterSpacing: 0.3, textTransform: "uppercase" }}>{b}</span>
-              ))}
-            </div>
+            <p style={{ fontFamily: "'Barlow', sans-serif", fontSize: 11, color: "#2a4060", lineHeight: 1.6, maxWidth: 280, fontStyle: "italic", marginBottom: 16 }}>
+              All sellers are required to provide documentation for listed parts. Parts Link Aviation does not independently verify certifications.
+            </p>
+            <a href="mailto:contact@partslinkaviation.com" style={{ fontFamily: "'Barlow', sans-serif", fontSize: 13, color: "#4a6480", textDecoration: "none" }}
+              onMouseEnter={e => (e.currentTarget.style.color = "#a0b4cc")}
+              onMouseLeave={e => (e.currentTarget.style.color = "#4a6480")}
+            >
+              contact@partslinkaviation.com
+            </a>
           </div>
 
           {/* Link columns */}
@@ -902,14 +1050,6 @@ function FeaturedListings() {
 
 // ─── Keyframe injection ───────────────────────────────────────────────────────
 const STYLES = `
-@keyframes slide-banner {
-  0%   { transform: translateX(0); }
-  100% { transform: translateX(-50%); }
-}
-@keyframes aog-pulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(220,38,38,0.5); }
-  50%       { box-shadow: 0 0 0 8px rgba(220,38,38,0); }
-}
 .footer-grid {
   grid-template-columns: 2fr 1fr 1fr 1fr;
 }
@@ -941,9 +1081,9 @@ export default function Home() {
     <div style={{ minHeight: "100vh", background: NAVY }}>
       <style dangerouslySetInnerHTML={{ __html: STYLES }} />
       <Navbar />
-      <AogBanner />
+      <LaunchBanner />
       <Hero onSearch={handleSearch} />
-      <TrustBar />
+      <FoundingSellerSection />
       <PartsSearch onSearch={handleSearch} />
       <CategoryGrid onSearch={handleSearch} />
       <Features />
@@ -952,6 +1092,7 @@ export default function Home() {
       <Testimonials />
       <CtaSection />
       <FeaturedListings />
+      <WaitlistSection />
       <HomeFooter />
     </div>
   );

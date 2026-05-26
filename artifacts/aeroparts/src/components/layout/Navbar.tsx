@@ -147,10 +147,10 @@ export function Navbar() {
 
         {/* Right: AOG button + auth */}
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          {/* AOG 24/7 button */}
+          {/* AOG Request button */}
           <a
-            href="tel:+18002376247"
-            className="hidden md:inline-flex aog-pulse"
+            href="/rfqs/new?urgency=aog"
+            className="hidden md:inline-flex"
             style={{
               alignItems: "center", gap: 5, padding: "7px 14px", borderRadius: 6,
               background: "#991b1b", color: "#fff",
@@ -158,7 +158,7 @@ export function Navbar() {
               letterSpacing: "0.06em", textDecoration: "none", textTransform: "uppercase",
             }}
           >
-            <Zap size={12} />⚡ AOG 24/7
+            <Zap size={12} />⚡ Submit AOG Request
           </a>
 
           {!user ? (
