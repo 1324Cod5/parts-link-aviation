@@ -7,9 +7,9 @@ import { logger } from "./lib/logger";
 const STRIPE_API_VERSION = "2025-08-27.basil" as any;
 
 const PRICE_PLAN_MAP: Record<string, "pro" | "enterprise" | "mission_control"> = {
-  "price_1TbO7VLizlhnDGCHA637d5aj": "pro",
-  "price_1TbO7eLizlhnDGCHEnspozSd": "enterprise",
-  "price_1TbO7pLizlhnDGCHIGNJLoUd": "mission_control",
+  "price_1TbPBNL2wYC5N0L6b6LyJZoV": "pro",
+  "price_1TbPBNL2wYC5N0L6VFC2oaWB": "enterprise",
+  "price_1TbPBNL2wYC5N0L6cSTJr7TG": "mission_control",
 };
 
 export class WebhookHandlers {
