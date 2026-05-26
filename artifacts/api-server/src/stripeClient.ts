@@ -1,7 +1,16 @@
 import Stripe from "stripe";
 
-// Replit Stripe integration — fetches credentials from the Replit connectors API.
-// Never cache the Stripe client; tokens can rotate.
+const STRIPE_API_VERSION = "2025-08-27.basil" as any;
+
+// ─── Env-var path (preferred — set STRIPE_SECRET_KEY in Replit Secrets) ───────
+function getClientFromEnv(): Stripe | null {
+  if (process.env.STRIPE_SECRET_KEY) {
+    return new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: STRIPE_API_VERSION });
+  }
+  return null;
+}
+
+// ─── Replit connectors path (fallback when env vars are not present) ──────────
 async function getCredentials(): Promise<{ publishableKey: string; secretKey: string }> {
   const hostname = process.env.REPLIT_CONNECTORS_HOSTNAME;
   const xReplitToken = process.env.REPL_IDENTITY
@@ -12,7 +21,7 @@ async function getCredentials(): Promise<{ publishableKey: string; secretKey: st
 
   if (!hostname || !xReplitToken) {
     throw new Error(
-      "Missing Replit environment variables. Ensure the Stripe integration is connected via the Integrations tab.",
+      "Stripe not configured. Add STRIPE_SECRET_KEY to Replit Secrets, or connect the Stripe integration.",
     );
   }
 
@@ -38,7 +47,7 @@ async function getCredentials(): Promise<{ publishableKey: string; secretKey: st
 
   if (!settings?.publishable || !settings?.secret) {
     throw new Error(
-      `Stripe ${targetEnvironment} connection not found. Connect Stripe via the Integrations tab.`,
+      `Stripe ${targetEnvironment} connection not found. Add STRIPE_SECRET_KEY to Replit Secrets.`,
     );
   }
 
@@ -46,16 +55,20 @@ async function getCredentials(): Promise<{ publishableKey: string; secretKey: st
 }
 
 export async function getUncachableStripeClient(): Promise<Stripe> {
+  const envClient = getClientFromEnv();
+  if (envClient) return envClient;
   const { secretKey } = await getCredentials();
-  return new Stripe(secretKey, { apiVersion: "2025-08-27.basil" as any });
+  return new Stripe(secretKey, { apiVersion: STRIPE_API_VERSION });
 }
 
 export async function getStripePublishableKey(): Promise<string> {
+  if (process.env.STRIPE_PUBLISHABLE_KEY) return process.env.STRIPE_PUBLISHABLE_KEY;
   const { publishableKey } = await getCredentials();
   return publishableKey;
 }
 
 export async function getStripeSecretKey(): Promise<string> {
+  if (process.env.STRIPE_SECRET_KEY) return process.env.STRIPE_SECRET_KEY;
   const { secretKey } = await getCredentials();
   return secretKey;
 }

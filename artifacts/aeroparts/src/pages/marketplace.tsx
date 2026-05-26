@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useGetListings, getGetListingsQueryKey } from "@workspace/api-client-react";
-import { Search, SlidersHorizontal, X } from "lucide-react";
+import { Search, SlidersHorizontal, X, Download } from "lucide-react";
 
 const CONDITIONS = [
   { value: "new", label: "New" },
@@ -66,6 +66,33 @@ export default function Marketplace() {
     setPage(1);
   };
 
+  const handleExportCSV = () => {
+    if (!data?.listings?.length) return;
+    const header = "Part Number,Description,Manufacturer,Condition,Sale Type,Price,Quantity,Badge";
+    const rows = data.listings.map(l =>
+      [
+        l.partNumber,
+        `"${(l.description ?? "").replace(/"/g, '""')}"`,
+        l.manufacturer,
+        l.condition,
+        l.saleType,
+        l.price ?? "POA",
+        l.quantity,
+        l.badge,
+      ].join(",")
+    );
+    const csv = [header, ...rows].join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `marketplace-parts-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <MainLayout>
       <div className="container mx-auto px-4 py-10">
@@ -95,6 +122,15 @@ export default function Marketplace() {
             <SlidersHorizontal className="h-4 w-4 mr-2" />
             Filters
             {hasActiveFilters && <span className="ml-2 h-2 w-2 rounded-full bg-primary inline-block" />}
+          </Button>
+          <Button
+            variant="outline"
+            onClick={handleExportCSV}
+            disabled={!data?.listings?.length}
+            title="Export current page as CSV"
+          >
+            <Download className="h-4 w-4 mr-2" />
+            Export CSV
           </Button>
           {hasActiveFilters && (
             <Button variant="ghost" onClick={clearFilters} className="text-muted-foreground">

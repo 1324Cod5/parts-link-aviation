@@ -6,7 +6,6 @@ import {
   useGetSubscription,
   getGetSubscriptionQueryKey,
   useGetSubscriptionProducts,
-  useCreateCheckoutSession,
 } from "@workspace/api-client-react";
 import { useToast } from "@/hooks/use-toast";
 import { Check, Zap, Building2, Package, Wrench, Star, Brain, Radio, Upload, Loader2, CalendarDays } from "lucide-react";
@@ -64,15 +63,15 @@ const PLANS = [
     ],
   },
   {
-    planKey: "enterprise",   // falls back to enterprise Stripe product; CTA routes to demo
+    planKey: "mission_control",
     name: "Mission Control",
     tag: "ENTERPRISE",
     monthlyPrice: 799,
     yearlyPrice: 7670,   // ~20% off ($639/mo equiv)
     yearlyMonthly: 639,
     featured: false,
-    cta: "Book a Demo",
-    ctaMode: "contact" as "checkout" | "contact",
+    cta: "Get Started",
+    ctaMode: "checkout" as "checkout" | "contact",
     features: [
       "Everything in Fleet Manager",
       "ERP & MRO integration",
@@ -150,8 +149,6 @@ export default function Pricing() {
   const [checkingOutPlan, setCheckingOutPlan] = useState<string | null>(null);
   const [billingCycle, setBillingCycle] = useState<BillingCycle>("monthly");
 
-  const checkoutMutation = useCreateCheckoutSession();
-
   const { data: subscription } = useGetSubscription({
     query: { enabled: !!user && user.role === "seller", queryKey: getGetSubscriptionQueryKey() },
   });
@@ -159,14 +156,22 @@ export default function Pricing() {
 
   const currentPlan = (subscription as any)?.effectivePlan ?? subscription?.plan ?? user?.plan ?? "free";
 
-  const getPriceId = (planKey: string, cycle: BillingCycle): string | null => {
+  // Hardcoded price IDs (always available; API-fetched IDs used as fallback when present)
+  const HARDCODED_PRICE_IDS: Record<string, string> = {
+    pro:             "price_1TbO7VLizlhnDGCHA637d5aj",
+    enterprise:      "price_1TbO7eLizlhnDGCHEnspozSd",
+    mission_control: "price_1TbO7pLizlhnDGCHIGNJLoUd",
+    mro_provider:    "price_1TbO7pLizlhnDGCHIGNJLoUd",
+  };
+
+  const getPriceId = (planKey: string, _cycle: BillingCycle): string | null => {
+    if (HARDCODED_PRICE_IDS[planKey]) return HARDCODED_PRICE_IDS[planKey];
     if (!productsData?.products) return null;
     for (const product of productsData.products) {
       const meta = product.metadata as Record<string, string> | undefined;
       if (meta?.plan === planKey) {
-        const targetInterval = cycle === "yearly" ? "year" : "month";
-        const price = product.prices.find((p: any) => p.interval === targetInterval);
-        return price?.id ?? product.prices.find((p: any) => p.interval === "month")?.id ?? null;
+        const price = product.prices.find((p: any) => p.interval === "month");
+        return price?.id ?? null;
       }
     }
     return null;
@@ -176,23 +181,28 @@ export default function Pricing() {
     if (!user) { navigate("/seller/login"); return; }
     const priceId = getPriceId(planKey, billingCycle);
     if (!priceId) {
-      toast({ title: "Plan not available", description: "This plan isn't configured yet. Contact support or check back soon.", variant: "destructive" });
+      toast({ title: "Plan not available", description: "This plan isn't configured yet. Contact support.", variant: "destructive" });
       return;
     }
     setCheckingOutPlan(planKey);
-    checkoutMutation.mutate(
-      { data: { priceId } },
-      {
-        onSuccess: (data: any) => {
-          if (data?.url) { window.location.href = data.url; }
-          else { toast({ title: "Checkout error", description: "No redirect URL returned.", variant: "destructive" }); setCheckingOutPlan(null); }
-        },
-        onError: (err: any) => {
-          toast({ title: "Checkout failed", description: err?.response?.data?.error ?? "Please try again.", variant: "destructive" });
-          setCheckingOutPlan(null);
-        },
-      },
-    );
+    try {
+      const resp = await fetch("/api/stripe/create-checkout-session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ priceId }),
+      });
+      const data = await resp.json();
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        toast({ title: "Checkout error", description: data.error ?? "No redirect URL returned.", variant: "destructive" });
+        setCheckingOutPlan(null);
+      }
+    } catch (err: any) {
+      toast({ title: "Checkout failed", description: err.message ?? "Please try again.", variant: "destructive" });
+      setCheckingOutPlan(null);
+    }
   };
 
   return (

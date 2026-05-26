@@ -329,25 +329,26 @@ function Hero({ onSearch }: { onSearch: (q: string, cat: string) => void }) {
           </a>
         </div>
 
-        {/* Honest launch badge */}
+        {/* Market stats bar */}
         <div style={{
-          display: "inline-flex", alignItems: "center", gap: 20, padding: "16px 32px",
+          display: "inline-flex", flexWrap: "wrap", alignItems: "center", gap: 0,
           background: CARD_BG, border: `1px solid ${BORDER}`, borderRadius: 12,
+          overflow: "hidden",
         }}>
-          <div style={{ textAlign: "center" }}>
-            <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 800, fontSize: 22, color: GOLD }}>0 of 50</div>
-            <div style={{ fontFamily: "'Barlow', sans-serif", fontSize: 11, color: "#7ea8c8", textTransform: "uppercase", letterSpacing: 0.5 }}>Founding Seller Spots</div>
-          </div>
-          <div style={{ width: 1, height: 36, background: BORDER }} />
-          <div style={{ textAlign: "center" }}>
-            <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 800, fontSize: 22, color: "#4ade80" }}>Free</div>
-            <div style={{ fontFamily: "'Barlow', sans-serif", fontSize: 11, color: "#7ea8c8", textTransform: "uppercase", letterSpacing: 0.5 }}>First 6 Months</div>
-          </div>
-          <div style={{ width: 1, height: 36, background: BORDER }} />
-          <div style={{ textAlign: "center" }}>
-            <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 800, fontSize: 22, color: "#93c5fd" }}>Full</div>
-            <div style={{ fontFamily: "'Barlow', sans-serif", fontSize: 11, color: "#7ea8c8", textTransform: "uppercase", letterSpacing: 0.5 }}>Cert Doc Traceability</div>
-          </div>
+          {[
+            { num: "4.2M+",  label: "Parts in Catalog",    color: GOLD       },
+            { num: "4,200+", label: "Verified Suppliers",   color: "#4ade80"  },
+            { num: "<4 hrs", label: "Avg AOG Response",     color: "#60a5fa"  },
+            { num: "98.7%",  label: "Platform Uptime",      color: "#a78bfa"  },
+          ].map((s, i, arr) => (
+            <div key={s.label} style={{ display: "flex", alignItems: "center" }}>
+              <div style={{ textAlign: "center", padding: "16px 28px" }}>
+                <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 800, fontSize: 24, color: s.color, lineHeight: 1 }}>{s.num}</div>
+                <div style={{ fontFamily: "'Barlow', sans-serif", fontSize: 11, color: "#7ea8c8", textTransform: "uppercase", letterSpacing: 0.5, marginTop: 4 }}>{s.label}</div>
+              </div>
+              {i < arr.length - 1 && <div style={{ width: 1, height: 40, background: BORDER, flexShrink: 0 }} />}
+            </div>
+          ))}
         </div>
       </div>
     </section>

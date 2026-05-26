@@ -18,6 +18,8 @@ import debugRouter from "./debug";
 import intelligenceRouter from "./intelligence";
 import vendorVerificationRouter from "./vendor-verification";
 import waitlistRouter from "./waitlist";
+import stripeCheckoutRouter from "./stripe-checkout";
+import inventoryRouter from "./inventory";
 
 const router: IRouter = Router();
 
@@ -39,6 +41,8 @@ router.use(messagesRouter);
 router.use(intelligenceRouter);
 router.use(vendorVerificationRouter);
 router.use(waitlistRouter);
+router.use(stripeCheckoutRouter);
+router.use(inventoryRouter);
 router.use(debugRouter);
 
 export default router;

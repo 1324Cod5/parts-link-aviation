@@ -39,6 +39,8 @@ import CompliancePage from "@/pages/compliance";
 import SellerGuidelinesPage from "@/pages/seller-guidelines";
 import DeveloperPage from "@/pages/developer";
 import WatchlistPage from "@/pages/watchlist";
+import SubscriptionSuccessPage from "@/pages/seller/subscription-success";
+import SubscriptionCancelPage from "@/pages/seller/subscription-cancel";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -68,6 +70,8 @@ function Router() {
       <Route path="/admin/:section" component={AdminDashboard} />
       <Route path="/admin" component={AdminDashboard} />
       <Route path="/pricing" component={Pricing} />
+      <Route path="/seller/subscription/success" component={SubscriptionSuccessPage} />
+      <Route path="/seller/subscription/cancel" component={SubscriptionCancelPage} />
       <Route path="/seller/subscription" component={SubscriptionManagement} />
       <Route path="/rfqs" component={RfqsPage} />
       <Route path="/rfqs/new" component={NewRfqPage} />

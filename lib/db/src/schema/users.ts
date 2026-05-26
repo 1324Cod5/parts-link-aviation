@@ -6,7 +6,7 @@ import { z } from "zod/v4";
 export const userRoleEnum = pgEnum("user_role", ["buyer", "seller", "admin", "super_admin"]);
 export const sellerTypeEnum = pgEnum("seller_type", ["private", "verified_vendor"]);
 export const vendorVerifStatusEnum = pgEnum("vendor_verif_status", ["pending", "approved", "rejected"]);
-export const userPlanEnum = pgEnum("user_plan", ["free", "pro", "enterprise", "mro_verified", "mro_premium", "mro_provider"]);
+export const userPlanEnum = pgEnum("user_plan", ["free", "pro", "enterprise", "mro_verified", "mro_premium", "mro_provider", "mission_control"]);
 export const userStatusEnum = pgEnum("user_status", ["active", "suspended"]);
 export const subscriptionStatusEnum = pgEnum("subscription_status", [
   "active", "trial", "past_due", "cancelled", "suspended",

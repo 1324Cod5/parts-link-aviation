@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link, useLocation } from "wouter";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Button } from "@/components/ui/button";
@@ -21,7 +21,7 @@ import {
 import { useAuth } from "@/context/AuthContext";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Edit2, Trash2, Package, FileCheck2, MessageSquare, ShieldCheck, Zap, Building2, AlertTriangle, ClipboardList, Wrench, Shield, FileSpreadsheet, Lock, Radio, ArrowRight, Clock, BadgeCheck, Send, Brain, TrendingUp, FileDown, Code2, Heart } from "lucide-react";
+import { Plus, Edit2, Trash2, Package, FileCheck2, MessageSquare, ShieldCheck, Zap, Building2, AlertTriangle, ClipboardList, Wrench, Shield, FileSpreadsheet, Lock, Radio, ArrowRight, Clock, BadgeCheck, Send, Brain, TrendingUp, FileDown, Code2, Heart, Key, Upload, Eye, EyeOff, Copy, CheckCheck, RefreshCw } from "lucide-react";
 import { TrustBadge, TrustScoreBar, TRUST_BADGE_META } from "@/components/ui/trust-badge";
 import { SellerTypeBadge } from "@/components/ui/seller-type-badge";
 import {
@@ -190,6 +190,21 @@ export default function SellerDashboard() {
   const [verifForm, setVerifForm] = useState({ businessName: "", certificationUrl: "", notes: "" });
   const [showVerifForm, setShowVerifForm] = useState(false);
 
+  // ── API Keys ──────────────────────────────────────────────────────────────
+  const [apiKeys, setApiKeys] = useState<any[]>([]);
+  const [apiKeysLoading, setApiKeysLoading] = useState(false);
+  const [newKeyLabel, setNewKeyLabel] = useState("");
+  const [newRawKey, setNewRawKey] = useState<string | null>(null);
+  const [generatingKey, setGeneratingKey] = useState(false);
+  const [rawKeyCopied, setRawKeyCopied] = useState(false);
+  const [showRawKey, setShowRawKey] = useState(false);
+
+  // ── Inventory Import ──────────────────────────────────────────────────────
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const [importStatus, setImportStatus] = useState<{ total: number; created: number; errors: number; results: any[] } | null>(null);
+  const [importing, setImporting] = useState(false);
+  const importFileRef = useRef<HTMLInputElement>(null);
+
   const handleSubmitVerif = (e: React.FormEvent) => {
     e.preventDefault();
     if (!verifForm.businessName.trim()) return;
@@ -266,6 +281,83 @@ export default function SellerDashboard() {
     w.document.close();
     w.focus();
     setTimeout(() => { w.print(); }, 400);
+  };
+
+  // ── API Key fetcher ────────────────────────────────────────────────────────
+  const fetchApiKeys = () => {
+    if (!user) return;
+    setApiKeysLoading(true);
+    fetch("/api/seller/api-keys", { credentials: "include" })
+      .then(r => r.json())
+      .then(d => setApiKeys(d.keys ?? []))
+      .catch(() => {})
+      .finally(() => setApiKeysLoading(false));
+  };
+
+  useEffect(() => { fetchApiKeys(); }, [user?.id]);
+
+  const handleGenerateKey = async () => {
+    if (!newKeyLabel.trim()) return;
+    setGeneratingKey(true);
+    try {
+      const resp = await fetch("/api/seller/api-keys", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ label: newKeyLabel.trim() }),
+      });
+      const data = await resp.json();
+      if (data.rawKey) {
+        setNewRawKey(data.rawKey);
+        setShowRawKey(true);
+        setRawKeyCopied(false);
+        setNewKeyLabel("");
+        fetchApiKeys();
+      } else {
+        toast({ title: "Failed to generate key", variant: "destructive" });
+      }
+    } catch {
+      toast({ title: "Failed to generate key", variant: "destructive" });
+    } finally {
+      setGeneratingKey(false);
+    }
+  };
+
+  const handleRevokeKey = async (id: number) => {
+    if (!confirm("Revoke this API key? Any integrations using it will stop working immediately.")) return;
+    await fetch(`/api/seller/api-keys/${id}`, { method: "DELETE", credentials: "include" });
+    fetchApiKeys();
+    toast({ title: "API key revoked" });
+  };
+
+  const handleImport = async () => {
+    if (!importFile) return;
+    setImporting(true);
+    setImportStatus(null);
+    const form = new FormData();
+    form.append("file", importFile);
+    try {
+      const resp = await fetch("/api/seller/inventory/import", {
+        method: "POST",
+        credentials: "include",
+        body: form,
+      });
+      const data = await resp.json();
+      if (data.ok) {
+        setImportStatus(data);
+        setImportFile(null);
+        if (importFileRef.current) importFileRef.current.value = "";
+        queryClient.invalidateQueries({ queryKey: getGetSellerListingsQueryKey() });
+        queryClient.invalidateQueries({ queryKey: getGetSellerStatsQueryKey() });
+        toast({ title: `Imported ${data.created} of ${data.total} parts`, description: data.errors > 0 ? `${data.errors} rows had errors.` : undefined });
+      } else {
+        toast({ title: "Import failed", description: data.error ?? "Check the file format.", variant: "destructive" });
+      }
+    } catch (err: any) {
+      toast({ title: "Import failed", description: err.message, variant: "destructive" });
+    } finally {
+      setImporting(false);
+    }
   };
 
   // Wait until the auth check has fully resolved before deciding whether to
@@ -1110,6 +1202,187 @@ export default function SellerDashboard() {
             </div>
           )}
         </div>
+
+        {/* ── Inventory Import ──────────────────────────────────────────── */}
+        <div className="mt-8 bg-card border border-border rounded-md">
+          <div className="p-5 border-b border-border flex items-center gap-3">
+            <Upload className="h-4 w-4 text-muted-foreground" />
+            <div>
+              <h2 className="font-semibold text-white text-sm">Bulk Import Inventory</h2>
+              <p className="text-xs text-muted-foreground mt-0.5">Upload a CSV or Excel file to add multiple listings at once.</p>
+            </div>
+          </div>
+          <div className="p-5">
+            <div className="text-xs text-muted-foreground mb-4 bg-secondary/30 rounded p-3 font-mono leading-relaxed">
+              Required columns: <span className="text-white">part_number</span>, <span className="text-white">description</span>, <span className="text-white">condition</span><br />
+              Optional: <span className="text-white">quantity</span>, <span className="text-white">price</span>, <span className="text-white">manufacturer</span>, <span className="text-white">sale_type</span>, <span className="text-white">aircraft_applicability</span><br />
+              Condition values: new, overhauled, serviceable, as_removed, repaired
+            </div>
+            <div className="flex flex-wrap items-center gap-3">
+              <input
+                ref={importFileRef}
+                type="file"
+                accept=".csv,.xlsx,.xls"
+                className="hidden"
+                id="dashboard-import-file"
+                onChange={e => { setImportFile(e.target.files?.[0] ?? null); setImportStatus(null); }}
+              />
+              <label htmlFor="dashboard-import-file">
+                <Button variant="outline" size="sm" className="cursor-pointer" asChild>
+                  <span><FileSpreadsheet className="h-4 w-4 mr-2" />Choose File</span>
+                </Button>
+              </label>
+              {importFile && (
+                <>
+                  <span className="text-sm text-muted-foreground">{importFile.name}</span>
+                  <Button size="sm" onClick={handleImport} disabled={importing}>
+                    {importing ? <RefreshCw className="h-3.5 w-3.5 mr-2 animate-spin" /> : <Upload className="h-3.5 w-3.5 mr-2" />}
+                    {importing ? "Importing…" : "Import Now"}
+                  </Button>
+                </>
+              )}
+            </div>
+
+            {importStatus && (
+              <div className="mt-4 p-3 bg-secondary/30 rounded border border-border text-sm space-y-1">
+                <div className="flex items-center gap-2 text-emerald-400 font-medium">
+                  <CheckCheck className="h-4 w-4" />
+                  {importStatus.created} of {importStatus.total} parts imported successfully
+                </div>
+                {importStatus.errors > 0 && (
+                  <div className="text-amber-400 text-xs">{importStatus.errors} rows had errors. See details below.</div>
+                )}
+                {importStatus.errors > 0 && (
+                  <div className="mt-2 max-h-40 overflow-y-auto text-xs space-y-1">
+                    {importStatus.results.filter((r: any) => r.status === "error").map((r: any, i: number) => (
+                      <div key={i} className="text-destructive/80">
+                        Row {r.row}{r.partNumber ? ` (${r.partNumber})` : ""}: {r.error}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* ── API Access ────────────────────────────────────────────────── */}
+        <div className="mt-6 mb-8 bg-card border border-border rounded-md">
+          <div className="p-5 border-b border-border flex items-center justify-between flex-wrap gap-3">
+            <div className="flex items-center gap-3">
+              <Code2 className="h-4 w-4 text-muted-foreground" />
+              <div>
+                <h2 className="font-semibold text-white text-sm flex items-center gap-2">
+                  API Access
+                  {(user?.plan === "free" || user?.plan === "pro") && (
+                    <span className="text-xs text-amber-400 flex items-center gap-1 font-normal">
+                      <Lock className="h-3 w-3" /> Fleet Manager+ required
+                    </span>
+                  )}
+                </h2>
+                <p className="text-xs text-muted-foreground mt-0.5">Authenticate with <span className="font-mono text-white">X-API-Key</span> header. Keys are shown once — store them securely.</p>
+              </div>
+            </div>
+            {(["enterprise", "mission_control", "mro_provider", "mro_premium"].includes(user?.plan as string)) && (
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  placeholder="Key label (e.g. ERP sync)"
+                  value={newKeyLabel}
+                  onChange={e => setNewKeyLabel(e.target.value)}
+                  onKeyDown={e => e.key === "Enter" && handleGenerateKey()}
+                  className="h-8 px-3 text-xs bg-secondary/50 border border-border rounded text-white placeholder:text-muted-foreground/60 focus:outline-none focus:ring-1 focus:ring-primary w-48"
+                />
+                <Button size="sm" onClick={handleGenerateKey} disabled={generatingKey || !newKeyLabel.trim()} className="h-8 text-xs">
+                  {generatingKey ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Key className="h-3.5 w-3.5 mr-1.5" />}
+                  Generate
+                </Button>
+              </div>
+            )}
+          </div>
+
+          {(user?.plan === "free" || user?.plan === "pro") && (
+            <div className="p-8 text-center">
+              <Lock className="h-8 w-8 text-muted-foreground/40 mx-auto mb-3" />
+              <p className="text-sm text-muted-foreground mb-3">API access is available on Fleet Manager and Mission Control plans.</p>
+              <Link href="/pricing">
+                <Button size="sm" variant="outline" className="border-primary/40 text-primary hover:bg-primary/10">
+                  <Zap className="h-3.5 w-3.5 mr-1.5" /> Upgrade Plan
+                </Button>
+              </Link>
+            </div>
+          )}
+
+          {newRawKey && (
+            <div className="m-4 p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-md">
+              <p className="text-xs text-emerald-400 font-semibold mb-2 flex items-center gap-1.5">
+                <Key className="h-3.5 w-3.5" /> API key generated — copy it now. It won't be shown again.
+              </p>
+              <div className="flex items-center gap-2">
+                <code className="flex-1 text-xs font-mono bg-secondary/60 rounded px-3 py-2 text-white break-all select-all">
+                  {showRawKey ? newRawKey : "•".repeat(Math.min(newRawKey.length, 40))}
+                </code>
+                <Button size="icon" variant="ghost" className="h-8 w-8 shrink-0" onClick={() => setShowRawKey(v => !v)}>
+                  {showRawKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </Button>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-8 w-8 shrink-0"
+                  onClick={() => { navigator.clipboard.writeText(newRawKey); setRawKeyCopied(true); setTimeout(() => setRawKeyCopied(false), 2000); }}
+                >
+                  {rawKeyCopied ? <CheckCheck className="h-4 w-4 text-emerald-400" /> : <Copy className="h-4 w-4" />}
+                </Button>
+              </div>
+              <Button size="sm" variant="ghost" className="mt-2 text-xs text-muted-foreground h-6" onClick={() => setNewRawKey(null)}>
+                I've saved it — dismiss
+              </Button>
+            </div>
+          )}
+
+          {(["enterprise", "mission_control", "mro_provider", "mro_premium"].includes(user?.plan as string)) && (
+            <div className="divide-y divide-border">
+              {apiKeysLoading ? (
+                <div className="p-5 space-y-2">
+                  {[1, 2].map(i => <Skeleton key={i} className="h-10 w-full" />)}
+                </div>
+              ) : apiKeys.length === 0 ? (
+                <div className="p-8 text-center">
+                  <Key className="h-8 w-8 text-muted-foreground/30 mx-auto mb-2" />
+                  <p className="text-sm text-muted-foreground">No API keys yet. Generate one above to get started.</p>
+                  <a href="/developer" className="text-xs text-primary hover:underline mt-1 inline-block">View API documentation →</a>
+                </div>
+              ) : (
+                apiKeys.map((key: any) => (
+                  <div key={key.id} className="p-4 flex items-center justify-between gap-4 flex-wrap">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <Key className="h-4 w-4 text-muted-foreground shrink-0" />
+                      <div className="min-w-0">
+                        <div className="text-sm text-white font-medium truncate">{key.label}</div>
+                        <div className="text-xs font-mono text-muted-foreground">{key.keyPrefix}••••••••••••••••••••••••••••••••••••••••••</div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-4 text-xs text-muted-foreground shrink-0">
+                      {key.lastUsedAt && (
+                        <span>Last used {new Date(key.lastUsedAt).toLocaleDateString()}</span>
+                      )}
+                      <span>Created {new Date(key.createdAt).toLocaleDateString()}</span>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-7 text-xs text-destructive hover:text-destructive hover:bg-destructive/10"
+                        onClick={() => handleRevokeKey(key.id)}
+                      >
+                        Revoke
+                      </Button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
+        </div>
+
       </div>
     </MainLayout>
   );
