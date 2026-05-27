@@ -336,10 +336,10 @@ function Hero({ onSearch }: { onSearch: (q: string, cat: string) => void }) {
           paddingTop: 36,
         }}>
           {[
-            { value: "4.2M+",   label: "Certified Parts Listed"   },
-            { value: "4,200+",  label: "Verified Suppliers"        },
-            { value: "< 4 hrs", label: "Avg. Seller Response"      },
-            { value: "98.7%",   label: "Platform Uptime"           },
+            { value: "0%",      label: "Commission on Sales"       },
+            { value: "Free",    label: "To List Parts"             },
+            { value: "100%",    label: "Transparent Pricing"       },
+            { value: "< 24 hrs",label: "Listing Go-Live Time"      },
           ].map((s, i, arr) => (
             <div
               key={s.label}
