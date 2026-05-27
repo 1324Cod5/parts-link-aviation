@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { useGetRfqs } from "@workspace/api-client-react";
 import { useAuth } from "@/context/AuthContext";
 import { Navbar } from "@/components/layout/Navbar";
@@ -56,6 +56,7 @@ export default function RfqsPage() {
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState<"open" | "closed" | undefined>("open");
 
+  const [, navigate] = useLocation();
   const { user } = useAuth();
   const isFreeSeller = user?.role === "seller" && user?.plan === "free";
 
@@ -170,12 +171,10 @@ export default function RfqsPage() {
               <Package className="w-12 h-12 mx-auto mb-4 opacity-30" />
               <p className="text-lg font-medium">No RFQs found</p>
               <p className="text-sm mt-1">Be the first to post a part request</p>
-              <Link href="/rfqs/new">
-                <Button className="mt-4 gap-2">
-                  <Plus className="w-4 h-4" />
-                  Post an RFQ
-                </Button>
-              </Link>
+              <Button className="mt-4 gap-2" onClick={() => navigate("/rfqs/new")}>
+                <Plus className="w-4 h-4" />
+                Post an RFQ
+              </Button>
             </div>
           ) : (
             <div className="space-y-3">

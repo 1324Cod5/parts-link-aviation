@@ -74,13 +74,6 @@ export default function SellerLogin() {
             </Button>
           </form>
 
-          <div className="mt-6 text-center text-sm text-muted-foreground">
-            <p className="mb-2">Demo credentials:</p>
-            <p className="font-mono text-xs bg-secondary/50 rounded px-3 py-1.5 inline-block">
-              avtech@example.com / password
-            </p>
-          </div>
-
           <div className="mt-6 pt-6 border-t border-border text-center text-sm text-muted-foreground">
             No account?{" "}
             <Link href="/seller/register" className="text-primary hover:underline">

@@ -203,23 +203,6 @@ export default function AdminLogin() {
             </Button>
           </form>
 
-          {/* Divider */}
-          <div className="mt-6 pt-5 border-t border-border">
-            <div className="bg-secondary/30 rounded-lg p-3 border border-border">
-              <p className="text-xs text-muted-foreground mb-1.5 font-medium">Available credentials</p>
-              <div className="space-y-1.5">
-                <div className="border-b border-border/50 pb-1.5">
-                  <p className="font-mono text-xs text-white">admin@aeroparts.com</p>
-                  <p className="font-mono text-xs text-muted-foreground">password</p>
-                </div>
-                <div>
-                  <p className="font-mono text-xs text-white">admin@test.com</p>
-                  <p className="font-mono text-xs text-muted-foreground">Admin123!</p>
-                </div>
-              </div>
-            </div>
-          </div>
-
           {/* Security info */}
           <div className="mt-4 grid grid-cols-2 gap-2">
             <div className="flex items-center gap-1.5 text-xs text-muted-foreground">

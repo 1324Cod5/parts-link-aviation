@@ -61,6 +61,10 @@ function Router() {
       <Route path="/seller/register" component={SellerRegister} />
       <Route path="/seller/login" component={SellerLogin} />
       <Route path="/seller/dashboard" component={SellerDashboard} />
+      <Route path="/seller/listings" component={SellerDashboard} />
+      <Route path="/seller/analytics" component={SellerDashboard} />
+      <Route path="/seller/billing" component={SellerDashboard} />
+      <Route path="/seller/settings" component={SellerDashboard} />
       <Route path="/seller/listings/new" component={NewListing} />
       <Route path="/seller/listings/:id/edit" component={EditListing} />
       <Route path="/seller/bulk-upload" component={BulkUpload} />

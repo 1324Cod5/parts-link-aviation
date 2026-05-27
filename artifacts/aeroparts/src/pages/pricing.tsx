@@ -35,11 +35,9 @@ const PLANS = [
     cta: "Claim Your Free Spot",
     ctaMode: "checkout" as "checkout" | "contact",
     features: [
-      "50 searches per month",
-      "1.2M part catalog access",
+      "Unlimited marketplace searches",
+      "Access all verified listings on the platform",
       "Email support",
-      "PDF export reports",
-      "Basic price history",
     ],
   },
   {
@@ -53,13 +51,11 @@ const PLANS = [
     cta: "Start Free Trial",
     ctaMode: "checkout" as "checkout" | "contact",
     features: [
-      "Unlimited searches",
-      "Full 4.2M catalog",
-      "AOG hotline access",
-      "Real-time price benchmarking",
+      "Unlimited marketplace searches",
+      "Full access to all verified listings",
       "Watchlist alerts",
-      "24/7 priority support",
       "API access",
+      "Business-hours email support (Mon–Fri)",
     ],
   },
   {
@@ -75,11 +71,7 @@ const PLANS = [
     features: [
       "Everything in Fleet Manager",
       "ERP & MRO integration",
-      "Dedicated account manager",
-      "Custom contracts & SLA",
-      "White-glove AOG response",
       "Multi-user seats (unlimited)",
-      "On-site training",
     ],
   },
 ];
@@ -221,7 +213,7 @@ export default function Pricing() {
               Plans for Every <span style={{ color: GOLD }}>Operation</span>
             </h1>
             <p style={{ fontFamily: "'Barlow', sans-serif", fontSize: 16, color: MUTED, marginBottom: 0 }}>
-              No contracts. Cancel anytime. 14-day free trial on all plans.
+              No contracts. Cancel anytime.
             </p>
           </div>
 
@@ -476,7 +468,7 @@ export default function Pricing() {
           {/* ── Compare note ── */}
           <p style={{ textAlign: "center", fontFamily: "'Barlow', sans-serif", fontSize: 13, color: "#4a6480", marginBottom: 80 }}>
             Need custom volume pricing?{" "}
-            <a href="mailto:sales@aeroparts.app" style={{ color: BLUE, textDecoration: "none" }}>Contact our sales team →</a>
+            <a href="/contact" style={{ color: BLUE, textDecoration: "none" }}>Contact our sales team →</a>
           </p>
 
           {/* ── MRO Services section ── */}
@@ -598,10 +590,8 @@ export default function Pricing() {
               {[
                 { q: "What's the difference between monthly and yearly billing?", a: "Monthly billing charges your card each month. Yearly billing charges once per year and saves you roughly 20% — you pay for 10 months and get 12." },
                 { q: "How does billing work?", a: "All plans are billed through Stripe. You'll be redirected to a secure Stripe Checkout page to enter your payment details. You can manage, upgrade, or cancel at any time via the billing portal." },
-                { q: "What happens when I hit my search limit?", a: "Solo Operator includes 50 searches per month. Once reached, you'll be prompted to upgrade to Fleet Manager for unlimited searches." },
                 { q: "What happens if my payment fails?", a: "You get a 7-day grace period while Stripe retries your payment. During that time your plan stays active. If payment isn't resolved after 7 days, your account is downgraded." },
-                { q: "What is the AOG hotline?", a: "Fleet Manager and Mission Control subscribers get priority phone access to our 24/7 AOG sourcing desk. We source critical aircraft parts globally with average response times under 4 hours." },
-                { q: "What does Mission Control include?", a: "Mission Control adds ERP & MRO system integrations, a dedicated account manager, custom SLA contracts, white-glove AOG response, and unlimited multi-user seats. Contact sales for a tailored quote." },
+                { q: "What does Mission Control include?", a: "Mission Control adds ERP & MRO system integrations and unlimited multi-user seats on top of everything in Fleet Manager. Contact our team at support@partslinkaviation.com to discuss your needs." },
                 { q: "Can I cancel at any time?", a: "Yes. Cancelling through the billing portal keeps your access active until the end of the current billing period, then downgrades to free access. No penalties or lock-ins." },
               ].map(({ q, a }) => (
                 <div key={q} style={{ borderBottom: `1px solid ${BORDER}`, paddingBottom: 24 }}>
