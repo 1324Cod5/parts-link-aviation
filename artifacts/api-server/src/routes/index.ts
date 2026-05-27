@@ -20,6 +20,7 @@ import vendorVerificationRouter from "./vendor-verification";
 import waitlistRouter from "./waitlist";
 import stripeCheckoutRouter from "./stripe-checkout";
 import inventoryRouter from "./inventory";
+import certDocumentsRouter from "./cert-documents";
 
 const router: IRouter = Router();
 
@@ -43,6 +44,7 @@ router.use(vendorVerificationRouter);
 router.use(waitlistRouter);
 router.use(stripeCheckoutRouter);
 router.use(inventoryRouter);
+router.use(certDocumentsRouter);
 router.use(debugRouter);
 
 export default router;

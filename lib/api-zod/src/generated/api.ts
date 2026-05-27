@@ -253,6 +253,8 @@ export const GetFeaturedListingsResponseItem = zod.object({
   "badge": zod.enum(['pending_verification', 'documentation_reviewed', 'verified']),
   "status": zod.enum(['active', 'removed', 'suspended', 'pending_review', 'deleted']),
   "featured": zod.boolean().optional(),
+  "certType": zod.string().optional(),
+  "certDocId": zod.number().nullish(),
   "deletedAt": zod.string().nullish(),
   "deletedBy": zod.number().nullish(),
   "sellerId": zod.number(),
@@ -323,6 +325,8 @@ export const GetListingsResponse = zod.object({
   "badge": zod.enum(['pending_verification', 'documentation_reviewed', 'verified']),
   "status": zod.enum(['active', 'removed', 'suspended', 'pending_review', 'deleted']),
   "featured": zod.boolean().optional(),
+  "certType": zod.string().optional(),
+  "certDocId": zod.number().nullish(),
   "deletedAt": zod.string().nullish(),
   "deletedBy": zod.number().nullish(),
   "sellerId": zod.number(),
@@ -364,7 +368,9 @@ export const CreateListingBody = zod.object({
   "documentType": zod.enum(['faa_8130_3', 'easa_form_1', 'tcca_form_1', 'overhaul_report', 'test_report', 'coa', 'other']),
   "fileUrl": zod.string()
 })).optional(),
-  "traceHistory": zod.string().nullish()
+  "traceHistory": zod.string().nullish(),
+  "certType": zod.string().optional(),
+  "certDocId": zod.number().nullish()
 })
 
 
@@ -402,6 +408,8 @@ export const GetListingResponse = zod.object({
   "badge": zod.enum(['pending_verification', 'documentation_reviewed', 'verified']),
   "status": zod.enum(['active', 'removed', 'suspended', 'pending_review', 'deleted']),
   "featured": zod.boolean().optional(),
+  "certType": zod.string().optional(),
+  "certDocId": zod.number().nullish(),
   "deletedAt": zod.string().nullish(),
   "deletedBy": zod.number().nullish(),
   "sellerId": zod.number(),
@@ -443,7 +451,9 @@ export const UpdateListingBody = zod.object({
   "documentType": zod.enum(['faa_8130_3', 'easa_form_1', 'tcca_form_1', 'overhaul_report', 'test_report', 'coa', 'other']),
   "fileUrl": zod.string()
 })).optional(),
-  "traceHistory": zod.string().nullish()
+  "traceHistory": zod.string().nullish(),
+  "certType": zod.string().optional(),
+  "certDocId": zod.number().nullish()
 })
 
 export const UpdateListingResponse = zod.object({
@@ -473,6 +483,8 @@ export const UpdateListingResponse = zod.object({
   "badge": zod.enum(['pending_verification', 'documentation_reviewed', 'verified']),
   "status": zod.enum(['active', 'removed', 'suspended', 'pending_review', 'deleted']),
   "featured": zod.boolean().optional(),
+  "certType": zod.string().optional(),
+  "certDocId": zod.number().nullish(),
   "deletedAt": zod.string().nullish(),
   "deletedBy": zod.number().nullish(),
   "sellerId": zod.number(),
@@ -541,6 +553,8 @@ export const UpdateListingBadgeResponse = zod.object({
   "badge": zod.enum(['pending_verification', 'documentation_reviewed', 'verified']),
   "status": zod.enum(['active', 'removed', 'suspended', 'pending_review', 'deleted']),
   "featured": zod.boolean().optional(),
+  "certType": zod.string().optional(),
+  "certDocId": zod.number().nullish(),
   "deletedAt": zod.string().nullish(),
   "deletedBy": zod.number().nullish(),
   "sellerId": zod.number(),
@@ -685,6 +699,8 @@ export const GetSellerListingsResponseItem = zod.object({
   "badge": zod.enum(['pending_verification', 'documentation_reviewed', 'verified']),
   "status": zod.enum(['active', 'removed', 'suspended', 'pending_review', 'deleted']),
   "featured": zod.boolean().optional(),
+  "certType": zod.string().optional(),
+  "certDocId": zod.number().nullish(),
   "deletedAt": zod.string().nullish(),
   "deletedBy": zod.number().nullish(),
   "sellerId": zod.number(),
@@ -702,6 +718,106 @@ export const GetSellerListingsResponseItem = zod.object({
   "updatedAt": zod.string().optional()
 })
 export const GetSellerListingsResponse = zod.array(GetSellerListingsResponseItem)
+
+
+/**
+ * @summary List seller's cert documents
+ */
+export const GetSellerCertDocumentsResponse = zod.object({
+  "documents": zod.array(zod.object({
+  "id": zod.number(),
+  "sellerId": zod.number(),
+  "docType": zod.string(),
+  "issuingAuthority": zod.string().nullish(),
+  "docDate": zod.string().nullish(),
+  "aircraftApplicability": zod.string().nullish(),
+  "fileUrl": zod.string(),
+  "originalFilename": zod.string(),
+  "flagged": zod.boolean(),
+  "linkedListings": zod.number(),
+  "createdAt": zod.coerce.date()
+}))
+})
+
+
+/**
+ * @summary Link a cert doc to multiple listings
+ */
+export const LinkCertDocumentToListingsParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const LinkCertDocumentToListingsBody = zod.object({
+  "listingIds": zod.array(zod.number())
+})
+
+export const LinkCertDocumentToListingsResponse = zod.object({
+  "document": zod.object({
+  "id": zod.number(),
+  "sellerId": zod.number(),
+  "docType": zod.string(),
+  "issuingAuthority": zod.string().nullish(),
+  "docDate": zod.string().nullish(),
+  "aircraftApplicability": zod.string().nullish(),
+  "fileUrl": zod.string(),
+  "originalFilename": zod.string(),
+  "flagged": zod.boolean(),
+  "linkedListings": zod.number(),
+  "createdAt": zod.coerce.date()
+})
+})
+
+
+/**
+ * @summary Flag or unflag a cert document
+ */
+export const AdminFlagCertDocumentParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const AdminFlagCertDocumentBody = zod.object({
+  "flagged": zod.boolean()
+})
+
+export const AdminFlagCertDocumentResponse = zod.object({
+  "document": zod.object({
+  "id": zod.number(),
+  "sellerId": zod.number(),
+  "docType": zod.string(),
+  "issuingAuthority": zod.string().nullish(),
+  "docDate": zod.string().nullish(),
+  "aircraftApplicability": zod.string().nullish(),
+  "fileUrl": zod.string(),
+  "originalFilename": zod.string(),
+  "flagged": zod.boolean(),
+  "linkedListings": zod.number(),
+  "createdAt": zod.coerce.date()
+})
+})
+
+
+/**
+ * @summary Get all cert documents for a seller (admin)
+ */
+export const GetAdminSellerCertDocumentsParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const GetAdminSellerCertDocumentsResponse = zod.object({
+  "documents": zod.array(zod.object({
+  "id": zod.number(),
+  "sellerId": zod.number(),
+  "docType": zod.string(),
+  "issuingAuthority": zod.string().nullish(),
+  "docDate": zod.string().nullish(),
+  "aircraftApplicability": zod.string().nullish(),
+  "fileUrl": zod.string(),
+  "originalFilename": zod.string(),
+  "flagged": zod.boolean(),
+  "linkedListings": zod.number(),
+  "createdAt": zod.coerce.date()
+}))
+})
 
 
 /**
@@ -820,6 +936,8 @@ export const GetAdminListingsResponseItem = zod.object({
   "badge": zod.enum(['pending_verification', 'documentation_reviewed', 'verified']),
   "status": zod.enum(['active', 'removed', 'suspended', 'pending_review', 'deleted']),
   "featured": zod.boolean().optional(),
+  "certType": zod.string().optional(),
+  "certDocId": zod.number().nullish(),
   "deletedAt": zod.string().nullish(),
   "deletedBy": zod.number().nullish(),
   "sellerId": zod.number(),
@@ -873,6 +991,8 @@ export const GetAdminListingResponse = zod.object({
   "badge": zod.enum(['pending_verification', 'documentation_reviewed', 'verified']),
   "status": zod.enum(['active', 'removed', 'suspended', 'pending_review', 'deleted']),
   "featured": zod.boolean().optional(),
+  "certType": zod.string().optional(),
+  "certDocId": zod.number().nullish(),
   "deletedAt": zod.string().nullish(),
   "deletedBy": zod.number().nullish(),
   "sellerId": zod.number(),
@@ -1957,6 +2077,8 @@ export const GetAdminInventoryResponse = zod.object({
   "badge": zod.enum(['pending_verification', 'documentation_reviewed', 'verified']),
   "status": zod.enum(['active', 'removed', 'suspended', 'pending_review', 'deleted']),
   "featured": zod.boolean().optional(),
+  "certType": zod.string().optional(),
+  "certDocId": zod.number().nullish(),
   "deletedAt": zod.string().nullish(),
   "deletedBy": zod.number().nullish(),
   "sellerId": zod.number(),
@@ -2038,6 +2160,8 @@ export const GetAdminInventoryItemResponse = zod.object({
   "badge": zod.enum(['pending_verification', 'documentation_reviewed', 'verified']),
   "status": zod.enum(['active', 'removed', 'suspended', 'pending_review', 'deleted']),
   "featured": zod.boolean().optional(),
+  "certType": zod.string().optional(),
+  "certDocId": zod.number().nullish(),
   "deletedAt": zod.string().nullish(),
   "deletedBy": zod.number().nullish(),
   "sellerId": zod.number(),
@@ -2109,6 +2233,8 @@ export const UpdateAdminInventoryListingResponse = zod.object({
   "badge": zod.enum(['pending_verification', 'documentation_reviewed', 'verified']),
   "status": zod.enum(['active', 'removed', 'suspended', 'pending_review', 'deleted']),
   "featured": zod.boolean().optional(),
+  "certType": zod.string().optional(),
+  "certDocId": zod.number().nullish(),
   "deletedAt": zod.string().nullish(),
   "deletedBy": zod.number().nullish(),
   "sellerId": zod.number(),
@@ -2177,6 +2303,8 @@ export const SuspendAdminInventoryListingResponse = zod.object({
   "badge": zod.enum(['pending_verification', 'documentation_reviewed', 'verified']),
   "status": zod.enum(['active', 'removed', 'suspended', 'pending_review', 'deleted']),
   "featured": zod.boolean().optional(),
+  "certType": zod.string().optional(),
+  "certDocId": zod.number().nullish(),
   "deletedAt": zod.string().nullish(),
   "deletedBy": zod.number().nullish(),
   "sellerId": zod.number(),
@@ -2229,6 +2357,8 @@ export const RestoreAdminInventoryListingResponse = zod.object({
   "badge": zod.enum(['pending_verification', 'documentation_reviewed', 'verified']),
   "status": zod.enum(['active', 'removed', 'suspended', 'pending_review', 'deleted']),
   "featured": zod.boolean().optional(),
+  "certType": zod.string().optional(),
+  "certDocId": zod.number().nullish(),
   "deletedAt": zod.string().nullish(),
   "deletedBy": zod.number().nullish(),
   "sellerId": zod.number(),
@@ -2281,6 +2411,8 @@ export const FeatureAdminInventoryListingResponse = zod.object({
   "badge": zod.enum(['pending_verification', 'documentation_reviewed', 'verified']),
   "status": zod.enum(['active', 'removed', 'suspended', 'pending_review', 'deleted']),
   "featured": zod.boolean().optional(),
+  "certType": zod.string().optional(),
+  "certDocId": zod.number().nullish(),
   "deletedAt": zod.string().nullish(),
   "deletedBy": zod.number().nullish(),
   "sellerId": zod.number(),

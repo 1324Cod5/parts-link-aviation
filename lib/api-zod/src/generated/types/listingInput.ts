@@ -25,4 +25,7 @@ export interface ListingInput {
   documents?: DocumentInput[];
   /** @nullable */
   traceHistory?: string | null;
+  certType?: string;
+  /** @nullable */
+  certDocId?: number | null;
 }

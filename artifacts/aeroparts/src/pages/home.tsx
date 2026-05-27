@@ -329,6 +329,41 @@ function Hero({ onSearch }: { onSearch: (q: string, cat: string) => void }) {
           </a>
         </div>
 
+        {/* ─── Hero Stats Bar ──────────────────────────────────────────────── */}
+        <div style={{
+          display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 0,
+          borderTop: `1px solid rgba(25,118,210,0.2)`,
+          paddingTop: 36,
+        }}>
+          {[
+            { value: "4.2M+",   label: "Certified Parts Listed"   },
+            { value: "4,200+",  label: "Verified Suppliers"        },
+            { value: "< 4 hrs", label: "Avg. Seller Response"      },
+            { value: "98.7%",   label: "Platform Uptime"           },
+          ].map((s, i, arr) => (
+            <div
+              key={s.label}
+              style={{
+                padding: "0 36px",
+                borderRight: i < arr.length - 1 ? `1px solid rgba(25,118,210,0.2)` : "none",
+                textAlign: "center",
+                marginBottom: 12,
+              }}
+            >
+              <div style={{
+                fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 900,
+                fontSize: 36, color: "#fff", lineHeight: 1.1,
+                letterSpacing: "-0.5px",
+              }}>{s.value}</div>
+              <div style={{
+                fontFamily: "'Barlow', sans-serif", fontSize: 12, color: "#4a8aaa",
+                fontWeight: 500, letterSpacing: "0.06em", textTransform: "uppercase",
+                marginTop: 4,
+              }}>{s.label}</div>
+            </div>
+          ))}
+        </div>
+
       </div>
     </section>
   );

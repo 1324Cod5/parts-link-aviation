@@ -26,6 +26,8 @@ export const listingsTable = pgTable("listings", {
   badge: badgeEnum("badge").notNull().default("pending_verification"),
   status: listingStatusEnum("status").notNull().default("active"),
   featured: boolean("featured").notNull().default(false),
+  certType: text("cert_type").notNull().default("None"),
+  certDocId: integer("cert_doc_id"),
   deletedAt: timestamp("deleted_at"),
   deletedBy: integer("deleted_by").references(() => usersTable.id, { onDelete: "set null" }),
   sellerId: integer("seller_id").notNull().references(() => usersTable.id),

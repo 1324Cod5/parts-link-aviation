@@ -39,6 +39,7 @@ const BULK_ROW_LIMITS: Record<string, number | null> = {
 
 const VALID_CONDITIONS = new Set(["new", "overhauled", "serviceable", "as_removed", "repaired"]);
 const VALID_SALE_TYPES = new Set(["outright", "exchange", "both"]);
+const VALID_CERT_TYPES = new Set(["8130-3", "EASA Form 1", "CoC", "Teardown", "Surplus Release", "None"]);
 
 const SALE_TYPE_ALIASES: Record<string, string> = {
   "outright sale": "outright",
@@ -101,6 +102,12 @@ const HEADER_MAP: Record<string, string> = {
   type: "saleType",
   price: "price",
   unitprice: "price",
+  certtype: "certType",
+  certificationtype: "certType",
+  certification: "certType",
+  documenttype: "certType",
+  certdocid: "certDocId",
+  certificationdocid: "certDocId",
 };
 
 interface ParsedRow {
@@ -113,6 +120,8 @@ interface ParsedRow {
   saleType: string;
   quantity: number;
   price: number | null;
+  certType: string;
+  certDocId: number | null;
 }
 
 interface InvalidRow {
@@ -145,6 +154,8 @@ function parseRows(
     const saleTypeRaw = normalise(mapped.saleType);
     const quantityRaw = normalise(mapped.quantity);
     const priceRaw = normalise(mapped.price);
+    const certTypeRaw = normalise(mapped.certType);
+    const certDocIdRaw = normalise(mapped.certDocId);
 
     if (!partNumber) errors.push("Part Number is required");
     if (!description) errors.push("Description is required");
@@ -184,6 +195,26 @@ function parseRows(
       }
     }
 
+    // cert_type — REQUIRED; defaults to "None" if column is missing entirely
+    const certType = certTypeRaw && VALID_CERT_TYPES.has(certTypeRaw)
+      ? certTypeRaw
+      : !certTypeRaw
+        ? "None"
+        : null;
+    if (certType === null) {
+      errors.push(
+        `Invalid cert_type "${certTypeRaw}" — must be one of: 8130-3, EASA Form 1, CoC, Teardown, Surplus Release, None`,
+      );
+    }
+
+    // cert_doc_id — optional integer, warn but don't fail
+    let certDocId: number | null = null;
+    if (certDocIdRaw && certDocIdRaw !== "") {
+      const parsed = parseInt(certDocIdRaw, 10);
+      if (!isNaN(parsed) && parsed > 0) certDocId = parsed;
+      // invalid values silently ignored (treat as null)
+    }
+
     if (errors.length > 0) {
       invalid.push({ rowNumber, rawData: raw, errors });
     } else {
@@ -197,6 +228,8 @@ function parseRows(
         saleType: saleType!,
         quantity,
         price,
+        certType: certType!,
+        certDocId,
       });
     }
   });
@@ -207,10 +240,10 @@ function parseRows(
 // ─── Template CSV ─────────────────────────────────────────────────────────────
 
 const TEMPLATE_CSV = [
-  "Part Number,Description,Manufacturer,Aircraft Type,Condition,Quantity,Price Type,Price",
-  "GE90-115B-FAN,Fan Blade Assembly,GE Aviation,B777,overhauled,4,outright,12500",
-  "CFM56-5B-HPT,High Pressure Turbine Blade,CFM International,A320,serviceable,12,exchange,",
-  "PW4000-94-OIL,Oil Pressure Sensor,Pratt & Whitney,B747,new,6,both,875",
+  "Part Number,Description,Manufacturer,Aircraft Type,Condition,Quantity,Price Type,Price,Cert Type,Cert Doc ID",
+  "GE90-115B-FAN,Fan Blade Assembly,GE Aviation,B777,overhauled,4,outright,12500,8130-3,",
+  "CFM56-5B-HPT,High Pressure Turbine Blade,CFM International,A320,serviceable,12,exchange,,EASA Form 1,",
+  "PW4000-94-OIL,Oil Pressure Sensor,Pratt & Whitney,B747,new,6,both,875,None,",
 ].join("\r\n");
 
 // ─── Routes ───────────────────────────────────────────────────────────────────
@@ -367,6 +400,8 @@ router.post("/seller/bulk-upload/import", requireBulkUploadMiddleware, async (re
       price: r.price != null ? String(r.price) : null,
       certificationDocs: [] as string[],
       photos: [] as string[],
+      certType: r.certType ?? "None",
+      certDocId: r.certDocId ?? null,
       sellerId: userId,
     }));
 

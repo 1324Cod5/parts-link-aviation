@@ -23,6 +23,7 @@ import type {
   AdminActivityEntry,
   AdminApproveVendorVerification200,
   AdminAutoSuspendHighRisk200,
+  AdminCertDocumentFlagBody,
   AdminInventoryPage,
   AdminListingInput,
   AdminListingUpdate,
@@ -43,6 +44,9 @@ import type {
   BulkImportRequest,
   BulkImportResponse,
   BulkParseResponse,
+  CertDocumentLinkBody,
+  CertDocumentListResponse,
+  CertDocumentUploadResponse,
   ChangePassword200,
   ChangePasswordInput,
   CheckoutSessionInput,
@@ -1897,6 +1901,374 @@ export function useGetSellerListings<TData = Awaited<ReturnType<typeof getSeller
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getGetSellerListingsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGetSellerCertDocumentsUrl = () => {
+
+
+
+
+  return `/api/seller/cert-documents`
+}
+
+/**
+ * @summary List seller's cert documents
+ */
+export const getSellerCertDocuments = async ( options?: RequestInit): Promise<CertDocumentListResponse> => {
+
+  return customFetch<CertDocumentListResponse>(getGetSellerCertDocumentsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetSellerCertDocumentsQueryKey = () => {
+    return [
+    `/api/seller/cert-documents`
+    ] as const;
+    }
+
+
+export const getGetSellerCertDocumentsQueryOptions = <TData = Awaited<ReturnType<typeof getSellerCertDocuments>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getSellerCertDocuments>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetSellerCertDocumentsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getSellerCertDocuments>>> = ({ signal }) => getSellerCertDocuments({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getSellerCertDocuments>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetSellerCertDocumentsQueryResult = NonNullable<Awaited<ReturnType<typeof getSellerCertDocuments>>>
+export type GetSellerCertDocumentsQueryError = ErrorType<void>
+
+
+/**
+ * @summary List seller's cert documents
+ */
+
+export function useGetSellerCertDocuments<TData = Awaited<ReturnType<typeof getSellerCertDocuments>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getSellerCertDocuments>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetSellerCertDocumentsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getUploadSellerCertDocumentUrl = () => {
+
+
+
+
+  return `/api/seller/cert-documents`
+}
+
+/**
+ * @summary Upload a new cert document (PDF only, max 10 MB)
+ */
+export const uploadSellerCertDocument = async ( options?: RequestInit): Promise<CertDocumentUploadResponse> => {
+
+  return customFetch<CertDocumentUploadResponse>(getUploadSellerCertDocumentUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getUploadSellerCertDocumentMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof uploadSellerCertDocument>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof uploadSellerCertDocument>>, TError,void, TContext> => {
+
+const mutationKey = ['uploadSellerCertDocument'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof uploadSellerCertDocument>>, void> = () => {
+
+
+          return  uploadSellerCertDocument(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UploadSellerCertDocumentMutationResult = NonNullable<Awaited<ReturnType<typeof uploadSellerCertDocument>>>
+
+    export type UploadSellerCertDocumentMutationError = ErrorType<void>
+
+    /**
+ * @summary Upload a new cert document (PDF only, max 10 MB)
+ */
+export const useUploadSellerCertDocument = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof uploadSellerCertDocument>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof uploadSellerCertDocument>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getUploadSellerCertDocumentMutationOptions(options));
+    }
+
+export const getLinkCertDocumentToListingsUrl = (id: number,) => {
+
+
+
+
+  return `/api/seller/cert-documents/${id}/link`
+}
+
+/**
+ * @summary Link a cert doc to multiple listings
+ */
+export const linkCertDocumentToListings = async (id: number,
+    certDocumentLinkBody: CertDocumentLinkBody, options?: RequestInit): Promise<CertDocumentUploadResponse> => {
+
+  return customFetch<CertDocumentUploadResponse>(getLinkCertDocumentToListingsUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      certDocumentLinkBody,)
+  }
+);}
+
+
+
+
+export const getLinkCertDocumentToListingsMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof linkCertDocumentToListings>>, TError,{id: number;data: BodyType<CertDocumentLinkBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof linkCertDocumentToListings>>, TError,{id: number;data: BodyType<CertDocumentLinkBody>}, TContext> => {
+
+const mutationKey = ['linkCertDocumentToListings'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof linkCertDocumentToListings>>, {id: number;data: BodyType<CertDocumentLinkBody>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  linkCertDocumentToListings(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type LinkCertDocumentToListingsMutationResult = NonNullable<Awaited<ReturnType<typeof linkCertDocumentToListings>>>
+    export type LinkCertDocumentToListingsMutationBody = BodyType<CertDocumentLinkBody>
+    export type LinkCertDocumentToListingsMutationError = ErrorType<void>
+
+    /**
+ * @summary Link a cert doc to multiple listings
+ */
+export const useLinkCertDocumentToListings = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof linkCertDocumentToListings>>, TError,{id: number;data: BodyType<CertDocumentLinkBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof linkCertDocumentToListings>>,
+        TError,
+        {id: number;data: BodyType<CertDocumentLinkBody>},
+        TContext
+      > => {
+      return useMutation(getLinkCertDocumentToListingsMutationOptions(options));
+    }
+
+export const getAdminFlagCertDocumentUrl = (id: number,) => {
+
+
+
+
+  return `/api/admin/cert-documents/${id}/flag`
+}
+
+/**
+ * @summary Flag or unflag a cert document
+ */
+export const adminFlagCertDocument = async (id: number,
+    adminCertDocumentFlagBody: AdminCertDocumentFlagBody, options?: RequestInit): Promise<CertDocumentUploadResponse> => {
+
+  return customFetch<CertDocumentUploadResponse>(getAdminFlagCertDocumentUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      adminCertDocumentFlagBody,)
+  }
+);}
+
+
+
+
+export const getAdminFlagCertDocumentMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof adminFlagCertDocument>>, TError,{id: number;data: BodyType<AdminCertDocumentFlagBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof adminFlagCertDocument>>, TError,{id: number;data: BodyType<AdminCertDocumentFlagBody>}, TContext> => {
+
+const mutationKey = ['adminFlagCertDocument'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof adminFlagCertDocument>>, {id: number;data: BodyType<AdminCertDocumentFlagBody>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  adminFlagCertDocument(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AdminFlagCertDocumentMutationResult = NonNullable<Awaited<ReturnType<typeof adminFlagCertDocument>>>
+    export type AdminFlagCertDocumentMutationBody = BodyType<AdminCertDocumentFlagBody>
+    export type AdminFlagCertDocumentMutationError = ErrorType<void>
+
+    /**
+ * @summary Flag or unflag a cert document
+ */
+export const useAdminFlagCertDocument = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof adminFlagCertDocument>>, TError,{id: number;data: BodyType<AdminCertDocumentFlagBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof adminFlagCertDocument>>,
+        TError,
+        {id: number;data: BodyType<AdminCertDocumentFlagBody>},
+        TContext
+      > => {
+      return useMutation(getAdminFlagCertDocumentMutationOptions(options));
+    }
+
+export const getGetAdminSellerCertDocumentsUrl = (id: number,) => {
+
+
+
+
+  return `/api/admin/sellers/${id}/cert-documents`
+}
+
+/**
+ * @summary Get all cert documents for a seller (admin)
+ */
+export const getAdminSellerCertDocuments = async (id: number, options?: RequestInit): Promise<CertDocumentListResponse> => {
+
+  return customFetch<CertDocumentListResponse>(getGetAdminSellerCertDocumentsUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAdminSellerCertDocumentsQueryKey = (id: number,) => {
+    return [
+    `/api/admin/sellers/${id}/cert-documents`
+    ] as const;
+    }
+
+
+export const getGetAdminSellerCertDocumentsQueryOptions = <TData = Awaited<ReturnType<typeof getAdminSellerCertDocuments>>, TError = ErrorType<void>>(id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminSellerCertDocuments>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAdminSellerCertDocumentsQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAdminSellerCertDocuments>>> = ({ signal }) => getAdminSellerCertDocuments(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAdminSellerCertDocuments>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetAdminSellerCertDocumentsQueryResult = NonNullable<Awaited<ReturnType<typeof getAdminSellerCertDocuments>>>
+export type GetAdminSellerCertDocumentsQueryError = ErrorType<void>
+
+
+/**
+ * @summary Get all cert documents for a seller (admin)
+ */
+
+export function useGetAdminSellerCertDocuments<TData = Awaited<ReturnType<typeof getAdminSellerCertDocuments>>, TError = ErrorType<void>>(
+ id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminSellerCertDocuments>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetAdminSellerCertDocumentsQueryOptions(id,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

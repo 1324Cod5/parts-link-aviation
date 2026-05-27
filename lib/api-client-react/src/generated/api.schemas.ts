@@ -511,6 +511,9 @@ export interface Listing {
   badge: ListingBadge;
   status: ListingStatus;
   featured?: boolean;
+  certType?: string;
+  /** @nullable */
+  certDocId?: number | null;
   /** @nullable */
   deletedAt?: string | null;
   /** @nullable */
@@ -557,6 +560,9 @@ export interface ListingInput {
   documents?: DocumentInput[];
   /** @nullable */
   traceHistory?: string | null;
+  certType?: string;
+  /** @nullable */
+  certDocId?: number | null;
 }
 
 export type ListingUpdateCondition = typeof ListingUpdateCondition[keyof typeof ListingUpdateCondition];
@@ -595,6 +601,9 @@ export interface ListingUpdate {
   documents?: DocumentInput[];
   /** @nullable */
   traceHistory?: string | null;
+  certType?: string;
+  /** @nullable */
+  certDocId?: number | null;
 }
 
 export type BadgeUpdateBadge = typeof BadgeUpdateBadge[keyof typeof BadgeUpdateBadge];
@@ -1862,6 +1871,39 @@ export interface VendorVerificationListResponse {
   total: number;
   pendingCount: number;
   requests: VendorVerificationRequest[];
+}
+
+export interface CertDocument {
+  id: number;
+  sellerId: number;
+  docType: string;
+  /** @nullable */
+  issuingAuthority?: string | null;
+  /** @nullable */
+  docDate?: string | null;
+  /** @nullable */
+  aircraftApplicability?: string | null;
+  fileUrl: string;
+  originalFilename: string;
+  flagged: boolean;
+  linkedListings: number;
+  createdAt: string;
+}
+
+export interface CertDocumentListResponse {
+  documents: CertDocument[];
+}
+
+export interface CertDocumentUploadResponse {
+  document: CertDocument;
+}
+
+export interface CertDocumentLinkBody {
+  listingIds: number[];
+}
+
+export interface AdminCertDocumentFlagBody {
+  flagged: boolean;
 }
 
 export type ChangePassword200 = {

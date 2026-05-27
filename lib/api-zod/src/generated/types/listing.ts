@@ -32,6 +32,9 @@ export interface Listing {
   badge: ListingBadge;
   status: ListingStatus;
   featured?: boolean;
+  certType?: string;
+  /** @nullable */
+  certDocId?: number | null;
   /** @nullable */
   deletedAt?: string | null;
   /** @nullable */

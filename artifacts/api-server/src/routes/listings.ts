@@ -66,6 +66,8 @@ function serializeListing(listing: any, seller: any, documents?: any[]) {
     traceHistory: listing.traceHistory,
     badge: listing.badge,
     status: listing.status,
+    certType: listing.certType ?? "None",
+    certDocId: listing.certDocId ?? null,
     sellerId: listing.sellerId,
     seller: seller
       ? {

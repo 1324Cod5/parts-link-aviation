@@ -1,4 +1,4 @@
-import { db, usersTable, listingsTable, inquiriesTable } from "@workspace/db";
+import { db, usersTable, listingsTable, inquiriesTable, certDocumentsTable } from "@workspace/db";
 import { eq, and, count, sql } from "drizzle-orm";
 
 export type TrustBadge = "unverified" | "document_verified" | "aviation_verified" | "trusted_partner";
@@ -44,26 +44,47 @@ export async function computeTrustScore(userId: number): Promise<TrustScoreBreak
     };
   }
 
-  // ── Cert doc score (0–30) ──────────────────────────────────────────────────
-  // Max badge level across all the seller's active listings
+  // ── Active listings ────────────────────────────────────────────────────────
   const activeListings = await db.select({
     badge: listingsTable.badge,
     hasDocs: sql<boolean>`cardinality(${listingsTable.certificationDocs}) > 0`,
     hasPhotos: sql<boolean>`cardinality(${listingsTable.photos}) > 0`,
     hasTrace: sql<boolean>`${listingsTable.traceHistory} IS NOT NULL`,
     hasApplicability: sql<boolean>`${listingsTable.aircraftApplicability} IS NOT NULL`,
+    certType: listingsTable.certType,
+    certDocId: listingsTable.certDocId,
   }).from(listingsTable).where(
     and(eq(listingsTable.sellerId, userId), eq(listingsTable.status, "active"))
   );
 
+  // ── Cert doc score (0–30) ──────────────────────────────────────────────────
+  // Base: admin badge level (existing logic)
   let certDocScore = 0;
   const hasVerified = activeListings.some(l => l.badge === "verified");
   const hasDocReviewed = activeListings.some(l => l.badge === "documentation_reviewed");
   if (hasVerified) certDocScore = 30;
   else if (hasDocReviewed) certDocScore = 15;
 
+  // New: bonus points from cert_doc_id and cert_type
+  // +10 per listing with cert_doc_id linked (cap at +30 total, +10 each)
+  const listingsWithDoc = activeListings.filter(l => l.certDocId != null);
+  const docLinkedBonus = Math.min(30, listingsWithDoc.length * 10);
+
+  // +5 if ALL active listings have cert_type declared (even 'None' counts as declared)
+  const allHaveCertType = activeListings.length > 0 && activeListings.every(l => l.certType != null);
+  const completenessBonus = allHaveCertType ? 5 : 0;
+
+  // +10 if seller has 5+ cert docs in Document Library
+  const [certDocRow] = await db.select({ n: count() })
+    .from(certDocumentsTable)
+    .where(eq(certDocumentsTable.sellerId, userId));
+  const libraryBonus = Number(certDocRow?.n ?? 0) >= 5 ? 10 : 0;
+
+  // Merge: use admin badge OR doc-linked bonus, whichever is higher, then add completeness + library
+  certDocScore = Math.min(30, Math.max(certDocScore, docLinkedBonus) + completenessBonus + libraryBonus);
+  certDocScore = Math.min(30, certDocScore);
+
   // ── Listing accuracy score (0–20) ──────────────────────────────────────────
-  // Average completeness across active listings
   let listingAccuracyScore = 0;
   if (activeListings.length > 0) {
     const totalPoints = activeListings.reduce((sum, l) => {
@@ -77,7 +98,6 @@ export async function computeTrustScore(userId: number): Promise<TrustScoreBreak
   }
 
   // ── Transaction history score (0–15) ──────────────────────────────────────
-  // Total inquiries received across all listings
   const listingIds = await db.select({ id: listingsTable.id })
     .from(listingsTable).where(eq(listingsTable.sellerId, userId));
 
@@ -94,7 +114,6 @@ export async function computeTrustScore(userId: number): Promise<TrustScoreBreak
   else if (totalInquiries >= 1) transactionScore = 5;
 
   // ── Response time score (0–10) ─────────────────────────────────────────────
-  // Proxy: active listing count (engagement indicator)
   const activeCount = activeListings.length;
   let responseTimeScore = 0;
   if (activeCount >= 6) responseTimeScore = 10;

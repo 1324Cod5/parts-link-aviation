@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useParams, Link } from "wouter";
+import { useAuth } from "@/context/AuthContext";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { BadgeIndicator } from "@/components/ui/badge-indicator";
 import { Button } from "@/components/ui/button";
@@ -84,7 +85,7 @@ function buildBenchData(basePrice: number, listingId: number) {
 
 // ─── Price Benchmarking Section ───────────────────────────────────────────────
 
-function PriceBenchmarkSection({ price, listingId }: { price: number; listingId: number }) {
+function PriceBenchmarkSection({ price, listingId, isPaidUser }: { price: number; listingId: number; isPaidUser: boolean }) {
   const data = buildBenchData(price, listingId);
   const listingPrices = data.map(d => d.thisListing);
   const marketPrices = data.map(d => d.marketAvg);
@@ -123,6 +124,43 @@ function PriceBenchmarkSection({ price, listingId }: { price: number; listingId:
       </div>
     );
   };
+
+  if (!isPaidUser) {
+    return (
+      <div className="bg-card border border-border rounded-md p-6 relative overflow-hidden">
+        <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+          <TrendingUp className="h-5 w-5 text-primary" />
+          Price Benchmarking
+          <span className="text-xs font-normal text-muted-foreground ml-auto">6-month market data</span>
+        </h2>
+        {/* Blurred preview */}
+        <div style={{ filter: "blur(6px)", pointerEvents: "none", userSelect: "none", opacity: 0.5 }}>
+          <div className="grid grid-cols-4 gap-3 mb-5">
+            {["6-Month Avg","Low","High","vs Market"].map(l => (
+              <div key={l} className="bg-secondary/30 rounded-md p-3 border border-border/50">
+                <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">{l}</p>
+                <span className="font-mono font-semibold text-sm text-white">$—</span>
+              </div>
+            ))}
+          </div>
+          <div style={{ height: 130, background: "rgba(25,118,210,0.04)", borderRadius: 8, border: "1px solid #1a3050" }} />
+        </div>
+        {/* Upgrade overlay */}
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/70 backdrop-blur-sm rounded-md">
+          <TrendingUp className="h-8 w-8 text-primary mb-3 opacity-60" />
+          <p className="text-white font-semibold text-base mb-1">Price Benchmarking</p>
+          <p className="text-sm text-muted-foreground mb-4 text-center max-w-xs">
+            See 6-month market trends and compare this listing against market averages.
+          </p>
+          <Link href="/pricing">
+            <button className="px-5 py-2.5 rounded-md text-sm font-semibold" style={{ background: "#1976d2", color: "#fff", border: "none", cursor: "pointer", fontFamily: "'Barlow Condensed', sans-serif", letterSpacing: "0.04em", textTransform: "uppercase" }}>
+              Upgrade to View →
+            </button>
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-card border border-border rounded-md p-6">
@@ -190,8 +228,10 @@ function PriceBenchmarkSection({ price, listingId }: { price: number; listingId:
 export default function ListingDetail() {
   const { id } = useParams<{ id: string }>();
   const { toast } = useToast();
+  const { user } = useAuth();
   const [activePhoto, setActivePhoto] = useState(0);
   const { isWatched, toggle } = useWatchlist();
+  const isPaidUser = user != null && (user as any).plan != null && (user as any).plan !== "free";
 
   const { data: docsData } = useGetListingDocuments(Number(id), {
     query: { enabled: !!id, queryKey: getGetListingDocumentsQueryKey(Number(id)) },
@@ -423,7 +463,7 @@ export default function ListingDetail() {
 
             {/* Price Benchmarking — only when a price is set */}
             {listingPrice && listingPrice > 0 && (
-              <PriceBenchmarkSection price={listingPrice} listingId={listing.id} />
+              <PriceBenchmarkSection price={listingPrice} listingId={listing.id} isPaidUser={isPaidUser} />
             )}
           </div>
 

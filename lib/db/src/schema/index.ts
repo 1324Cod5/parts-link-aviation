@@ -8,3 +8,4 @@ export * from "./notifications";
 export * from "./messages";
 export * from "./waitlist";
 export * from "./apiKeys";
+export * from "./certDocuments";
