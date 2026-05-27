@@ -1,6 +1,6 @@
 kind = "web"
 previewPath = "/"
-title = "AeroParts Marketplace"
+title = "PartsLinkAviation"
 version = "1.0.0"
 id = "artifacts/aeroparts"
 router = "path"

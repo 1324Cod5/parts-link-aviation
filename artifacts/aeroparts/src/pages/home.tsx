@@ -306,6 +306,56 @@ function Hero({ onSearch }: { onSearch: (q: string, cat: string) => void }) {
           </a>
         </div>
 
+        {/* ─── Hero Search Bar ─────────────────────────────────────────────── */}
+        <form
+          onSubmit={e => { e.preventDefault(); onSearch(query, cat); }}
+          style={{
+            display: "flex", alignItems: "center",
+            maxWidth: 680, margin: "0 auto 32px",
+            background: "rgba(255,255,255,0.05)",
+            border: `1px solid ${BORDER}`,
+            borderRadius: 10,
+            overflow: "hidden",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", paddingLeft: 16, flexShrink: 0 }}>
+            <Search size={18} color="#7ea8c8" />
+          </div>
+          <input
+            type="text"
+            value={query}
+            onChange={e => setQuery(e.target.value)}
+            placeholder="Search by part number, description, or aircraft type…"
+            style={{
+              flex: 1,
+              background: "transparent",
+              border: "none",
+              outline: "none",
+              padding: "14px 12px",
+              fontFamily: "'Barlow', sans-serif",
+              fontSize: 15,
+              color: "#fff",
+            }}
+          />
+          <button
+            type="submit"
+            style={{
+              padding: "12px 24px",
+              background: GOLD,
+              color: "#0a1628",
+              border: "none",
+              cursor: "pointer",
+              fontFamily: "'Barlow Condensed', sans-serif",
+              fontWeight: 800,
+              fontSize: 15,
+              letterSpacing: 0.5,
+              flexShrink: 0,
+            }}
+          >
+            Search
+          </button>
+        </form>
+
         {/* ─── Hero Stats Bar ──────────────────────────────────────────────── */}
         <div style={{
           display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 0,
