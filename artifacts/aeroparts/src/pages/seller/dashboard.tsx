@@ -1203,6 +1203,24 @@ export default function SellerDashboard() {
           )}
         </div>
 
+        {/* ── Document Library Quick Link ───────────────────────────────── */}
+        <div className="mt-6 mb-0 rounded-md border border-border bg-card p-4 flex items-start gap-3">
+          <div className="h-9 w-9 rounded-md flex items-center justify-center bg-primary/10 flex-shrink-0">
+            <FileCheck2 className="h-4 w-4 text-primary" />
+          </div>
+          <div className="flex-1">
+            <p className="text-sm font-semibold text-white">Certification Documents</p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Upload 8130-3s, EASA Form 1s, CoCs and other airworthiness documents, then link them to your listings.
+            </p>
+          </div>
+          <Link href="/seller/documents" className="flex-shrink-0">
+            <Button size="sm" variant="outline" className="h-8 text-xs border-primary/30 text-primary hover:bg-primary/10 gap-1.5">
+              <FileCheck2 className="h-3 w-3" /> Document Library
+            </Button>
+          </Link>
+        </div>
+
         {/* ── Inventory Import ──────────────────────────────────────────── */}
         <div className="mt-8 bg-card border border-border rounded-md">
           <div className="p-5 border-b border-border flex items-center gap-3">

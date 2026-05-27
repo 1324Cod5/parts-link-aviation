@@ -41,6 +41,7 @@ import DeveloperPage from "@/pages/developer";
 import WatchlistPage from "@/pages/watchlist";
 import SubscriptionSuccessPage from "@/pages/seller/subscription-success";
 import SubscriptionCancelPage from "@/pages/seller/subscription-cancel";
+import SellerDocumentsPage from "@/pages/seller/documents";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -69,6 +70,7 @@ function Router() {
       <Route path="/seller/listings/:id/edit" component={EditListing} />
       <Route path="/seller/bulk-upload" component={BulkUpload} />
       <Route path="/seller/intelligence" component={SellerIntelligence} />
+      <Route path="/seller/documents" component={SellerDocumentsPage} />
       <Route path="/admin/login" component={AdminLogin} />
       <Route path="/admin/change-password" component={AdminChangePassword} />
       <Route path="/admin/review-cert/:id" component={AdminCertReview} />
