@@ -5,12 +5,14 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useRegisterUser } from "@workspace/api-client-react";
 import { useToast } from "@/hooks/use-toast";
+import { Eye, EyeOff } from "lucide-react";
 
 type AccountType = "seller" | "buyer";
 
 export default function Register() {
   const { toast } = useToast();
   const [accountType, setAccountType] = useState<AccountType>("seller");
+  const [showPassword, setShowPassword] = useState(false);
   const [form, setForm] = useState({
     companyName: "", contactName: "", email: "", password: "", phone: "", country: "",
   });
@@ -134,14 +136,25 @@ export default function Register() {
               <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1.5 block">
                 Password *
               </label>
-              <Input
-                type="password"
-                value={form.password}
-                onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
-                placeholder="Minimum 8 characters"
-                minLength={8}
-                required
-              />
+              <div className="relative">
+                <Input
+                  type={showPassword ? "text" : "password"}
+                  value={form.password}
+                  onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
+                  placeholder="Minimum 8 characters"
+                  minLength={8}
+                  required
+                  className="pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(v => !v)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-white transition-colors"
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
