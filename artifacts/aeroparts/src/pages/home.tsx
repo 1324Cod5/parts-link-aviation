@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
-import { Search, Menu, X, Check, Star, ChevronRight, Zap } from "lucide-react";
+import { Search, Menu, X, Check, ChevronRight, Zap } from "lucide-react";
 import {
   useGetFeaturedListings,
   getGetFeaturedListingsQueryKey,
@@ -81,29 +81,6 @@ const PRICING = [
   },
 ];
 
-const TESTIMONIALS = [
-  {
-    stars: 5,
-    quote: "A transparent, documentation-first marketplace is exactly what aviation procurement needs. We're excited to be early adopters and see where this goes.",
-    initials: "DM",
-    name: "Capt. Daniel Morse",
-    title: "VP of Maintenance, Pacific Air Cargo",
-  },
-  {
-    stars: 5,
-    quote: "The documentation-first approach is exactly right for our industry. A clear cert trail on every part — no chasing paperwork after the sale. This is the right model.",
-    initials: "SR",
-    name: "Sarah Ramirez",
-    title: "Director of Supply Chain, SkyBridge Airlines",
-  },
-  {
-    stars: 5,
-    quote: "We've been waiting for a platform that puts verification front and center. Having every seller document their parts before listing is a game changer for QA teams.",
-    initials: "JK",
-    name: "James Kowalski",
-    title: "Chief Inspector, Apex MRO Services",
-  },
-];
 
 const QUICK_TAGS = ["CFM56 Blades", "737 Landing Gear", "A320 Avionics", "APU Honeywell", "Hydraulic Pump", "ILS System"];
 
@@ -752,51 +729,6 @@ function Pricing() {
   );
 }
 
-// ─── Section: Testimonials ────────────────────────────────────────────────────
-function Testimonials() {
-  return (
-    <section style={{ background: DARK, padding: "80px 24px" }}>
-      <div style={{ maxWidth: 1100, margin: "0 auto" }}>
-        <div style={{ textAlign: "center", marginBottom: 48 }}>
-          <div style={{ display: "inline-block", background: "rgba(245,166,35,0.12)", border: `1px solid rgba(245,166,35,0.3)`, borderRadius: 4, padding: "4px 14px", marginBottom: 16 }}>
-            <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, fontSize: 12, color: GOLD, letterSpacing: 1, textTransform: "uppercase" }}>Early Feedback</span>
-          </div>
-          <h2 style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 800, fontSize: "clamp(28px, 4vw, 44px)", color: "#fff", textTransform: "uppercase" }}>
-            What the Industry Says
-          </h2>
-        </div>
-
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: 20 }}>
-          {TESTIMONIALS.map((t, i) => (
-            <div key={i} style={{ background: CARD_BG, border: `1px solid ${BORDER}`, borderRadius: 12, padding: "28px 24px" }}>
-              <div style={{ display: "flex", gap: 3, marginBottom: 16 }}>
-                {Array.from({ length: t.stars }).map((_, j) => <Star key={j} size={14} color={GOLD} fill={GOLD} />)}
-              </div>
-              <p style={{ fontFamily: "'Barlow', sans-serif", fontSize: 15, color: "#c8daea", lineHeight: 1.7, marginBottom: 24, fontStyle: "italic" }}>
-                "{t.quote}"
-              </p>
-              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                <div style={{
-                  width: 42, height: 42, borderRadius: "50%",
-                  background: `linear-gradient(135deg, ${BLUE}, #0d47a1)`,
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, fontSize: 14, color: "#fff",
-                  flexShrink: 0,
-                }}>
-                  {t.initials}
-                </div>
-                <div>
-                  <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, fontSize: 15, color: "#fff" }}>{t.name}</div>
-                  <div style={{ fontFamily: "'Barlow', sans-serif", fontSize: 12, color: "#7ea8c8" }}>{t.title}</div>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
 
 // ─── Section: CTA ─────────────────────────────────────────────────────────────
 function CtaSection() {
@@ -1104,7 +1036,6 @@ export default function Home() {
       <Features />
       <HowItWorks />
       <Pricing />
-      <Testimonials />
       <CtaSection />
       <FeaturedListings />
       <WaitlistSection />

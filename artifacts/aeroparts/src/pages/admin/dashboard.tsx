@@ -3179,10 +3179,10 @@ function MarketSection() {
       {/* KPI row */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { label: "Total Listings",      value: "1,600+",    icon: Package,     color: "text-white" },
-          { label: "Avg. Time on Market", value: "18 days",   icon: History,     color: "text-amber-400" },
-          { label: "Buyer Inquiries/mo",  value: "4,200+",    icon: MessageSquare, color: "text-primary" },
-          { label: "Parts Transacted",    value: "$2.4M/mo",  icon: CreditCard,  color: "text-emerald-400" },
+          { label: "Total Listings",      value: "—",         icon: Package,     color: "text-white" },
+          { label: "Avg. Time on Market", value: "—",         icon: History,     color: "text-amber-400" },
+          { label: "Buyer Inquiries/mo",  value: "—",         icon: MessageSquare, color: "text-primary" },
+          { label: "Parts Transacted",    value: "—",         icon: CreditCard,  color: "text-emerald-400" },
         ].map(({ label, value, icon: Icon, color }) => (
           <div key={label} className="border border-border rounded-lg p-4 bg-card">
             <div className="flex items-center gap-2 mb-2">

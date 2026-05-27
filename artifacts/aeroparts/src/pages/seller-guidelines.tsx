@@ -53,7 +53,7 @@ export default function SellerGuidelinesPage() {
         <h1 style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 900, fontSize: 52, color: "#fff", textTransform: "uppercase", marginBottom: 12 }}>
           Seller <span style={{ color: GOLD }}>Guidelines</span>
         </h1>
-        <P>Parts Link Aviation is a curated marketplace for certified aviation components. These guidelines exist to maintain the integrity and safety standards that make our platform trusted by airlines, MROs, and operators worldwide.</P>
+        <P>Parts Link Aviation is a curated marketplace for certified aviation components. These guidelines exist to maintain the integrity and safety standards that define how parts are listed, documented, and transacted on this platform.</P>
 
         {/* Allowed */}
         <H2>Permitted Listings</H2>
