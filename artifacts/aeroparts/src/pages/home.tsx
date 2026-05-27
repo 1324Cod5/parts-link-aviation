@@ -52,7 +52,7 @@ const PRICING = [
     period: "/mo",
     tag: null,
     founding: true,
-    features: ["50 searches per month", "1.2M part catalog access", "Email support", "PDF export reports", "Basic price history"],
+    features: ["Unlimited marketplace searches", "Access all verified listings on the platform", "Email support"],
     cta: "Claim Your Free Spot",
     href: "/seller/register",
     featured: false,
@@ -63,7 +63,7 @@ const PRICING = [
     period: "/mo",
     tag: "MOST POPULAR",
     founding: false,
-    features: ["Unlimited searches", "Full catalog access", "AOG request priority", "Real-time price benchmarking", "Watchlist alerts", "24/7 priority support", "API access"],
+    features: ["Unlimited marketplace searches", "Full access to all verified listings", "Watchlist alerts", "API access", "Business-hours email support (Mon–Fri)"],
     cta: "Start Free Trial",
     href: "/seller/register",
     featured: true,
@@ -74,7 +74,7 @@ const PRICING = [
     period: "/mo",
     tag: "ENTERPRISE",
     founding: false,
-    features: ["Everything in Fleet Manager", "ERP & MRO integration", "Dedicated account manager", "Custom contracts & SLA", "White-glove AOG response", "Multi-user seats (unlimited)", "On-site training"],
+    features: ["Everything in Fleet Manager", "ERP & MRO integration", "Multi-user seats (unlimited)"],
     cta: "Book a Demo",
     href: "/seller/register",
     featured: false,
@@ -710,7 +710,7 @@ function Pricing() {
         </div>
 
         <p style={{ textAlign: "center", marginTop: 28, fontFamily: "'Barlow', sans-serif", fontSize: 13, color: "#4a6480" }}>
-          Need enterprise or custom volume pricing? <a href="mailto:contact@partslinkaviation.com" style={{ color: BLUE, textDecoration: "none" }}>Contact our team →</a>
+          Need enterprise or custom volume pricing? <a href="/contact" style={{ color: BLUE, textDecoration: "none" }}>Contact our team →</a>
         </p>
       </div>
     </section>
