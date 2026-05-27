@@ -38,3 +38,8 @@ externalPort = 3001
 [[ports]]
 localPort = 20655
 externalPort = 3000
+
+[userenv]
+
+[userenv.shared]
+STRIPE_WEBHOOK_SECRET = "whsec_UAsgasRCGwAZKxlPBYD51cUDPIHpHQPJ"
