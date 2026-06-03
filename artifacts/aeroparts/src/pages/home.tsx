@@ -64,7 +64,7 @@ const PRICING = [
     tag: "MOST POPULAR",
     founding: false,
     features: ["Unlimited marketplace searches", "Full access to all verified listings", "Watchlist alerts", "API access", "Business-hours email support (Mon–Fri)"],
-    cta: "Start Free Trial",
+    cta: "Start Now",
     href: "/seller/register",
     featured: true,
   },
@@ -287,7 +287,7 @@ function Hero({ onSearch }: { onSearch: (q: string, cat: string) => void }) {
             fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 800, fontSize: 16,
             letterSpacing: 0.5, textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 8,
           }}>
-            List Your Parts Free →
+            Apply as Founding Seller →
           </Link>
           <a href="/marketplace" style={{
             padding: "14px 28px", borderRadius: 8, background: BLUE, color: "#fff",
@@ -810,97 +810,89 @@ function CtaSection() {
   );
 }
 
-// ─── Section: Buyer Waitlist ───────────────────────────────────────────────────
+// ─── Section: Buyer Waitlist ────────────────────────────────────────────────
 function WaitlistSection() {
   const [email, setEmail] = useState("");
-  const [submitted, setSubmitted] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [aircraftType, setAircraftType] = useState("");
+  const [partCategories, setPartCategories] = useState<string[]>([]);
+  const [status, setStatus] = useState<"idle"|"loading"|"success"|"error">("idle");
+  const [msg, setMsg] = useState("");
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const AIRCRAFT_TYPES = [
+    "Commercial Airliner (737, A320, etc.)", "Regional Jet (CRJ, ERJ, etc.)",
+    "Turboprop (ATR, Dash 8, etc.)", "Business Jet (Citation, Gulfstream, etc.)",
+    "Helicopter", "Military Aircraft", "General Aviation (Cessna, Piper, etc.)",
+    "Cargo / Freighter", "Other",
+  ];
+  const PART_CATS = [
+    "Avionics & Navigation", "Engines & APU", "Landing Gear",
+    "Airframe & Structural", "Hydraulics & Pneumatics",
+    "Electrical Systems", "Interiors & Cabin",
+    "Rotables & Repairables", "Expendables & Consumables",
+  ];
+
+  function toggleCat(cat: string) {
+    setPartCategories(prev => prev.includes(cat) ? prev.filter(c => c !== cat) : [...prev, cat]);
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!email.includes("@")) { setError("Please enter a valid email address."); return; }
-    setLoading(true);
-    setError("");
+    if (!email) return;
+    setStatus("loading");
     try {
       const res = await fetch("/api/waitlist-emails", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: email.trim() }),
+        body: JSON.stringify({ email, aircraftType, partCategories }),
       });
-      if (!res.ok) {
-        const d = await res.json().catch(() => ({}));
-        throw new Error((d as any).error ?? "Something went wrong.");
-      }
-      setSubmitted(true);
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
-    } finally {
-      setLoading(false);
-    }
-  };
+      if (res.ok) { setStatus("success"); setMsg("You're on the list! We'll notify you when Parts Link Aviation opens."); }
+      else { setStatus("error"); setMsg("Something went wrong — please try again."); }
+    } catch { setStatus("error"); setMsg("Network error — please try again."); }
+  }
+
+  const inp: React.CSSProperties = { width: "100%", boxSizing: "border-box", background: CARD_BG, border: "1px solid " + BORDER, borderRadius: 8, padding: "12px 16px", color: "#fff", fontSize: 15, outline: "none" };
 
   return (
-    <section id="waitlist" style={{ background: DARK, padding: "80px 24px", borderTop: `1px solid ${BORDER}` }}>
-      <div style={{ maxWidth: 580, margin: "0 auto", textAlign: "center" }}>
-        <div style={{ display: "inline-block", background: "rgba(25,118,210,0.12)", border: `1px solid rgba(25,118,210,0.3)`, borderRadius: 4, padding: "4px 14px", marginBottom: 20 }}>
-          <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, fontSize: 12, color: BLUE, letterSpacing: 1, textTransform: "uppercase" }}>Stay Informed as a Buyer</span>
-        </div>
+    <section id="waitlist" style={{ background: DARK, padding: "80px 24px", borderTop: "1px solid " + BORDER }}>
+      <div style={{ maxWidth: 640, margin: "0 auto", textAlign: "center" }}>
+        <h2 style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 800, fontSize: 34, color: "#fff", marginBottom: 12 }}>Get Early Buyer Access</h2>
+        <p style={{ color: "#8fa3be", fontSize: 16, marginBottom: 40, lineHeight: 1.6 }}>Join the waitlist and be first when we open to buyers. Tell us what you source so we can prioritize the right inventory.</p>
 
-        <h2 style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 900, fontSize: "clamp(28px, 4vw, 44px)", color: "#fff", textTransform: "uppercase", marginBottom: 16, lineHeight: 1.05 }}>
-          Get Notified When<br /><span style={{ color: GOLD }}>New Inventory Arrives</span>
-        </h2>
-
-        <p style={{ fontFamily: "'Barlow', sans-serif", fontSize: 16, color: "#7ea8c8", lineHeight: 1.7, marginBottom: 36 }}>
-          We're onboarding verified sellers now. Enter your email and we'll notify you when certified parts matching your needs become available.
-        </p>
-
-        {submitted ? (
-          <div style={{
-            background: "rgba(34,197,94,0.08)", border: "1px solid rgba(34,197,94,0.3)",
-            borderRadius: 10, padding: "24px 32px",
-          }}>
-            <div style={{ fontSize: 32, marginBottom: 10 }}>✓</div>
-            <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, fontSize: 20, color: "#4ade80", marginBottom: 6 }}>You're on the list.</div>
-            <div style={{ fontFamily: "'Barlow', sans-serif", fontSize: 14, color: "#7ea8c8" }}>We'll be in touch when new inventory matching your needs arrives.</div>
+        {status === "success" ? (
+          <div style={{ background: CARD_BG, border: "1px solid " + BORDER, borderRadius: 12, padding: "32px 24px" }}>
+            <div style={{ fontSize: 40, marginBottom: 12 }}>✓</div>
+            <p style={{ color: GOLD, fontWeight: 700, fontSize: 18, margin: 0 }}>{msg}</p>
           </div>
         ) : (
-          <form onSubmit={handleSubmit}>
-            <div style={{ display: "flex", gap: 0, borderRadius: 10, overflow: "hidden", border: `1px solid ${BORDER}`, background: CARD_BG, marginBottom: error ? 12 : 0 }}>
-              <input
-                type="email"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                placeholder="your@email.com"
-                required
-                style={{
-                  flex: 1, background: "transparent", border: "none", outline: "none",
-                  color: "#fff", fontFamily: "'Barlow', sans-serif", fontSize: 15,
-                  padding: "14px 18px", minWidth: 0,
-                }}
-              />
-              <button
-                type="submit"
-                disabled={loading}
-                style={{
-                  background: BLUE, border: "none", color: "#fff", cursor: loading ? "not-allowed" : "pointer",
-                  padding: "14px 24px", fontFamily: "'Barlow Condensed', sans-serif",
-                  fontWeight: 700, fontSize: 15, letterSpacing: 0.5, flexShrink: 0,
-                  opacity: loading ? 0.7 : 1,
-                }}
-              >
-                {loading ? "Joining…" : "Join Waitlist"}
-              </button>
+          <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 20, textAlign: "left" }}>
+            <div>
+              <label style={{ display: "block", color: "#8fa3be", fontSize: 13, fontWeight: 600, marginBottom: 6, textTransform: "uppercase", letterSpacing: 0.5 }}>Your Email *</label>
+              <input type="email" required value={email} onChange={e => setEmail(e.target.value)} placeholder="you@airline.com" style={inp} />
             </div>
-            {error && (
-              <p style={{ fontFamily: "'Barlow', sans-serif", fontSize: 13, color: "#f87171", marginTop: 8 }}>{error}</p>
-            )}
+            <div>
+              <label style={{ display: "block", color: "#8fa3be", fontSize: 13, fontWeight: 600, marginBottom: 6, textTransform: "uppercase", letterSpacing: 0.5 }}>Primary Aircraft Type</label>
+              <select value={aircraftType} onChange={e => setAircraftType(e.target.value)} style={{ ...inp, color: aircraftType ? "#fff" : "#8fa3be" }}>
+                <option value="">Select aircraft type…</option>
+                {AIRCRAFT_TYPES.map(t => <option key={t} value={t} style={{ color: "#fff", background: CARD_BG }}>{t}</option>)}
+              </select>
+            </div>
+            <div>
+              <label style={{ display: "block", color: "#8fa3be", fontSize: 13, fontWeight: 600, marginBottom: 10, textTransform: "uppercase", letterSpacing: 0.5 }}>Part Categories You Source</label>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                {PART_CATS.map(cat => (
+                  <label key={cat} style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", background: partCategories.includes(cat) ? BLUE + "22" : CARD_BG, border: "1px solid " + (partCategories.includes(cat) ? BLUE : BORDER), borderRadius: 8, padding: "10px 14px" }}>
+                    <input type="checkbox" checked={partCategories.includes(cat)} onChange={() => toggleCat(cat)} style={{ accentColor: BLUE, width: 16, height: 16, cursor: "pointer" }} />
+                    <span style={{ color: "#cdd9e9", fontSize: 13, lineHeight: 1.3 }}>{cat}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+            {status === "error" && <p style={{ color: "#e74c3c", fontSize: 14, margin: 0 }}>{msg}</p>}
+            <button type="submit" disabled={status === "loading"} style={{ padding: "14px 28px", borderRadius: 8, background: status === "loading" ? "#555" : GOLD, color: "#0a1628", fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 800, fontSize: 16, letterSpacing: 0.5, border: "none", cursor: status === "loading" ? "not-allowed" : "pointer" }}>
+              {status === "loading" ? "Joining…" : "Join the Waitlist →"}
+            </button>
           </form>
         )}
-
-        <p style={{ fontFamily: "'Barlow', sans-serif", fontSize: 12, color: "#2a4060", marginTop: 16 }}>
-          No spam. Unsubscribe anytime.
-        </p>
       </div>
     </section>
   );
@@ -932,7 +924,7 @@ function HomeFooter() {
     {
       heading: "Company",
       links: [
-        { label: "About Parts Link Aviation", href: "/contact" },
+        { label: "About Parts Link Aviation", href: "/about" },
         { label: "Contact Us", href: "/contact" },
         { label: "Become a Founding Seller", href: "/seller/register" },
         { label: "Admin Portal", href: "/admin" },

@@ -33,6 +33,7 @@ import PrivacyPage from "@/pages/privacy";
 import TermsPage from "@/pages/terms";
 import CookiesPage from "@/pages/cookies";
 import ContactPage from "@/pages/contact";
+import AboutPage from "@/pages/about";
 import BuyerProtectionPage from "@/pages/buyer-protection";
 import CertificationPage from "@/pages/certification";
 import CompliancePage from "@/pages/compliance";
@@ -91,6 +92,7 @@ function Router() {
       <Route path="/terms" component={TermsPage} />
       <Route path="/cookies" component={CookiesPage} />
       <Route path="/contact" component={ContactPage} />
+        <Route path="/about" component={AboutPage} />
       <Route path="/buyer-protection" component={BuyerProtectionPage} />
       <Route path="/certification" component={CertificationPage} />
       <Route path="/compliance" component={CompliancePage} />

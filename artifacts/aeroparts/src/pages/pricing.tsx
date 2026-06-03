@@ -48,7 +48,7 @@ const PLANS = [
     yearlyPrice: 3350,   // ~20% off ($279/mo equiv)
     yearlyMonthly: 279,
     featured: true,
-    cta: "Start Free Trial",
+    cta: "Start Now",
     ctaMode: "checkout" as "checkout" | "contact",
     features: [
       "Unlimited marketplace searches",
@@ -200,6 +200,15 @@ export default function Pricing() {
   return (
     <MainLayout>
       <div style={{ background: NAVY, minHeight: "100vh" }}>
+        {/* ── Founding Seller Banner ── */}
+        <div style={{
+          background: "#d4af37", color: "#0a1628",
+          textAlign: "center", padding: "14px 24px",
+          fontFamily: "'Barlow Condensed', sans-serif",
+          fontWeight: 800, fontSize: 17, letterSpacing: 0.5,
+        }}>
+          🎉 FOUNDING SELLER OFFER — Solo Operator is FREE until we reach 50 active sellers. Upgrade to Fleet Manager or Mission Control at any time.
+        </div>
         <div style={{ maxWidth: 1140, margin: "0 auto", padding: "72px 24px 80px" }}>
 
           {/* ── Header ── */}
