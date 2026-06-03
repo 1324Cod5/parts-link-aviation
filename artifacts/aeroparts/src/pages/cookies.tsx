@@ -50,7 +50,7 @@ export default function CookiesPage() {
         <P>To opt out of analytics cookies, email <a href="mailto:privacy@partslinkaviation.com" style={{ color: "#1976d2", textDecoration: "none" }}>privacy@partslinkaviation.com</a>.</P>
 
         <H2>Third-Party Cookies</H2>
-        <P>We use Stripe (payment processing) and Resend (email delivery). These services may set their own cookies subject to their privacy policies. We do not use Google Analytics or Meta Pixel on authenticated pages.</P>
+        <P>We use Resend (email delivery) for transactional notifications. This service may set its own cookies subject to its privacy policy. We do not use Google Analytics or Meta Pixel on authenticated pages.</P>
 
         <H2>Updates</H2>
         <P>We may update this policy when we add new features. Material changes will be announced on the platform 14 days in advance.</P>

@@ -37,7 +37,7 @@ export default function PrivacyPage() {
         <P>We do not sell your personal data. We share information only with:</P>
         <ul style={{ paddingLeft: 20, marginBottom: 12 }}>
           <Li>Verified counterparties in transactions you initiate</Li>
-          <Li>Payment processors (Stripe) for billing</Li>
+          <Li>Payment processors for billing</Li>
           <Li>Email service providers for notifications</Li>
           <Li>Law enforcement when required by applicable law</Li>
         </ul>

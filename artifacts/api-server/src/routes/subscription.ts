@@ -1,7 +1,6 @@
 import { Router, type IRouter } from "express";
 import { db, usersTable, listingsTable } from "@workspace/db";
-import { eq, count, sql } from "drizzle-orm";
-import { getUncachableStripeClient, getStripePublishableKey } from "../stripeClient";
+import { eq, count } from "drizzle-orm";
 import { getEffectivePlan, PLAN_LISTING_LIMITS, FULL_ACCESS_PLANS, MRO_SERVICE_LIMITS } from "../lib/planEnforcement";
 import { logger } from "../lib/logger";
 
@@ -24,7 +23,6 @@ async function getSubscriptionInfo(userId: number) {
   const listingLimit = PLAN_LISTING_LIMITS[effectivePlan] ?? 5;
   const canAddListing = listingLimit === null || activeListings < listingLimit;
 
-  // Grace period days remaining
   let daysUntilGraceExpires: number | null = null;
   if (user.subscriptionStatus === "past_due" && user.gracePeriodEnd) {
     const ms = user.gracePeriodEnd.getTime() - Date.now();
@@ -49,12 +47,6 @@ async function getSubscriptionInfo(userId: number) {
   };
 }
 
-function getBaseUrl(req: any): string {
-  // In production use the real domain; in dev fall back to request origin.
-  const domain = process.env.REPLIT_DOMAINS?.split(",")[0];
-  return domain ? `https://${domain}` : `${req.protocol}://${req.get("host")}`;
-}
-
 // ─── GET /subscription ────────────────────────────────────────────────────────
 
 router.get("/subscription", async (req, res): Promise<void> => {
@@ -67,173 +59,8 @@ router.get("/subscription", async (req, res): Promise<void> => {
   res.json(info);
 });
 
-// ─── GET /subscription/products ───────────────────────────────────────────────
-// Returns available Stripe plans with price IDs so the frontend can build the pricing UI.
-
-router.get("/subscription/products", async (_req, res): Promise<void> => {
-  try {
-    const rows = await db.execute(sql`
-      SELECT
-        p.id            AS product_id,
-        p.name          AS product_name,
-        p.description   AS product_description,
-        p.metadata      AS product_metadata,
-        pr.id           AS price_id,
-        pr.unit_amount,
-        pr.currency,
-        pr.recurring,
-        pr.metadata     AS price_metadata
-      FROM stripe.products p
-      JOIN stripe.prices pr ON pr.product = p.id AND pr.active = true
-      WHERE p.active = true
-      ORDER BY pr.unit_amount ASC
-    `);
-
-    // Group prices by product
-    const map = new Map<string, any>();
-    for (const row of rows.rows) {
-      if (!map.has(String(row.product_id))) {
-        map.set(String(row.product_id), {
-          id: row.product_id,
-          name: row.product_name,
-          description: row.product_description,
-          metadata: row.product_metadata ?? {},
-          prices: [],
-        });
-      }
-      map.get(String(row.product_id)).prices.push({
-        id: row.price_id,
-        unitAmount: row.unit_amount,
-        currency: row.currency,
-        interval: (row.recurring as any)?.interval ?? null,
-        metadata: row.price_metadata ?? {},
-      });
-    }
-
-    const publishableKey = await getStripePublishableKey().catch(() => null);
-
-    res.json({ products: Array.from(map.values()), publishableKey });
-  } catch (err) {
-    logger.warn({ err }, "Could not fetch Stripe products");
-    res.json({ products: [], publishableKey: null });
-  }
-});
-
-// ─── POST /subscription/checkout ─────────────────────────────────────────────
-// Creates a Stripe Checkout session for the given priceId and returns the URL.
-
-router.post("/subscription/checkout", async (req, res): Promise<void> => {
-  const userId = req.session?.userId;
-  if (!userId) { res.status(401).json({ error: "Not authenticated" }); return; }
-
-  const { priceId } = req.body;
-  if (!priceId || typeof priceId !== "string") {
-    res.status(400).json({ error: "priceId is required" });
-    return;
-  }
-
-  const [user] = await db.select().from(usersTable).where(eq(usersTable.id, userId));
-  if (!user) { res.status(404).json({ error: "User not found" }); return; }
-
-  try {
-    const stripe = await getUncachableStripeClient();
-
-    // Find or create the Stripe customer for this user.
-    let customerId = user.stripeCustomerId ?? undefined;
-    if (!customerId) {
-      const customer = await stripe.customers.create({
-        email: user.email,
-        name: user.companyName,
-        metadata: { userId: String(user.id) },
-      });
-      customerId = customer.id;
-      await db
-        .update(usersTable)
-        .set({ stripeCustomerId: customerId, updatedAt: new Date() })
-        .where(eq(usersTable.id, userId));
-    }
-
-    const base = getBaseUrl(req);
-    const session = await stripe.checkout.sessions.create({
-      customer: customerId,
-      payment_method_types: ["card"],
-      line_items: [{ price: priceId, quantity: 1 }],
-      mode: "subscription",
-      success_url: `${base}/seller/subscription?success=1&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${base}/seller/subscription?cancelled=1`,
-      subscription_data: {
-        metadata: { userId: String(user.id) },
-      },
-    });
-
-    res.json({ url: session.url });
-  } catch (err: any) {
-    logger.error({ err }, "Failed to create Stripe checkout session");
-    res.status(500).json({ error: "Failed to create checkout session", detail: err.message });
-  }
-});
-
-// ─── POST /subscription/portal ────────────────────────────────────────────────
-// Creates a Stripe Billing Portal session so the user can manage their subscription.
-
-router.post("/subscription/portal", async (req, res): Promise<void> => {
-  const userId = req.session?.userId;
-  if (!userId) { res.status(401).json({ error: "Not authenticated" }); return; }
-
-  const [user] = await db.select().from(usersTable).where(eq(usersTable.id, userId));
-  if (!user) { res.status(404).json({ error: "User not found" }); return; }
-
-  if (!user.stripeCustomerId) {
-    res.status(400).json({ error: "No billing account found. Subscribe to a plan first." });
-    return;
-  }
-
-  try {
-    const stripe = await getUncachableStripeClient();
-    const base = getBaseUrl(req);
-    const portalSession = await stripe.billingPortal.sessions.create({
-      customer: user.stripeCustomerId,
-      return_url: `${base}/seller/subscription`,
-    });
-
-    res.json({ url: portalSession.url });
-  } catch (err: any) {
-    logger.error({ err }, "Failed to create Stripe portal session");
-    res.status(500).json({ error: "Failed to create billing portal session", detail: err.message });
-  }
-});
-
-// ─── POST /subscription/cancel ────────────────────────────────────────────────
-// Cancels the active subscription at period end.
-
-router.post("/subscription/cancel", async (req, res): Promise<void> => {
-  const userId = req.session?.userId;
-  if (!userId) { res.status(401).json({ error: "Not authenticated" }); return; }
-
-  const [user] = await db.select().from(usersTable).where(eq(usersTable.id, userId));
-  if (!user) { res.status(404).json({ error: "User not found" }); return; }
-
-  if (!user.stripeSubscriptionId) {
-    res.status(400).json({ error: "No active subscription found." });
-    return;
-  }
-
-  try {
-    const stripe = await getUncachableStripeClient();
-    // Cancel at period end (not immediately) to preserve access.
-    await stripe.subscriptions.update(user.stripeSubscriptionId, {
-      cancel_at_period_end: true,
-    });
-
-    res.json({ ok: true, message: "Subscription will be cancelled at the end of the current billing period." });
-  } catch (err: any) {
-    logger.error({ err }, "Failed to cancel Stripe subscription");
-    res.status(500).json({ error: "Failed to cancel subscription", detail: err.message });
-  }
-});
-
-// ─── Legacy admin-only override endpoints ─────────────────────────────────────
-// These allow admins to manually set a user's plan outside Stripe.
+// ─── POST /subscription/admin-set-plan ───────────────────────────────────────
+// Admin-only: manually set a user's plan.
 
 router.post("/subscription/admin-set-plan", async (req, res): Promise<void> => {
   const userId = req.session?.userId;
@@ -266,6 +93,7 @@ router.post("/subscription/admin-set-plan", async (req, res): Promise<void> => {
     })
     .where(eq(usersTable.id, Number(targetUserId)));
 
+  logger.info({ targetUserId, plan }, "Admin set plan");
   res.json({ ok: true });
 });
 

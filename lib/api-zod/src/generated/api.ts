@@ -1060,55 +1060,6 @@ export const GetSubscriptionResponse = zod.object({
 
 
 /**
- * @summary List available Stripe plans with price IDs
- */
-export const GetSubscriptionProductsResponse = zod.object({
-  "publishableKey": zod.string().nullish(),
-  "products": zod.array(zod.object({
-  "id": zod.string(),
-  "name": zod.string(),
-  "description": zod.string().nullish(),
-  "metadata": zod.record(zod.string(), zod.string()).optional(),
-  "prices": zod.array(zod.object({
-  "id": zod.string(),
-  "unitAmount": zod.number(),
-  "currency": zod.string(),
-  "interval": zod.string().nullish(),
-  "metadata": zod.record(zod.string(), zod.string()).optional()
-}))
-}))
-})
-
-
-/**
- * @summary Create a Stripe Checkout session for a given price
- */
-export const CreateCheckoutSessionBody = zod.object({
-  "priceId": zod.string().describe('Stripe price ID (e.g. price_1ABC...)')
-})
-
-export const CreateCheckoutSessionResponse = zod.object({
-  "url": zod.string().describe('Stripe Checkout URL — redirect the browser here')
-})
-
-
-/**
- * @summary Create a Stripe Billing Portal session for subscription management
- */
-export const CreatePortalSessionResponse = zod.object({
-  "url": zod.string().describe('Stripe Billing Portal URL — redirect the browser here')
-})
-
-
-/**
- * @summary Cancel the active subscription at period end
- */
-export const CancelSubscriptionResponse = zod.object({
-  "ok": zod.boolean()
-})
-
-
-/**
  * @summary List open RFQs
  */
 export const getRfqsQueryPageDefault = 1;

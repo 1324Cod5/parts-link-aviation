@@ -1,14 +1,12 @@
 import { useState } from "react";
-import { Link, useLocation } from "wouter";
+import { Link } from "wouter";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { useAuth } from "@/context/AuthContext";
 import {
   useGetSubscription,
   getGetSubscriptionQueryKey,
-  useGetSubscriptionProducts,
 } from "@workspace/api-client-react";
-import { useToast } from "@/hooks/use-toast";
-import { Check, Zap, Building2, Package, Wrench, Star, Brain, Radio, Upload, Loader2, CalendarDays } from "lucide-react";
+import { Check, Zap, Building2, Package, Wrench, Star, Brain, Radio, Upload, CalendarDays } from "lucide-react";
 
 // ─── Brand tokens ─────────────────────────────────────────────────────────────
 const NAVY  = "#0a1628";
@@ -21,7 +19,6 @@ const MUTED  = "#7ea8c8";
 type BillingCycle = "monthly" | "yearly";
 
 // ─── Plan definitions ─────────────────────────────────────────────────────────
-// planKey maps to the backend Stripe product metadata.plan value
 const PLANS = [
   {
     planKey: "pro",
@@ -33,7 +30,6 @@ const PLANS = [
     featured: false,
     founding: true,
     cta: "Claim Your Free Spot",
-    ctaMode: "checkout" as "checkout" | "contact",
     features: [
       "Unlimited marketplace searches",
       "Access all verified listings on the platform",
@@ -49,7 +45,6 @@ const PLANS = [
     yearlyMonthly: 279,
     featured: true,
     cta: "Start Now",
-    ctaMode: "checkout" as "checkout" | "contact",
     features: [
       "Unlimited marketplace searches",
       "Full access to all verified listings",
@@ -67,7 +62,6 @@ const PLANS = [
     yearlyMonthly: 639,
     featured: false,
     cta: "Get Started",
-    ctaMode: "checkout" as "checkout" | "contact",
     features: [
       "Everything in Fleet Manager",
       "ERP & MRO integration",
@@ -136,66 +130,13 @@ function GoldLabel({ children }: { children: React.ReactNode }) {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 export default function Pricing() {
   const { user } = useAuth();
-  const [, navigate] = useLocation();
-  const { toast } = useToast();
-  const [checkingOutPlan, setCheckingOutPlan] = useState<string | null>(null);
   const [billingCycle, setBillingCycle] = useState<BillingCycle>("monthly");
 
   const { data: subscription } = useGetSubscription({
     query: { enabled: !!user && user.role === "seller", queryKey: getGetSubscriptionQueryKey() },
   });
-  const { data: productsData } = useGetSubscriptionProducts();
 
   const currentPlan = (subscription as any)?.effectivePlan ?? subscription?.plan ?? user?.plan ?? "free";
-
-  // Hardcoded price IDs (always available; API-fetched IDs used as fallback when present)
-  const HARDCODED_PRICE_IDS: Record<string, string> = {
-    pro:             "price_1TbPBNL2wYC5N0L6b6LyJZoV",
-    enterprise:      "price_1TbPBNL2wYC5N0L6VFC2oaWB",
-    mission_control: "price_1TbPBNL2wYC5N0L6cSTJr7TG",
-    mro_provider:    "price_1TbPBNL2wYC5N0L6cSTJr7TG",
-  };
-
-  const getPriceId = (planKey: string, _cycle: BillingCycle): string | null => {
-    if (HARDCODED_PRICE_IDS[planKey]) return HARDCODED_PRICE_IDS[planKey];
-    if (!productsData?.products) return null;
-    for (const product of productsData.products) {
-      const meta = product.metadata as Record<string, string> | undefined;
-      if (meta?.plan === planKey) {
-        const price = product.prices.find((p: any) => p.interval === "month");
-        return price?.id ?? null;
-      }
-    }
-    return null;
-  };
-
-  const handleCheckout = async (planKey: string) => {
-    if (!user) { navigate("/seller/login"); return; }
-    const priceId = getPriceId(planKey, billingCycle);
-    if (!priceId) {
-      toast({ title: "Plan not available", description: "This plan isn't configured yet. Contact support.", variant: "destructive" });
-      return;
-    }
-    setCheckingOutPlan(planKey);
-    try {
-      const resp = await fetch("/api/stripe/create-checkout-session", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ priceId }),
-      });
-      const data = await resp.json();
-      if (data.url) {
-        window.location.href = data.url;
-      } else {
-        toast({ title: "Checkout error", description: data.error ?? "No redirect URL returned.", variant: "destructive" });
-        setCheckingOutPlan(null);
-      }
-    } catch (err: any) {
-      toast({ title: "Checkout failed", description: err.message ?? "Please try again.", variant: "destructive" });
-      setCheckingOutPlan(null);
-    }
-  };
 
   return (
     <MainLayout>
@@ -273,8 +214,7 @@ export default function Pricing() {
             gap: 20, marginBottom: 80,
           }}>
             {PLANS.map((plan, i) => {
-              const isCurrentPlan = currentPlan === plan.planKey && plan.ctaMode !== "contact";
-              const isLoading = checkingOutPlan === plan.planKey && plan.ctaMode === "checkout";
+              const isCurrentPlan = currentPlan === plan.planKey;
               const showYearly = billingCycle === "yearly";
               const displayPrice = showYearly ? plan.yearlyPrice : plan.monthlyPrice;
               const savings = plan.monthlyPrice * 12 - plan.yearlyPrice;
@@ -419,20 +359,6 @@ export default function Pricing() {
                       fontSize: 14, letterSpacing: "0.06em", textTransform: "uppercase",
                       color: MUTED,
                     }}>Current Plan</div>
-                  ) : plan.ctaMode === "contact" ? (
-                    <a
-                      href="mailto:sales@aeroparts.app"
-                      style={{
-                        display: "block", textAlign: "center", padding: "13px 0", borderRadius: 8,
-                        background: "rgba(255,255,255,0.06)", border: `1px solid ${BORDER}`,
-                        color: "#fff", textDecoration: "none",
-                        fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700,
-                        fontSize: 15, letterSpacing: "0.06em", textTransform: "uppercase",
-                        transition: "all 0.2s",
-                      }}
-                      onMouseEnter={e => { e.currentTarget.style.background = "rgba(255,255,255,0.12)"; }}
-                      onMouseLeave={e => { e.currentTarget.style.background = "rgba(255,255,255,0.06)"; }}
-                    >{plan.cta}</a>
                   ) : !user ? (
                     <Link
                       href="/seller/register"
@@ -446,27 +372,20 @@ export default function Pricing() {
                       }}
                     >{plan.cta}</Link>
                   ) : (
-                    <button
-                      disabled={!!checkingOutPlan}
-                      onClick={() => handleCheckout(plan.planKey)}
+                    <a
+                      href="mailto:sales@partslinkaviation.com"
                       style={{
-                        width: "100%", padding: "13px 0", borderRadius: 8,
+                        display: "block", textAlign: "center", padding: "13px 0", borderRadius: 8,
                         background: plan.featured ? BLUE : "rgba(255,255,255,0.06)",
                         border: plan.featured ? "none" : `1px solid ${BORDER}`,
-                        color: "#fff", cursor: checkingOutPlan ? "not-allowed" : "pointer",
+                        color: "#fff", textDecoration: "none",
                         fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700,
                         fontSize: 15, letterSpacing: "0.06em", textTransform: "uppercase",
-                        display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-                        opacity: checkingOutPlan && !isLoading ? 0.5 : 1,
                         transition: "all 0.2s",
                       }}
-                      onMouseEnter={e => { if (!checkingOutPlan) e.currentTarget.style.opacity = "0.88"; }}
+                      onMouseEnter={e => { e.currentTarget.style.opacity = "0.88"; }}
                       onMouseLeave={e => { e.currentTarget.style.opacity = "1"; }}
-                    >
-                      {isLoading ? (
-                        <><Loader2 size={16} className="animate-spin" /> Redirecting…</>
-                      ) : plan.cta}
-                    </button>
+                    >{plan.cta}</a>
                   )}
                 </div>
                 </div>
@@ -557,13 +476,10 @@ export default function Pricing() {
                     style={{ display: "block", textAlign: "center", padding: "13px 0", borderRadius: 8, background: GOLD, border: "none", color: NAVY, textDecoration: "none", fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 800, fontSize: 15, letterSpacing: "0.06em", textTransform: "uppercase" }}
                   >{MRO_TIER.cta}</Link>
                 ) : (
-                  <button
-                    disabled={!!checkingOutPlan}
-                    onClick={() => handleCheckout(MRO_TIER.planKey)}
-                    style={{ width: "100%", padding: "13px 0", borderRadius: 8, background: GOLD, border: "none", color: NAVY, cursor: checkingOutPlan ? "not-allowed" : "pointer", fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 800, fontSize: 15, letterSpacing: "0.06em", textTransform: "uppercase", opacity: checkingOutPlan ? 0.5 : 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}
-                  >
-                    {checkingOutPlan === MRO_TIER.planKey ? <><Loader2 size={16} className="animate-spin" /> Redirecting…</> : MRO_TIER.cta}
-                  </button>
+                  <a
+                    href="mailto:sales@partslinkaviation.com"
+                    style={{ display: "block", textAlign: "center", padding: "13px 0", borderRadius: 8, background: GOLD, border: "none", color: NAVY, textDecoration: "none", fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 800, fontSize: 15, letterSpacing: "0.06em", textTransform: "uppercase" }}
+                  >{MRO_TIER.cta}</a>
                 )}
               </div>
 
@@ -597,11 +513,11 @@ export default function Pricing() {
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 28 }}>
               {[
-                { q: "What's the difference between monthly and yearly billing?", a: "Monthly billing charges your card each month. Yearly billing charges once per year and saves you roughly 20% — you pay for 10 months and get 12." },
-                { q: "How does billing work?", a: "All plans are billed through Stripe. You'll be redirected to a secure Stripe Checkout page to enter your payment details. You can manage, upgrade, or cancel at any time via the billing portal." },
-                { q: "What happens if my payment fails?", a: "You get a 7-day grace period while Stripe retries your payment. During that time your plan stays active. If payment isn't resolved after 7 days, your account is downgraded." },
-                { q: "What does Mission Control include?", a: "Mission Control adds ERP & MRO system integrations and unlimited multi-user seats on top of everything in Fleet Manager. Contact our team at support@partslinkaviation.com to discuss your needs." },
-                { q: "Can I cancel at any time?", a: "Yes. Cancelling through the billing portal keeps your access active until the end of the current billing period, then downgrades to free access. No penalties or lock-ins." },
+                { q: "What's the difference between monthly and yearly pricing?", a: "Monthly pricing charges per month. Yearly pricing covers a full year and saves you roughly 20% — equivalent to paying for 10 months and getting 12." },
+                { q: "How do I get started?", a: "Register for a free account and contact our sales team at sales@partslinkaviation.com to activate your plan. We'll get you set up within one business day." },
+                { q: "What does Mission Control include?", a: "Mission Control adds ERP & MRO system integrations and unlimited multi-user seats on top of everything in Fleet Manager. Contact our team to discuss your specific needs." },
+                { q: "Can I cancel at any time?", a: "Yes. There are no lock-in contracts. Contact us to adjust or cancel your plan at any time. No penalties or hidden fees." },
+                { q: "Do you offer custom pricing for large fleets?", a: "Yes — contact sales@partslinkaviation.com for volume-based custom pricing. We work with airlines, defence contractors, and large MRO operations." },
               ].map(({ q, a }) => (
                 <div key={q} style={{ borderBottom: `1px solid ${BORDER}`, paddingBottom: 24 }}>
                   <h3 style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, fontSize: 18, color: "#fff", marginBottom: 8 }}>{q}</h3>

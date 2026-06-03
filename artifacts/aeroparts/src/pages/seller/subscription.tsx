@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { Link } from "wouter";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Button } from "@/components/ui/button";
@@ -7,14 +6,12 @@ import { useAuth } from "@/context/AuthContext";
 import {
   useGetSubscription,
   getGetSubscriptionQueryKey,
-  useCreatePortalSession,
-  useCancelSubscription,
 } from "@workspace/api-client-react";
 import { useQueryClient, useQuery, useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import {
-  ArrowLeft, Zap, Building2, Package, Check, AlertTriangle,
-  ShieldCheck, Star, CreditCard, ExternalLink, XCircle, Clock, CalendarDays,
+  ArrowLeft, Zap, Building2, Package, AlertTriangle,
+  ShieldCheck, Star, Clock,
 } from "lucide-react";
 
 const PLAN_META: Record<string, { label: string; color: string; bg: string; limit: string; icon: React.ElementType }> = {
@@ -25,45 +22,14 @@ const PLAN_META: Record<string, { label: string; color: string; bg: string; limi
   mro_premium: { label: "Premium MRO", color: "text-purple-400",       bg: "bg-purple-500/10",   limit: "20 listings, unlimited services", icon: Star },
 };
 
-const STATUS_BADGE: Record<string, { label: string; class: string }> = {
-  active:    { label: "Active",    class: "bg-green-500/10 text-green-400 border-green-500/20" },
-  trial:     { label: "Trial",     class: "bg-blue-500/10 text-blue-400 border-blue-500/20" },
-  past_due:  { label: "Past Due",  class: "bg-amber-500/10 text-amber-400 border-amber-500/20" },
-  cancelled: { label: "Cancelled", class: "bg-red-500/10 text-red-400 border-red-500/20" },
-  suspended: { label: "Suspended", class: "bg-red-500/10 text-red-400 border-red-500/20" },
-};
-
 export default function SubscriptionManagement() {
   const { user, isLoading: authLoading } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [portalLoading, setPortalLoading] = useState(false);
-
-  const portalMutation = useCreatePortalSession();
-  const cancelMutation = useCancelSubscription();
 
   const { data: subscription, isLoading } = useGetSubscription({
     query: { enabled: !!user, queryKey: getGetSubscriptionQueryKey() },
   });
-
-  const handleManageBilling = async () => {
-    setPortalLoading(true);
-    portalMutation.mutate(undefined, {
-      onSuccess: (data: any) => {
-        if (data?.url) {
-          window.location.href = data.url;
-        }
-      },
-      onError: (err: any) => {
-        toast({
-          title: "Could not open billing portal",
-          description: err?.response?.data?.error ?? "Please try again.",
-          variant: "destructive",
-        });
-        setPortalLoading(false);
-      },
-    });
-  };
 
   const NOTIF_KEY = ["seller-msg-notif-prefs"] as const;
   const { data: notifData, isLoading: notifLoading } = useQuery({
@@ -95,19 +61,6 @@ export default function SubscriptionManagement() {
     onError: () => toast({ title: "Failed to save preference", variant: "destructive" }),
   });
 
-  const handleCancel = () => {
-    if (!confirm("Cancel your subscription? You'll keep access until the end of the current billing period.")) return;
-    cancelMutation.mutate(undefined, {
-      onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: getGetSubscriptionQueryKey() });
-        toast({ title: "Subscription cancelled", description: "Access continues until the end of this billing period." });
-      },
-      onError: (err: any) => {
-        toast({ title: "Cancellation failed", description: err?.response?.data?.error ?? "Please try again.", variant: "destructive" });
-      },
-    });
-  };
-
   if (authLoading || !user) {
     return (
       <MainLayout>
@@ -120,19 +73,10 @@ export default function SubscriptionManagement() {
   }
 
   const effectivePlan = (subscription as any)?.effectivePlan ?? subscription?.plan ?? "free";
-  const storedPlan = subscription?.plan ?? "free";
   const meta = PLAN_META[effectivePlan] ?? PLAN_META.free;
   const Icon = meta.icon;
   const status = (subscription as any)?.subscriptionStatus as string | undefined;
-  const statusBadge = status ? STATUS_BADGE[status] : null;
-  const gracePeriodEnd = (subscription as any)?.gracePeriodEnd as string | undefined;
   const currentPeriodEnd = (subscription as any)?.currentPeriodEnd as string | undefined;
-  const daysUntilGrace = (subscription as any)?.daysUntilGraceExpires as number | undefined;
-  const isPastDue = status === "past_due";
-  const hasActiveSub = status === "active" || status === "trial" || isPastDue;
-  const isPlanDowngraded = effectivePlan !== storedPlan; // grace period expired or cancelled
-
-  const billingCycle = (subscription as any)?.billingCycle as "monthly" | "yearly" | undefined;
 
   const usedPct = subscription?.listingLimit
     ? Math.min(100, Math.round(((subscription.activeListings ?? 0) / subscription.listingLimit) * 100))
@@ -149,51 +93,12 @@ export default function SubscriptionManagement() {
           </Link>
         </div>
 
-        <h1 className="text-2xl font-bold text-white mb-6">Subscription Management</h1>
-
-        {/* Past-due grace period warning */}
-        {isPastDue && (
-          <div className="mb-5 flex items-start gap-3 bg-amber-500/10 border border-amber-500/30 rounded-md p-4">
-            <AlertTriangle className="h-5 w-5 text-amber-400 flex-shrink-0 mt-0.5" />
-            <div>
-              <p className="text-amber-300 font-medium text-sm">Payment failed — action required</p>
-              <p className="text-amber-200/70 text-xs mt-0.5">
-                {daysUntilGrace != null && daysUntilGrace > 0
-                  ? `Your plan access continues for ${daysUntilGrace} more day${daysUntilGrace === 1 ? "" : "s"} while we retry payment.`
-                  : "Your grace period has expired. Update your billing details to restore access."}
-              </p>
-              <Button size="sm" className="mt-2 h-7 text-xs bg-amber-500 hover:bg-amber-400 text-black" onClick={handleManageBilling} disabled={portalLoading}>
-                <CreditCard className="h-3 w-3 mr-1" /> Update Payment Method
-              </Button>
-            </div>
-          </div>
-        )}
-
-        {/* Downgraded notice */}
-        {isPlanDowngraded && !isPastDue && (
-          <div className="mb-5 flex items-start gap-3 bg-red-500/10 border border-red-500/30 rounded-md p-4">
-            <XCircle className="h-5 w-5 text-red-400 flex-shrink-0 mt-0.5" />
-            <div>
-              <p className="text-red-300 font-medium text-sm">Subscription lapsed — now on Free plan</p>
-              <p className="text-red-200/70 text-xs mt-0.5">
-                Your {PLAN_META[storedPlan]?.label ?? storedPlan} subscription has ended. Resubscribe to restore access.
-              </p>
-              <Link href="/pricing">
-                <Button size="sm" className="mt-2 h-7 text-xs">Resubscribe</Button>
-              </Link>
-            </div>
-          </div>
-        )}
+        <h1 className="text-2xl font-bold text-white mb-6">Plan & Usage</h1>
 
         {/* Current Plan Card */}
         <div className="bg-card border border-border rounded-md p-6 mb-5">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Current Plan</h2>
-            {statusBadge && (
-              <span className={`text-xs font-medium px-2.5 py-0.5 rounded-full border ${statusBadge.class}`}>
-                {statusBadge.label}
-              </span>
-            )}
           </div>
 
           {isLoading ? (
@@ -210,41 +115,16 @@ export default function SubscriptionManagement() {
             </div>
           )}
 
-          {/* Billing cycle badge */}
-          {!isLoading && billingCycle && hasActiveSub && (
-            <div className="mt-3">
-              <span className={`inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full border ${
-                billingCycle === "yearly"
-                  ? "bg-green-500/10 text-green-400 border-green-500/20"
-                  : "bg-secondary text-muted-foreground border-border"
-              }`}>
-                <CalendarDays className="h-3 w-3" />
-                {billingCycle === "yearly" ? "Yearly billing — 2 months free" : "Monthly billing"}
-              </span>
-            </div>
-          )}
-
-          {/* Billing dates */}
-          {!isLoading && (currentPeriodEnd || gracePeriodEnd) && (
-            <div className="mt-4 pt-4 border-t border-border space-y-2">
-              {currentPeriodEnd && (
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <Clock className="h-3.5 w-3.5" />
-                  <span>
-                    {status === "cancelled"
-                      ? `Access ends: ${new Date(currentPeriodEnd).toLocaleDateString()}`
-                      : billingCycle === "yearly"
-                        ? `Yearly renewal: ${new Date(currentPeriodEnd).toLocaleDateString()}`
-                        : `Next billing: ${new Date(currentPeriodEnd).toLocaleDateString()}`}
-                  </span>
-                </div>
-              )}
-              {gracePeriodEnd && isPastDue && daysUntilGrace != null && daysUntilGrace > 0 && (
-                <div className="flex items-center gap-2 text-xs text-amber-400">
-                  <AlertTriangle className="h-3.5 w-3.5" />
-                  <span>Grace period ends: {new Date(gracePeriodEnd).toLocaleDateString()}</span>
-                </div>
-              )}
+          {!isLoading && currentPeriodEnd && (
+            <div className="mt-4 pt-4 border-t border-border">
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <Clock className="h-3.5 w-3.5" />
+                <span>
+                  {status === "cancelled"
+                    ? `Access ends: ${new Date(currentPeriodEnd).toLocaleDateString()}`
+                    : `Active until: ${new Date(currentPeriodEnd).toLocaleDateString()}`}
+                </span>
+              </div>
             </div>
           )}
         </div>
@@ -286,59 +166,18 @@ export default function SubscriptionManagement() {
           )}
         </div>
 
-        {/* Billing Actions */}
-        <div className="bg-card border border-border rounded-md p-6 mb-5 space-y-3">
-          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">Billing</h2>
-
-          {hasActiveSub ? (
-            <>
-              <Button
-                className="w-full gap-2"
-                onClick={handleManageBilling}
-                disabled={portalLoading}
-              >
-                <ExternalLink className="h-4 w-4" />
-                {portalLoading ? "Opening portal…" : "Manage Billing & Payment"}
-              </Button>
-              <p className="text-xs text-muted-foreground text-center">
-                Update payment method, download invoices, or change your plan via the Stripe billing portal.
-              </p>
-
-              {(status === "active" || status === "trial") && (
-                <Button
-                  variant="ghost"
-                  className="w-full text-muted-foreground hover:text-destructive text-xs h-8 mt-1"
-                  onClick={handleCancel}
-                  disabled={cancelMutation.isPending}
-                >
-                  <XCircle className="h-3.5 w-3.5 mr-1" />
-                  {cancelMutation.isPending ? "Cancelling…" : "Cancel Subscription"}
-                </Button>
-              )}
-            </>
-          ) : (
-            <div className="text-center">
-              <p className="text-sm text-muted-foreground mb-3">
-                {effectivePlan === "free" ? "Upgrade to unlock more listings, priority placement, and full RFQ access." : "No active subscription."}
-              </p>
-              <Link href="/pricing">
-                <Button className="w-full gap-2">
-                  <Zap className="h-4 w-4" /> View Plans & Upgrade
-                </Button>
-              </Link>
-            </div>
-          )}
-        </div>
-
-        {/* Quick plan compare */}
+        {/* Upgrade prompt for free plan */}
         {effectivePlan === "free" && (
-          <div className="bg-card border border-border rounded-md p-6">
-            <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">Upgrade to unlock</h2>
-            <div className="grid grid-cols-2 gap-3 text-sm">
+          <div className="bg-card border border-border rounded-md p-6 mb-5">
+            <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">Upgrade your plan</h2>
+            <p className="text-sm text-muted-foreground mb-4">
+              Unlock more listings, priority placement, and full RFQ access. Contact us to get started.
+            </p>
+            <div className="grid grid-cols-2 gap-3 text-sm mb-4">
               {[
-                { icon: Zap, label: "Pro — $29/mo", detail: "500 listings, analytics, AOG alerts, priority placement" },
-                { icon: Building2, label: "Enterprise — $99/mo", detail: "Unlimited listings, intelligence dashboard, full RFQ access" },
-                { icon: ShieldCheck, label: "MRO Provider — $10/mo", detail: "MRO directory, unlimited service categories, verified badge" },
+                { icon: Zap, label: "Pro — $149/mo", detail: "Unlimited searches, full listing access" },
+                { icon: Building2, label: "Fleet Manager — $349/mo", detail: "Watchlist alerts, API access, priority support" },
+                { icon: ShieldCheck, label: "MRO Provider — $10/mo", detail: "MRO directory, verified badge, unlimited services" },
               ].map(({ icon: I, label, detail }) => (
                 <div key={label} className="border border-border rounded-md p-3">
                   <I className="h-4 w-4 text-primary mb-1.5" />
@@ -347,11 +186,14 @@ export default function SubscriptionManagement() {
                 </div>
               ))}
             </div>
-            <Link href="/pricing">
-              <Button className="w-full mt-4" variant="outline">Compare All Plans</Button>
-            </Link>
+            <a href="mailto:sales@partslinkaviation.com">
+              <Button className="w-full gap-2">
+                <Zap className="h-4 w-4" /> Contact Sales to Upgrade
+              </Button>
+            </a>
           </div>
         )}
+
         {/* Notification Settings */}
         <div className="bg-card border border-border rounded-md p-6 mb-5">
           <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">
@@ -382,7 +224,6 @@ export default function SubscriptionManagement() {
             </div>
           )}
         </div>
-
       </div>
     </MainLayout>
   );

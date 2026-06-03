@@ -384,49 +384,6 @@ export interface SubscriptionInfo {
   billingCycle?: SubscriptionInfoBillingCycle;
 }
 
-export interface CheckoutSessionInput {
-  /** Stripe price ID (e.g. price_1ABC...) */
-  priceId: string;
-}
-
-export interface CheckoutSessionResponse {
-  /** Stripe Checkout URL — redirect the browser here */
-  url: string;
-}
-
-export interface PortalSessionResponse {
-  /** Stripe Billing Portal URL — redirect the browser here */
-  url: string;
-}
-
-export type SubscriptionProductsResponseProductsItemMetadata = {[key: string]: string};
-
-export type SubscriptionProductsResponseProductsItemPricesItemMetadata = {[key: string]: string};
-
-export type SubscriptionProductsResponseProductsItemPricesItem = {
-  id: string;
-  unitAmount: number;
-  currency: string;
-  /** @nullable */
-  interval?: string | null;
-  metadata?: SubscriptionProductsResponseProductsItemPricesItemMetadata;
-};
-
-export type SubscriptionProductsResponseProductsItem = {
-  id: string;
-  name: string;
-  /** @nullable */
-  description?: string | null;
-  metadata?: SubscriptionProductsResponseProductsItemMetadata;
-  prices: SubscriptionProductsResponseProductsItemPricesItem[];
-};
-
-export interface SubscriptionProductsResponse {
-  /** @nullable */
-  publishableKey?: string | null;
-  products: SubscriptionProductsResponseProductsItem[];
-}
-
 export interface Permissions {
   computedRole: string;
   plan: string;

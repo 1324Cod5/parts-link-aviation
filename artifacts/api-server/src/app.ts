@@ -10,7 +10,6 @@ import { eq } from "drizzle-orm";
 import { db, usersTable } from "@workspace/db";
 import router from "./routes";
 import { logger } from "./lib/logger";
-import { WebhookHandlers } from "./webhookHandlers";
 
 const ADMIN_SESSION_TIMEOUT = 30 * 60 * 1000; // 30 minutes
 
@@ -39,37 +38,7 @@ app.use(
   }),
 );
 
-// ─── Stripe webhook MUST be registered BEFORE express.json() ─────────────────
-// The webhook handler needs the raw Buffer body, not parsed JSON.
-app.post(
-  "/api/stripe/webhook",
-  express.raw({ type: "application/json" }),
-  async (req, res): Promise<void> => {
-    const signature = req.headers["stripe-signature"];
-    if (!signature) {
-      res.status(400).json({ error: "Missing stripe-signature header" });
-      return;
-    }
-
-    const sig = Array.isArray(signature) ? signature[0] : signature;
-
-    if (!Buffer.isBuffer(req.body)) {
-      logger.error("Stripe webhook body is not a Buffer — check middleware order");
-      res.status(500).json({ error: "Webhook processing error" });
-      return;
-    }
-
-    try {
-      await WebhookHandlers.processWebhook(req.body, sig);
-      res.status(200).json({ received: true });
-    } catch (err: any) {
-      logger.error({ err }, "Stripe webhook processing failed");
-      res.status(400).json({ error: "Webhook processing error" });
-    }
-  },
-);
-
-// ─── Standard middleware (after webhook route) ────────────────────────────────
+// ─── Standard middleware ──────────────────────────────────────────────────────
 app.use(cors({ origin: true, credentials: true }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
