@@ -29,6 +29,8 @@ const PLANS = [
     yearlyMonthly: 119,
     featured: false,
     founding: true,
+    foundingLabel: null as string | null,
+    foundingSubtext: "Free until 50 sellers, then $149/mo",
     cta: "Claim Your Free Spot",
     features: [
       "Unlimited marketplace searches",
@@ -39,12 +41,15 @@ const PLANS = [
   {
     planKey: "enterprise",
     name: "Fleet Manager",
-    tag: "MOST POPULAR",
+    tag: "FOUNDING MEMBER" as string | null,
     monthlyPrice: 349,
     yearlyPrice: 3350,   // ~20% off ($279/mo equiv)
     yearlyMonthly: 279,
     featured: true,
-    cta: "Start Now",
+    founding: true,
+    foundingLabel: "FOUNDING MEMBER" as string | null,
+    foundingSubtext: "Free until 50 sellers, then $349/mo",
+    cta: "Join Free",
     features: [
       "Unlimited marketplace searches",
       "Full access to all verified listings",
@@ -56,12 +61,15 @@ const PLANS = [
   {
     planKey: "mission_control",
     name: "Mission Control",
-    tag: "ENTERPRISE",
+    tag: "FOUNDING MEMBER" as string | null,
     monthlyPrice: 799,
     yearlyPrice: 7670,   // ~20% off ($639/mo equiv)
     yearlyMonthly: 639,
     featured: false,
-    cta: "Get Started",
+    founding: true,
+    foundingLabel: "FOUNDING MEMBER" as string | null,
+    foundingSubtext: "Free until 50 sellers, then $799/mo",
+    cta: "Join Free",
     features: [
       "Everything in Fleet Manager",
       "ERP & MRO integration",
@@ -148,7 +156,7 @@ export default function Pricing() {
           fontFamily: "'Barlow Condensed', sans-serif",
           fontWeight: 800, fontSize: 17, letterSpacing: 0.5,
         }}>
-          🎉 FOUNDING SELLER OFFER — Solo Operator is FREE until we reach 50 active sellers. Upgrade to Fleet Manager or Mission Control at any time.
+          ALL PLANS FREE FOR FOUNDING SELLERS — Every plan is $0 until we reach 50 active sellers. Lock in your tier now at no cost.
         </div>
         <div style={{ maxWidth: 1140, margin: "0 auto", padding: "72px 24px 80px" }}>
 
@@ -238,8 +246,8 @@ export default function Pricing() {
                       : plan.featured ? `0 0 48px rgba(25,118,210,0.18)` : "none",
                   }}
                 >
-                  {/* Founding seller gold banner */}
-                  {isFoundingPlan && (
+                  {/* Founding member gold banner */}
+                  {plan.foundingLabel && (
                     <div style={{
                       background: `linear-gradient(135deg, rgba(245,166,35,0.22), rgba(245,166,35,0.1))`,
                       borderBottom: `1px solid rgba(245,166,35,0.3)`,
@@ -251,7 +259,7 @@ export default function Pricing() {
                         fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 800,
                         fontSize: 12, color: GOLD, letterSpacing: "0.06em", textTransform: "uppercase",
                       }}>
-                        Founding Seller — First 6 Months Free
+                        {plan.foundingLabel}
                       </span>
                     </div>
                   )}
@@ -262,11 +270,11 @@ export default function Pricing() {
                   {plan.tag && (
                     <div style={{
                       position: "absolute", top: 20, right: 20,
-                      background: plan.featured ? BLUE : `rgba(245,166,35,0.15)`,
-                      border: `1px solid ${plan.featured ? BLUE : "rgba(245,166,35,0.4)"}`,
+                      background: `rgba(245,166,35,0.15)`,
+                      border: `1px solid rgba(245,166,35,0.4)`,
                       borderRadius: 4, padding: "3px 10px",
                       fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 800,
-                      fontSize: 11, color: plan.featured ? "#fff" : GOLD,
+                      fontSize: 11, color: GOLD,
                       letterSpacing: "0.06em", textTransform: "uppercase",
                     }}>{plan.tag}</div>
                   )}
@@ -293,7 +301,7 @@ export default function Pricing() {
                           }}>${fmtPrice(plan.monthlyPrice)}/mo</span>
                         </div>
                         <p style={{ fontFamily: "'Barlow', sans-serif", fontSize: 13, color: MUTED, marginTop: 6 }}>
-                          Free during founding period, then ${fmtPrice(plan.monthlyPrice)}/mo
+                          {plan.foundingSubtext}
                         </p>
                       </>
                     ) : (
