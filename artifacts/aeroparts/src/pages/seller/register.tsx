@@ -41,10 +41,15 @@ export default function Register() {
           toast({ title: "Account created", description: msg });
           window.location.href = accountType === "buyer" ? "/marketplace" : "/seller/dashboard";
         },
-        onError: () => {
+        onError: (error: unknown) => {
+          const apiError = error as { data?: { error?: string }; message?: string };
+          const description =
+            apiError?.data?.error ??
+            apiError?.message ??
+            "Something went wrong. Please try again.";
           toast({
             title: "Registration failed",
-            description: "That email may already be registered.",
+            description,
             variant: "destructive",
           });
         },
