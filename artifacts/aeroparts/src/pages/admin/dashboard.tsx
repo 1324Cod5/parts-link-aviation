@@ -52,7 +52,7 @@ import {
   ChevronDown, MoreVertical, History,
   Boxes, Plus, Pencil, Trash2, Ban, RefreshCw, ChevronLeft, ChevronRight as ChevronRightIcon,
   Brain, ShieldX, Zap, Activity, Radar, TrendingDown, CircleDot, FlameKindling,
-  BadgeCheck, UserX, FileCheck, Store,
+  BadgeCheck, UserX, FileCheck, Store, UserCircle,
 } from "lucide-react";
 
 // ─── helpers ────────────────────────────────────────────────────────────────
@@ -97,7 +97,7 @@ const BADGE_META: Record<string, { label: string; color: string }> = {
 
 // ─── navigation ─────────────────────────────────────────────────────────────
 
-type Section = "overview" | "sellers" | "listings" | "certifications" | "billing" | "mro" | "rfqs" | "trust" | "analytics" | "disputes" | "inventory" | "intelligence" | "vendors" | "market";
+type Section = "overview" | "sellers" | "listings" | "certifications" | "billing" | "mro" | "rfqs" | "trust" | "analytics" | "disputes" | "inventory" | "intelligence" | "vendors" | "market" | "profile";
 
 const NAV: { id: Section; label: string; icon: React.ElementType }[] = [
   { id: "overview",        label: "Overview",               icon: LayoutDashboard },
@@ -114,6 +114,7 @@ const NAV: { id: Section; label: string; icon: React.ElementType }[] = [
   { id: "market",          label: "Market Intelligence",    icon: BarChart2 },
   { id: "intelligence",    label: "AI & Fraud Intelligence",icon: Brain },
   { id: "vendors",         label: "Vendor Verification",    icon: ShieldCheck },
+  { id: "profile",         label: "My Profile",             icon: UserCircle },
 ];
 
 // ─── stat card ──────────────────────────────────────────────────────────────
@@ -3265,6 +3266,54 @@ function MarketSection() {
 }
 
 // ─── main admin shell ────────────────────────────────────────────────────────
+
+// ─── section: profile ───────────────────────────────────────────────────────
+
+function ProfileSection() {
+  const { user, logout } = useAuth();
+  const [, navigate] = useLocation();
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-lg font-semibold text-white mb-1">My Profile</h2>
+        <p className="text-sm text-muted-foreground">Your admin account details.</p>
+      </div>
+
+      <div className="border border-border rounded-lg bg-card p-6 space-y-4 max-w-lg">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-12 h-12 rounded-full bg-primary/20 border border-primary/30 flex items-center justify-center">
+            <UserCircle className="w-7 h-7 text-primary" />
+          </div>
+          <div>
+            <p className="text-base font-semibold text-white">{user?.companyName ?? "Admin"}</p>
+            <p className="text-xs text-muted-foreground capitalize">{user?.computedRole ?? "admin"}</p>
+          </div>
+        </div>
+
+        <div className="space-y-3 text-sm">
+          <div className="flex justify-between border-b border-border pb-2">
+            <span className="text-muted-foreground">Email</span>
+            <span className="text-white font-mono">{user?.email ?? "\u2014"}</span>
+          </div>
+          <div className="flex justify-between border-b border-border pb-2">
+            <span className="text-muted-foreground">Role</span>
+            <span className="text-emerald-400 capitalize">{user?.computedRole ?? "admin"}</span>
+          </div>
+        </div>
+
+        <div className="flex gap-3 pt-2">
+          <Button size="sm" variant="outline" onClick={() => navigate("/admin/change-password")}>
+            Change Password
+          </Button>
+          <Button size="sm" variant="ghost" className="text-red-400 hover:text-red-300" onClick={logout}>
+            Sign Out
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function AdminDashboard() {
   const { user, isLoading: authLoading, logout } = useAuth();
