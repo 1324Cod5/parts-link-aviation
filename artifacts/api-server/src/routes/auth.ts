@@ -423,6 +423,44 @@ router.patch("/auth/change-password", async (req, res): Promise<void> => {
   res.json({ ok: true });
 });
 
+
+router.patch("/auth/update-profile", async (req, res): Promise<void> => {
+  const userId = req.session?.userId;
+  if (!userId) {
+    res.status(401).json({ error: "Not authenticated" });
+    return;
+  }
+
+  const { companyName, contactName } = req.body ?? {};
+  if (!companyName && !contactName) {
+    res.status(400).json({ error: "At least one field (companyName or contactName) is required." });
+    return;
+  }
+
+  const updates: Partial<typeof usersTable.$inferInsert> = { updatedAt: new Date() };
+  if (typeof companyName === "string" && companyName.trim()) {
+    updates.companyName = companyName.trim();
+  }
+  if (typeof contactName === "string" && contactName.trim()) {
+    updates.contactName = contactName.trim();
+  }
+
+  await db.update(usersTable).set(updates).where(eq(usersTable.id, userId));
+
+  const result = await fetchUserWithMro(userId);
+  if (!result) {
+    res.status(401).json({ error: "Not authenticated" });
+    return;
+  }
+  const derived = deriveRole(result.user, result.hasMroProfile);
+  if (!derived) {
+    res.status(401).json({ error: "Not authenticated" });
+    return;
+  }
+
+  res.json({ user: serializeUser(result.user, derived.computedRole) });
+});
+
 router.post("/auth/logout", async (req, res): Promise<void> => {
   req.session!.destroy(() => {});
   res.json({ ok: true });
