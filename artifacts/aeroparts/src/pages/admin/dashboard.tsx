@@ -3322,7 +3322,7 @@ export default function AdminDashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { data: stats } = useGetAdminStats({ query: { queryKey: getGetAdminStatsQueryKey() } });
 
-  const VALID_SECTIONS = new Set<string>(["overview", "inventory", "sellers", "listings", "certifications", "billing", "mro", "rfqs", "trust", "analytics", "disputes", "intelligence", "vendors", "market"]);
+  const VALID_SECTIONS = new Set<string>(["overview", "inventory", "sellers", "listings", "certifications", "billing", "mro", "rfqs", "trust", "analytics", "disputes", "intelligence", "vendors", "market", "profile"]);
   const section: Section = (sectionParam && VALID_SECTIONS.has(sectionParam) ? sectionParam : "overview") as Section;
 
   function navTo(id: Section) {
