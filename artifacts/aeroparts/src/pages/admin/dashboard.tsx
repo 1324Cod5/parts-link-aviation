@@ -52,7 +52,7 @@ import {
   ChevronDown, MoreVertical, History,
   Boxes, Plus, Pencil, Trash2, Ban, RefreshCw, ChevronLeft, ChevronRight as ChevronRightIcon,
   Brain, ShieldX, Zap, Activity, Radar, TrendingDown, CircleDot, FlameKindling,
-  BadgeCheck, UserX, FileCheck, Store, UserCircle,
+  BadgeCheck, UserX, FileCheck, Store, UserCircle, Eye, EyeOff, Lock, CheckCircle2,
 } from "lucide-react";
 
 // ─── helpers ────────────────────────────────────────────────────────────────
@@ -3271,46 +3271,175 @@ function MarketSection() {
 
 function ProfileSection() {
   const { user, logout } = useAuth();
-  const [, navigate] = useLocation();
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  // Name form
+  const [displayName, setDisplayName] = useState(user?.companyName ?? "");
+  const [namePending, setNamePending] = useState(false);
+
+  // Password form
+  const [pwForm, setPwForm] = useState({ current: "", next: "", confirm: "" });
+  const [showCurrent, setShowCurrent] = useState(false);
+  const [showNext, setShowNext] = useState(false);
+  const [pwPending, setPwPending] = useState(false);
+
+  const pwRules = {
+    length:    pwForm.next.length >= 8,
+    uppercase: /[A-Z]/.test(pwForm.next),
+    number:    /[0-9]/.test(pwForm.next),
+    match:     pwForm.next.length > 0 && pwForm.next === pwForm.confirm,
+  };
+  const pwValid = Object.values(pwRules).every(Boolean) && pwForm.current.length > 0;
+
+  async function handleNameSave(e: React.FormEvent) {
+    e.preventDefault();
+    if (!displayName.trim()) return;
+    setNamePending(true);
+    try {
+      const res = await fetch("/api/auth/update-profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ companyName: displayName.trim() }),
+      });
+      if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error ?? "Failed");
+      toast({ title: "Name updated" });
+      queryClient.invalidateQueries({ queryKey: getGetCurrentUserQueryKey() });
+    } catch (err: any) {
+      toast({ title: "Failed", description: err.message, variant: "destructive" });
+    } finally {
+      setNamePending(false);
+    }
+  }
+
+  async function handlePasswordSave(e: React.FormEvent) {
+    e.preventDefault();
+    if (!pwValid) return;
+    setPwPending(true);
+    try {
+      const res = await fetch("/api/auth/change-password", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ currentPassword: pwForm.current, newPassword: pwForm.next }),
+      });
+      if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error ?? "Failed");
+      toast({ title: "Password updated" });
+      setPwForm({ current: "", next: "", confirm: "" });
+    } catch (err: any) {
+      toast({ title: "Failed", description: err.message, variant: "destructive" });
+    } finally {
+      setPwPending(false);
+    }
+  }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8 max-w-lg">
       <div>
         <h2 className="text-lg font-semibold text-white mb-1">My Profile</h2>
-        <p className="text-sm text-muted-foreground">Your admin account details.</p>
+        <p className="text-sm text-muted-foreground">Update your display name and password.</p>
       </div>
 
-      <div className="border border-border rounded-lg bg-card p-6 space-y-4 max-w-lg">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="w-12 h-12 rounded-full bg-primary/20 border border-primary/30 flex items-center justify-center">
-            <UserCircle className="w-7 h-7 text-primary" />
+      {/* Account info */}
+      <div className="border border-border rounded-lg bg-card p-5 space-y-3 text-sm">
+        <div className="flex items-center gap-3 pb-3 border-b border-border">
+          <div className="w-10 h-10 rounded-full bg-primary/20 border border-primary/30 flex items-center justify-center flex-shrink-0">
+            <UserCircle className="w-6 h-6 text-primary" />
           </div>
           <div>
-            <p className="text-base font-semibold text-white">{user?.companyName ?? "Admin"}</p>
-            <p className="text-xs text-muted-foreground capitalize">{user?.computedRole ?? "admin"}</p>
+            <p className="text-white font-medium">{user?.companyName ?? "Admin"}</p>
+            <p className="text-xs text-muted-foreground">{user?.email}</p>
           </div>
         </div>
-
-        <div className="space-y-3 text-sm">
-          <div className="flex justify-between border-b border-border pb-2">
-            <span className="text-muted-foreground">Email</span>
-            <span className="text-white font-mono">{user?.email ?? "\u2014"}</span>
-          </div>
-          <div className="flex justify-between border-b border-border pb-2">
-            <span className="text-muted-foreground">Role</span>
-            <span className="text-emerald-400 capitalize">{user?.computedRole ?? "admin"}</span>
-          </div>
-        </div>
-
-        <div className="flex gap-3 pt-2">
-          <Button size="sm" variant="outline" onClick={() => navigate("/admin/change-password")}>
-            Change Password
-          </Button>
-          <Button size="sm" variant="ghost" className="text-red-400 hover:text-red-300" onClick={logout}>
-            Sign Out
-          </Button>
+        <div className="flex justify-between">
+          <span className="text-muted-foreground">Role</span>
+          <span className="text-emerald-400 capitalize">{user?.computedRole ?? "admin"}</span>
         </div>
       </div>
+
+      {/* Change display name */}
+      <div className="border border-border rounded-lg bg-card p-5">
+        <h3 className="text-sm font-semibold text-white mb-4">Display Name</h3>
+        <form onSubmit={handleNameSave} className="flex gap-3">
+          <Input
+            value={displayName}
+            onChange={e => setDisplayName(e.target.value)}
+            placeholder="Your display name"
+            className="bg-background border-border flex-1"
+          />
+          <Button type="submit" size="sm" disabled={namePending || !displayName.trim()}>
+            {namePending ? "Saving…" : "Save"}
+          </Button>
+        </form>
+      </div>
+
+      {/* Change password */}
+      <div className="border border-border rounded-lg bg-card p-5">
+        <h3 className="text-sm font-semibold text-white mb-4">Change Password</h3>
+        <form onSubmit={handlePasswordSave} className="space-y-3">
+          <div className="relative">
+            <Input
+              type={showCurrent ? "text" : "password"}
+              value={pwForm.current}
+              onChange={e => setPwForm(f => ({ ...f, current: e.target.value }))}
+              placeholder="Current password"
+              className="bg-background border-border pr-10"
+              required
+            />
+            <button type="button" className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-white"
+              onClick={() => setShowCurrent(s => !s)}>
+              {showCurrent ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+            </button>
+          </div>
+          <div className="relative">
+            <Input
+              type={showNext ? "text" : "password"}
+              value={pwForm.next}
+              onChange={e => setPwForm(f => ({ ...f, next: e.target.value }))}
+              placeholder="New password"
+              className="bg-background border-border pr-10"
+              required
+            />
+            <button type="button" className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-white"
+              onClick={() => setShowNext(s => !s)}>
+              {showNext ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+            </button>
+          </div>
+          {pwForm.next.length > 0 && (
+            <div className="space-y-1 text-xs">
+              {[
+                { met: pwRules.length,    label: "8+ characters" },
+                { met: pwRules.uppercase, label: "One uppercase letter" },
+                { met: pwRules.number,    label: "One number" },
+              ].map(r => (
+                <div key={r.label} className={`flex items-center gap-1.5 ${r.met ? "text-emerald-400" : "text-muted-foreground"}`}>
+                  <CheckCircle2 className="w-3 h-3" /> {r.label}
+                </div>
+              ))}
+            </div>
+          )}
+          <Input
+            type="password"
+            value={pwForm.confirm}
+            onChange={e => setPwForm(f => ({ ...f, confirm: e.target.value }))}
+            placeholder="Confirm new password"
+            className={`bg-background border-border ${pwForm.confirm && !pwRules.match ? "border-destructive/50" : ""}`}
+            required
+          />
+          {pwForm.confirm && !pwRules.match && (
+            <p className="text-xs text-destructive">Passwords do not match</p>
+          )}
+          <Button type="submit" className="w-full gap-2" disabled={pwPending || !pwValid}>
+            <Lock className="w-4 h-4" />
+            {pwPending ? "Updating…" : "Update Password"}
+          </Button>
+        </form>
+      </div>
+
+      <Button variant="ghost" size="sm" className="text-red-400 hover:text-red-300" onClick={logout}>
+        Sign Out
+      </Button>
     </div>
   );
 }
