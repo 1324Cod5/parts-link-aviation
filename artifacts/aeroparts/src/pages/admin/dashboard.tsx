@@ -52,7 +52,7 @@ import {
   ChevronDown, MoreVertical, History,
   Boxes, Plus, Pencil, Trash2, Ban, RefreshCw, ChevronLeft, ChevronRight as ChevronRightIcon,
   Brain, ShieldX, Zap, Activity, Radar, TrendingDown, CircleDot, FlameKindling,
-  BadgeCheck, UserX, FileCheck, Store, UserCircle, Eye, EyeOff, Lock, CheckCircle2,
+  BadgeCheck, UserX, FileCheck, Store, UserCircle, Eye, EyeOff,
 } from "lucide-react";
 
 // ─── helpers ────────────────────────────────────────────────────────────────
@@ -3588,6 +3588,7 @@ export default function AdminDashboard() {
           {section === "market"         && <MarketSection />}
           {section === "intelligence"   && <IntelligenceSection />}
           {section === "vendors"        && <VendorVerificationSection />}
+              {section === "profile"     && <ProfileSection />}
         </main>
       </div>
     </div>
