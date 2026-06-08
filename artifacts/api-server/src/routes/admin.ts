@@ -357,4 +357,35 @@ router.get("/admin/activity", async (_req, res): Promise<void> => {
   res.json(combined);
 });
 
+
+router.delete("/admin/users/:id", async (req, res): Promise<void> => {
+  const id = parseInt(req.params.id as string, 10);
+  if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+
+  // Prevent admin from deleting themselves
+  const sessionUserId = req.session?.userId ?? parseInt(req.session?.user?.id ?? "0", 10);
+  if (sessionUserId === id) {
+    res.status(400).json({ error: "You cannot delete your own account." });
+    return;
+  }
+
+  // Fetch user first
+  const [user] = await db.select().from(usersTable).where(eq(usersTable.id, id));
+  if (!user) { res.status(404).json({ error: "User not found" }); return; }
+
+  // Delete their listings first (FK constraint)
+  await db.delete(listingsTable).where(eq(listingsTable.sellerId, id));
+
+  // Delete MRO profile if any
+  await db.delete(mroProfilesTable).where(eq(mroProfilesTable.userId, id));
+
+  // Delete the user
+  await db.delete(usersTable).where(eq(usersTable.id, id));
+
+  const adminEmail = req.session?.user?.email ?? "admin";
+  logActivity("delete_user", `${user.companyName ?? user.email} (id:${id})`, adminEmail);
+
+  res.json({ ok: true, deleted: { id, email: user.email } });
+});
+
 export default router;
