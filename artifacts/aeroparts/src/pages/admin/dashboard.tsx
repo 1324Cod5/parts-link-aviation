@@ -285,6 +285,9 @@ function SellersSection() {
   const [search, setSearch] = useState("");
   const [planFilter, setPlanFilter] = useState("all");
   const [suspendDialog, setSuspendDialog] = useState<{ id: number; name: string } | null>(null);
+  const [deleteDialog, setDeleteDialog] = useState<{ id: number; name: string; email: string } | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState("");
+  const [deleteLoading, setDeleteLoading] = useState(false);
   const [suspendReason, setSuspendReason] = useState("");
   const [banDialog, setBanDialog] = useState<{ id: number; name: string } | null>(null);
   const [banConfirm, setBanConfirm] = useState("");
@@ -308,6 +311,24 @@ function SellersSection() {
       return res.json() as Promise<{ success: boolean; strikeCount: number }>;
     },
   });
+
+  async function handleDelete(id: number) {
+    if (!deleteDialog) return;
+    setDeleteLoading(true);
+    try {
+      const res = await fetch(`/api/admin/users/${id}`, { method: "DELETE", credentials: "include" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Failed");
+      toast({ title: "User deleted", description: `${deleteDialog.email} has been permanently removed.` });
+      setDeleteDialog(null);
+      setDeleteConfirm("");
+      void queryClient.invalidateQueries({ queryKey: getGetAdminSellersQueryKey() });
+    } catch (err: any) {
+      toast({ title: "Failed", description: err.message, variant: "destructive" });
+    } finally {
+      setDeleteLoading(false);
+    }
+  }
 
   function handleStatus(id: number, status: "active" | "suspended", name: string) {
     statusMutation.mutate({ id, data: { status } }, {
@@ -336,7 +357,39 @@ function SellersSection() {
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: getGetAdminSellersQueryKey() });
         queryClient.invalidateQueries({ queryKey: getGetAdminStatsQueryKey() });
-        toast({ title: "Seller suspended", description: `${suspendDialog.name}${suspendReason ? `: ${suspendReason}` : ""}` });
+        toast({ title: "Seller suspended", description: `${deleteDialog && (
+        <Dialog open onOpenChange={() => { setDeleteDialog(null); setDeleteConfirm(""); }}>
+          <DialogContent className="bg-card border-border max-w-md">
+            <DialogHeader>
+              <DialogTitle className="text-red-400 flex items-center gap-2">
+                <Trash2 className="w-5 h-5" /> Delete User Account
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-2">
+              <p className="text-sm text-muted-foreground">
+                Permanently deletes <span className="text-white font-medium">{deleteDialog.name}</span> ({deleteDialog.email}) and all their listings. This cannot be undone.
+              </p>
+              <div>
+                <p className="text-xs text-muted-foreground mb-1.5">Type <span className="font-mono text-red-400">DELETE</span> to confirm:</p>
+                <input
+                  className="w-full bg-background border border-border rounded px-3 py-2 text-sm text-white font-mono"
+                  value={deleteConfirm}
+                  onChange={e => setDeleteConfirm(e.target.value)}
+                  placeholder="DELETE"
+                  autoFocus
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => { setDeleteDialog(null); setDeleteConfirm(""); }}>Cancel</Button>
+              <Button variant="destructive" disabled={deleteConfirm !== "DELETE" || deleteLoading} onClick={() => handleDelete(deleteDialog.id)}>
+                {deleteLoading ? "Deleting…" : "Delete Account"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+      {suspendDialog.name}${suspendReason ? `: ${suspendReason}` : ""}` });
         setSuspendDialog(null);
         setSuspendReason("");
       },
@@ -1484,6 +1537,10 @@ function RfqsSection() {
                                 <AlertTriangle className="w-3 h-3 mr-1.5 inline-block" />
                                 Override Urgency
                               </DropdownMenuItem>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem className="text-red-600 focus:text-red-500 font-semibold" onClick={() => { setDeleteDialog({ id: seller.id, name: seller.companyName, email: seller.email }); setDeleteConfirm(""); }}>
+                                    <Trash2 className="w-3.5 h-3.5 mr-1.5" /> Delete Account
+                                  </DropdownMenuItem>
                               {/* Lifecycle actions */}
                               {actions.length > 0 && <DropdownMenuSeparator className="bg-border/50" />}
                               {actions.map((act, idx) => (
