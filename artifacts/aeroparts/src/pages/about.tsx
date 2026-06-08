@@ -6,7 +6,7 @@ export default function AboutPage() {
   const pillars = [
     { icon: Shield, label: "Verified Sellers", desc: "Every seller is reviewed and credentialed before listing parts" },
     { icon: CheckCircle, label: "Traceable Parts", desc: "Full documentation chain required on every listing" },
-    { icon: Globe, label: "Global Reach", desc: "Connect with buyers and sellers across 50+ countries" },
+    { icon: Globe, label: "Global Reach", desc: "Connect with verified buyers and sellers worldwide" },
     { icon: Users, label: "Community First", desc: "Built with feedback from MRO professionals and operators" },
   ];
 
