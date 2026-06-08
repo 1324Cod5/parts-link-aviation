@@ -22,10 +22,9 @@ export function Footer() {
         { label: "Seller Login", href: "/seller/login" },
         { label: "Seller Dashboard", href: "/seller/dashboard" },
         { label: "Pricing Plans", href: "/pricing" },
-        { label: "Seller Guidelines", href: "/seller-guidelines" },
-      ],
+        ],
     },
-    {
+    {h
       heading: "Trust & Safety",
       links: [
         { label: "Certification Process", href: "/certification" },
