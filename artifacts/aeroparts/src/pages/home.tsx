@@ -917,8 +917,6 @@ function HomeFooter() {
         { label: "Documentation Guide", href: "/developer" },
         { label: "Submit AOG Request", href: "/rfqs/new?urgency=aog" },
         { label: "Compliance Overview", href: "/compliance" },
-        { label: "API Integration", href: "/developer" },
-        { label: "Seller Help Center", href: "/seller-guidelines" },
       ],
     },
     {
