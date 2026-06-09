@@ -5,10 +5,8 @@ import { logger } from "./logger";
 
 // ── Standard admin accounts ──────────────────────────────────────────────────
 const ADMINS = [
-  { email: "admin@aeroparts.com", password: "password",  name: "Administrator" },
-  { email: "admin@test.com",      password: "Admin123!", name: "Test Administrator" },
-  { email: "kadainr@gmail.com",   password: "1324Tracy!", name: "Kadain" },
-];
+  { email: "admin@partslinkaviation.com", password: "PartslinkAdmin2024!", name: "Partslink Admin" },
+  ];
 
 // ── Owner seller account (separate from admin, persisted across restarts) ────
 // badboys6112@hotmail.com — seller-only, plan: pro, for the main marketplace.
