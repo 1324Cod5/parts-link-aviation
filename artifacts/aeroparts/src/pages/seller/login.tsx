@@ -12,6 +12,7 @@ export default function SellerLogin() {
   const params = new URLSearchParams(search);
   const errorMsg = params.get("error") ?? "";
   const prefillEmail = params.get("email") ?? "";
+  const verifiedParam = params.get("verified") ?? "";
 
   return (
     <MainLayout>
@@ -24,7 +25,27 @@ export default function SellerLogin() {
             </p>
           </div>
 
-          {errorMsg && (
+          {verifiedParam === "true" && (
+            <div className="mb-4 rounded-md border border-green-500/50 bg-green-500/10 px-4 py-3 text-sm text-green-400">
+              Email verified! You can now log in.
+            </div>
+          )}
+          {errorMsg === "email_not_verified" && (
+            <div className="mb-4 rounded-md border border-amber-500/50 bg-amber-500/10 px-4 py-3 text-sm text-amber-400">
+              Please verify your email before logging in. Check your inbox.
+            </div>
+          )}
+          {errorMsg === "token_expired" && (
+            <div className="mb-4 rounded-md border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+              Verification link expired. Please register again.
+            </div>
+          )}
+          {errorMsg === "invalid_token" && (
+            <div className="mb-4 rounded-md border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+              Invalid verification link.
+            </div>
+          )}
+          {errorMsg && !["email_not_verified", "token_expired", "invalid_token"].includes(errorMsg) && (
             <div className="mb-4 rounded-md border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive">
               {errorMsg}
             </div>
