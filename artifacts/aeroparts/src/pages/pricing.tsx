@@ -380,8 +380,8 @@ export default function Pricing() {
                       }}
                     >{plan.cta}</Link>
                   ) : (
-                    <a
-                      href="mailto:sales@partslinkaviation.com"
+                    <Link
+                      href="/seller/subscription"
                       style={{
                         display: "block", textAlign: "center", padding: "13px 0", borderRadius: 8,
                         background: plan.featured ? BLUE : "rgba(255,255,255,0.06)",
@@ -391,9 +391,7 @@ export default function Pricing() {
                         fontSize: 15, letterSpacing: "0.06em", textTransform: "uppercase",
                         transition: "all 0.2s",
                       }}
-                      onMouseEnter={e => { e.currentTarget.style.opacity = "0.88"; }}
-                      onMouseLeave={e => { e.currentTarget.style.opacity = "1"; }}
-                    >{plan.cta}</a>
+                    >Upgrade to This Plan</Link>
                   )}
                 </div>
                 </div>
@@ -484,10 +482,10 @@ export default function Pricing() {
                     style={{ display: "block", textAlign: "center", padding: "13px 0", borderRadius: 8, background: GOLD, border: "none", color: NAVY, textDecoration: "none", fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 800, fontSize: 15, letterSpacing: "0.06em", textTransform: "uppercase" }}
                   >{MRO_TIER.cta}</Link>
                 ) : (
-                  <a
-                    href="mailto:sales@partslinkaviation.com"
+                  <Link
+                    href="/seller/subscription"
                     style={{ display: "block", textAlign: "center", padding: "13px 0", borderRadius: 8, background: GOLD, border: "none", color: NAVY, textDecoration: "none", fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 800, fontSize: 15, letterSpacing: "0.06em", textTransform: "uppercase" }}
-                  >{MRO_TIER.cta}</a>
+                  >Get Started</Link>
                 )}
               </div>
 
