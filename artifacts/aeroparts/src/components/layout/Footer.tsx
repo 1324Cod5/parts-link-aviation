@@ -24,7 +24,7 @@ export function Footer() {
         { label: "Pricing Plans", href: "/pricing" },
         ],
     },
-    {h
+    {
       heading: "Trust & Safety",
       links: [
         { label: "Certification Process", href: "/certification" },
