@@ -1606,7 +1606,7 @@ function RfqsSection() {
 // ─── section: disputes ──────────────────────────────────────────────────────
 
 function DisputesSection() {
-  const MOCK_DISPUTES = [];
+  const MOCK_DISPUTES: any[] = [];
 
   const [filter, setFilter] = useState("all");
   const [toasts, setToasts] = useState<Record<number, string>>({});
