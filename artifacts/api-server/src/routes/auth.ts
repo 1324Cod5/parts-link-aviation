@@ -25,6 +25,24 @@ import {
 
 const router: IRouter = Router();
 
+// ─── Disposable email domain blocklist ────────────────────────────────────────────
+const DISPOSABLE_EMAIL_DOMAINS = new Set([
+    "mailinator.com","guerrillamail.com","guerrillamail.net","guerrillamail.org",
+      "tempmail.com","temp-mail.org","temp-mail.io","throwaway.email","dispostable.com",
+        "maildrop.cc","yopmail.com","yopmail.fr","trashmail.com","trashmail.me",
+          "trashmail.net","trashmail.at","trashmail.io","trashmail.org",
+            "fakeinbox.com","sharklasers.com","grr.la","spam4.me","spamgourmet.com",
+              "mailnull.com","getonemail.com","filzmail.com","discardmail.com",
+                "spamfree.eu","binkmail.com","owlpic.com","spambox.us","spambog.com",
+                  "smellfear.com","selfdestructingmail.com","spamavert.com",
+                  ]);
+
+                  function isDisposableEmail(email: string): boolean {
+                    const domain = email.split("@")[1]?.toLowerCase();
+                      if (!domain) return true;
+                        return DISPOSABLE_EMAIL_DOMAINS.has(domain);
+                        }
+
 const MAX_FAILED_ATTEMPTS = 5;
 const LOCKOUT_DURATION_MS = 15 * 60 * 1000; // 15 minutes
 
@@ -115,6 +133,12 @@ router.post("/auth/register", async (req, res): Promise<void> => {
 
   const { password, contactName, phone, country } = parsed.data;
   const email = parsed.data.email.trim().toLowerCase();
+
+    // Block disposable/fake email domains
+      if (isDisposableEmail(email)) {
+          res.status(400).json({ error: "Please use a real business or personal email address. Disposable email addresses are not accepted." });
+              return;
+                }
 
   // Get requested role from body — default to "seller" if not provided.
   const requestedRole: "buyer" | "seller" = req.body.role === "buyer" ? "buyer" : "seller";

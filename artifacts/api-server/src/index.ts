@@ -1,7 +1,6 @@
 import app from "./app";
 import { logger } from "./lib/logger";
 import { seedAdmin } from "./lib/seed-admin";
-import { seedTestAccounts } from "./lib/seed-test-accounts";
 import { db, usersTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { recomputeAndSave } from "./lib/trustScore";
@@ -16,6 +15,7 @@ async function runMigrations() {
           "ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified BOOLEAN NOT NULL DEFAULT FALSE",
               "ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verification_token TEXT",
                   "ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verification_expires_at TIMESTAMP",
+                      "UPDATE users SET email_verified = TRUE WHERE email_verified = FALSE AND created_at < NOW() - INTERVAL '1 minute'",
                     ];
                       for (const sql of sqls) {
                           try { await pool.query(sql); } catch (e: any) { logger.warn({ msg: e.message }, "migration warning"); }
@@ -44,9 +44,7 @@ app.listen(port, async (err) => {
 
   logger.info({ port }, "Server listening");
   await runMigrations();
-    await seedAdmin();
-  await seedTestAccounts();
-
+await seedAdmin();
   // Re-arm AOG escalation timers for any unresolved AOG RFQs (fire-and-forget)
   void resumeAogEscalations();
 
