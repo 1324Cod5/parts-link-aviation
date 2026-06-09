@@ -437,3 +437,31 @@ export function dailyDigestTemplate(seller: TemplateSeller, data: DigestData): s
   `;
   return base(content, SILVER);
 }
+
+
+// ─── Email Verification ────────────────────────────────────────────────────────
+
+export function verificationEmailTemplate(contactName: string, verifyUrl: string): string {
+  const NAVY = "#0a1628";
+  const BLUE = "#1976d2";
+  const GOLD = "#f5a623";
+  return `<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"><title>Verify your email</title></head>
+<body style="margin:0;padding:0;background:${NAVY};font-family:'Helvetica Neue',Arial,sans-serif;">
+  <div style="max-width:600px;margin:0 auto;padding:40px 24px;">
+    <div style="text-align:center;margin-bottom:32px;">
+      <span style="font-size:20px;font-weight:700;color:#fff;">Parts Link <span style="color:${GOLD};">Aviation</span></span>
+    </div>
+    <div style="background:#0d1f38;border-radius:12px;padding:40px 32px;text-align:center;">
+      <div style="font-size:48px;margin-bottom:16px;">✉️</div>
+      <h1 style="color:#fff;font-size:24px;font-weight:700;margin:0 0 12px;">Verify your email address</h1>
+      <p style="color:#94a3b8;font-size:15px;margin:0 0 32px;">Hi ${contactName}, click the button below to verify your Parts Link Aviation account. This link expires in 24 hours.</p>
+      <a href="${verifyUrl}" style="display:inline-block;background:${BLUE};color:#fff;text-decoration:none;padding:14px 32px;border-radius:8px;font-weight:600;font-size:15px;">Verify Email Address</a>
+      <p style="color:#475569;font-size:12px;margin:24px 0 0;">Or copy this link: <a href="${verifyUrl}" style="color:${BLUE};">${verifyUrl}</a></p>
+    </div>
+    <p style="color:#475569;font-size:12px;text-align:center;margin-top:24px;">If you didn't create this account, you can ignore this email.</p>
+  </div>
+</body>
+</html>`;
+}
