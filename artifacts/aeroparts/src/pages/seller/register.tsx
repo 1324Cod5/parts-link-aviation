@@ -18,6 +18,7 @@ export default function Register() {
   });
 
   const register = useRegisterUser();
+  const [registered, setRegistered] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,11 +36,12 @@ export default function Register() {
       { data },
       {
         onSuccess: () => {
-          const msg = accountType === "buyer"
-            ? "Welcome to Parts Link Aviation. Redirecting to the marketplace..."
-            : "Welcome to Parts Link Aviation. Redirecting to your dashboard...";
-          toast({ title: "Account created", description: msg });
-          window.location.href = accountType === "buyer" ? "/marketplace" : "/seller/dashboard";
+          if (accountType === "buyer") {
+            toast({ title: "Account created", description: "Welcome to Parts Link Aviation. Redirecting to the marketplace..." });
+            window.location.href = "/marketplace";
+          } else {
+            setRegistered(true);
+          }
         },
         onError: (error: unknown) => {
           const apiError = error as { data?: { error?: string }; message?: string };
@@ -56,6 +58,22 @@ export default function Register() {
       },
     );
   };
+
+  if (registered) {
+    return (
+      <div style={{ minHeight: "100vh", background: "#0a1628", display: "flex", alignItems: "center", justifyContent: "center", padding: "24px" }}>
+        <div style={{ background: "#0d1f38", borderRadius: 12, padding: "40px 32px", maxWidth: 480, width: "100%", textAlign: "center" }}>
+          <div style={{ fontSize: 48, marginBottom: 16 }}>✉️</div>
+          <h2 style={{ color: "#fff", fontSize: 22, fontWeight: 700, margin: "0 0 12px" }}>Check your email</h2>
+          <p style={{ color: "#94a3b8", fontSize: 15, margin: "0 0 24px" }}>
+            We sent a verification link to <strong style={{ color: "#fff" }}>{form.email}</strong>.<br/>
+            Click the link in the email to activate your account.
+          </p>
+          <p style={{ color: "#475569", fontSize: 13 }}>Didn't receive it? Check your spam folder or <a href="/seller/register" style={{ color: "#1976d2" }}>try again</a>.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <MainLayout>
