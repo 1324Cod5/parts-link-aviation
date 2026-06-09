@@ -8,6 +8,22 @@ import { recomputeAndSave } from "./lib/trustScore";
 import { resumeAogEscalations } from "./lib/aogEscalation";
 import { startRenewalReminderJob } from "./lib/renewalReminder";
 
+// ─── Startup DB migration ───────────────────────────────────────────────────
+async function runMigrations() {
+  const { Pool } = await import("pg");
+    const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+      const sqls = [
+          "ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified BOOLEAN NOT NULL DEFAULT FALSE",
+              "ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verification_token TEXT",
+                  "ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verification_expires_at TIMESTAMP",
+                    ];
+                      for (const sql of sqls) {
+                          try { await pool.query(sql); } catch (e: any) { logger.warn({ msg: e.message }, "migration warning"); }
+                            }
+                              await pool.end();
+                                logger.info("DB migrations applied");
+                                }
+
 const rawPort = process.env["PORT"];
 
 if (!rawPort) {
@@ -27,7 +43,8 @@ app.listen(port, async (err) => {
   }
 
   logger.info({ port }, "Server listening");
-  await seedAdmin();
+  await runMigrations();
+    await seedAdmin();
   await seedTestAccounts();
 
   // Re-arm AOG escalation timers for any unresolved AOG RFQs (fire-and-forget)
