@@ -1606,13 +1606,7 @@ function RfqsSection() {
 // ─── section: disputes ──────────────────────────────────────────────────────
 
 function DisputesSection() {
-  const MOCK_DISPUTES = [
-    { id: 1, type: "Listing Fraud",       reporter: "Gulf Air Procurement",   target: "Unknown Vendor",          status: "open",     priority: "high",   date: "2026-05-15", description: "Part number does not match documentation provided." },
-    { id: 2, type: "Non-Delivery",        reporter: "Iberia MRO",             target: "FastParts International", status: "reviewing",priority: "high",   date: "2026-05-13", description: "Payment made but parts not received after 30 days." },
-    { id: 3, type: "Condition Mismatch",  reporter: "AirAsia Engineering",    target: "Pacific Components Ltd",  status: "resolved", priority: "medium", date: "2026-05-10", description: "Part listed as Serviceable delivered As Removed." },
-    { id: 4, type: "Cert Discrepancy",    reporter: "Turkish Technics",       target: "EuroTech Supply",         status: "open",     priority: "medium", date: "2026-05-09", description: "FAA 8130 certificate serial number does not match part." },
-    { id: 5, type: "Pricing Dispute",     reporter: "Ryanair Technical",      target: "Apex Components",         status: "reviewing",priority: "low",    date: "2026-05-07", description: "Invoice price exceeds agreed quote by 35%." },
-  ];
+  const MOCK_DISPUTES = [];
 
   const [filter, setFilter] = useState("all");
   const [toasts, setToasts] = useState<Record<number, string>>({});
