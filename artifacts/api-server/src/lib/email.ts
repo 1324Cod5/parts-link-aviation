@@ -17,6 +17,7 @@ import {
   quoteAwardedTemplate,
   certUpdateTemplate,
   dailyDigestTemplate,
+  verificationEmailTemplate,
   type DigestData,
   type MessageConversationInfo,
 } from "./emailTemplates";
@@ -351,4 +352,13 @@ export async function sendDailyDigest(data: DigestData): Promise<number> {
     sent++;
   }
   return sent;
+}
+
+// ─── Email Verification ────────────────────────────────────────────────────────
+
+export async function sendVerificationEmail(email: string, contactName: string, token: string): Promise<void> {
+  const appUrl = process.env.APP_URL ?? "https://www.partslinkaviation.com";
+  const verifyUrl = `${appUrl}/api/auth/verify-email?token=${token}`;
+  const html = verificationEmailTemplate(contactName, verifyUrl);
+  await send(email, "Verify your Parts Link Aviation account", html);
 }
