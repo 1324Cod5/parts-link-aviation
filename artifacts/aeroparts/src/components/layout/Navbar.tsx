@@ -8,7 +8,7 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from "@/components/ui/dropdown-menu";h
 import {
   useGetConversationsUnreadCount,
   getGetConversationsUnreadCountQueryKey,
@@ -165,7 +165,7 @@ export function Navbar() {
             <>
               <Link href="/seller/login">
                 <button style={{
-                  background: "none", border: "none", color: "#7ea8c8", cursor: "pointer",
+                  background: "none", border: "1px solid #1a3050", color: "#7ea8c8", cursor: "pointer", borderRadius: 6,
                   fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 600, fontSize: 14,
                   letterSpacing: "0.06em", textTransform: "uppercase", padding: "7px 12px",
                   transition: "color 0.2s",
