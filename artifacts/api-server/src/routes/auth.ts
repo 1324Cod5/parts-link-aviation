@@ -1,11 +1,11 @@
 import { Router, type IRouter } from "express";
 import bcrypt from "bcrypt";
-import crypto from "node:crypto";
+
 import { z } from "zod/v4";
 import { db, usersTable, mroProfilesTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
-import { sendVerificationEmail } from "../lib/email";
-import { logger } from "../lib/logger";
+
+
 import {
   RegisterUserBody,
   LoginUserBody,
@@ -174,23 +174,13 @@ router.post("/auth/register", async (req, res): Promise<void> => {
     phone: phone ?? null,
     country: country ?? null,
   }).returning();
-
   const computedRole = getComputedRole(requestedRole, "free", false)!;
-
-  // Generate email verification token
-  const verifyToken = crypto.randomBytes(32).toString("hex");
-  const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24h
-  await db.update(usersTable)
-    .set({ emailVerificationToken: verifyToken, emailVerificationExpiresAt: expiresAt })
-    .where(eq(usersTable.id, user.id));
-  try {
-    await sendVerificationEmail(user.email, user.contactName ?? user.email, verifyToken);
-  } catch (emailErr) {
-    logger.warn({ emailErr }, "Failed to send verification email");
-  }
-
-  res.status(201).json({ message: "Registration successful. Please check your email to verify your account.", requiresVerification: true });
-});
+  req.session!.userId = user.id;
+    await new Promise<void>((resolve, reject) =>
+        req.session!.save(err => (err ? reject(err) : resolve()))
+          );
+            res.status(201).json({ user: serializeUser(user, computedRole) });
+            });
 
 router.post("/auth/login", async (req, res): Promise<void> => {
   const parsed = LoginUserBody.safeParse(req.body);
@@ -271,12 +261,6 @@ router.post("/auth/login", async (req, res): Promise<void> => {
     res.status(403).json({
       error: "This account does not have a valid system role. Contact support.",
     });
-    return;
-  }
-
-  // Check email verification
-  if (!user.emailVerified) {
-    res.status(403).json({ error: "EMAIL_NOT_VERIFIED", message: "Please verify your email address before logging in." });
     return;
   }
 
@@ -362,12 +346,6 @@ router.post("/auth/login-form", async (req, res): Promise<void> => {
   const derived = deriveRole(user, hasMroProfile);
   if (!derived) {
     return errorRedirect("This account does not have a valid system role. Contact support.");
-  }
-
-  // Check email verification (skip for admin accounts)
-  const _roles = user.roles ?? [user.role];
-  if (!user.emailVerified && !_roles.includes("admin") && user.role !== "admin") {
-    return res.redirect(`/seller/login?error=email_not_verified&email=${encodeURIComponent(user.email)}`);
   }
 
   // Reset lockout counters on success
