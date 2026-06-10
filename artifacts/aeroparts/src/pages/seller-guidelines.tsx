@@ -110,7 +110,7 @@ export default function SellerGuidelinesPage() {
 
         <div style={{ marginTop: 48, padding: "20px 24px", background: "rgba(25,118,210,0.06)", border: "1px solid rgba(25,118,210,0.2)", borderRadius: 12 }}>
           <p style={{ fontFamily: "'Barlow', sans-serif", fontSize: 15, color: MUTED, margin: 0 }}>
-            Questions about listing eligibility? Contact <a href="mailto:sellers@partslinkaviation.com" style={{ color: BLUE, textDecoration: "none" }}>sellers@partslinkaviation.com</a>
+            Questions about listing eligibility? Contact <a href="mailto:admin@partslinkaviation.com" style={{ color: BLUE, textDecoration: "none" }}>admin@partslinkaviation.com</a>
           </p>
         </div>
       </div>

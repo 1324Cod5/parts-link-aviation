@@ -47,7 +47,7 @@ export default function CookiesPage() {
 
         <H2>Managing Cookies</H2>
         <P>You can control cookies through your browser settings. Disabling essential cookies will prevent you from logging in. Most browsers allow you to block or delete cookies via Settings → Privacy → Cookies.</P>
-        <P>To opt out of analytics cookies, email <a href="mailto:privacy@partslinkaviation.com" style={{ color: "#1976d2", textDecoration: "none" }}>privacy@partslinkaviation.com</a>.</P>
+        <P>To opt out of analytics cookies, email <a href="mailto:admin@partslinkaviation.com" style={{ color: "#1976d2", textDecoration: "none" }}>admin@partslinkaviation.com</a>.</P>
 
         <H2>Third-Party Cookies</H2>
         <P>We use Resend (email delivery) for transactional notifications. This service may set its own cookies subject to its privacy policy. We do not use Google Analytics or Meta Pixel on authenticated pages.</P>
@@ -56,7 +56,7 @@ export default function CookiesPage() {
         <P>We may update this policy when we add new features. Material changes will be announced on the platform 14 days in advance.</P>
 
         <div style={{ marginTop: 48, padding: "20px 24px", borderTop: `1px solid ${BORDER}`, fontFamily: "'Barlow', sans-serif", fontSize: 13, color: "#4a6480" }}>
-          Questions? Contact <a href="mailto:privacy@partslinkaviation.com" style={{ color: "#1976d2", textDecoration: "none" }}>privacy@partslinkaviation.com</a>
+          Questions? Contact <a href="mailto:admin@partslinkaviation.com" style={{ color: "#1976d2", textDecoration: "none" }}>admin@partslinkaviation.com</a>
         </div>
       </div>
     </MainLayout>

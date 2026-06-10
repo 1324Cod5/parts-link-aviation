@@ -89,7 +89,7 @@ export default function CertificationPage() {
           ))}
         </div>
 
-        <P>Questions about the certification process? Contact <a href="mailto:certifications@partslinkaviation.com" style={{ color: BLUE, textDecoration: "none" }}>certifications@partslinkaviation.com</a></P>
+        <P>Questions about the certification process? Contact <a href="mailto:admin@partslinkaviation.com" style={{ color: BLUE, textDecoration: "none" }}>admin@partslinkaviation.com</a></P>
       </div>
     </MainLayout>
   );

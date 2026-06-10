@@ -55,7 +55,7 @@ export default function ContactPage() {
               </div>
               <div>
                 <p style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, fontSize: 13, color: "#fff", letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 4 }}>Support Email</p>
-                <a href="mailto:support@partslinkaviation.com" style={{ fontFamily: "'Barlow', sans-serif", fontSize: 14, color: MUTED, textDecoration: "none" }}>support@partslinkaviation.com</a>
+                <a href="mailto:admin@partslinkaviation.com" style={{ fontFamily: "'Barlow', sans-serif", fontSize: 14, color: MUTED, textDecoration: "none" }}>admin@partslinkaviation.com</a>
               </div>
             </div>
 

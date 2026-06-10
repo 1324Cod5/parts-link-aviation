@@ -946,11 +946,11 @@ function HomeFooter() {
             <p style={{ fontFamily: "'Barlow', sans-serif", fontSize: 11, color: "#2a4060", lineHeight: 1.6, maxWidth: 280, fontStyle: "italic", marginBottom: 16 }}>
               All sellers are required to provide documentation for listed parts. Parts Link Aviation does not independently verify certifications.
             </p>
-            <a href="mailto:contact@partslinkaviation.com" style={{ fontFamily: "'Barlow', sans-serif", fontSize: 13, color: "#4a6480", textDecoration: "none" }}
+            <a href="mailto:admin@partslinkaviation.com" style={{ fontFamily: "'Barlow', sans-serif", fontSize: 13, color: "#4a6480", textDecoration: "none" }}
               onMouseEnter={e => (e.currentTarget.style.color = "#a0b4cc")}
               onMouseLeave={e => (e.currentTarget.style.color = "#4a6480")}
             >
-              contact@partslinkaviation.com
+              admin@partslinkaviation.com
             </a>
           </div>
 

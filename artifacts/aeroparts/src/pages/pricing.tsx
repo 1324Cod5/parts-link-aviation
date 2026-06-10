@@ -520,10 +520,10 @@ export default function Pricing() {
             <div style={{ display: "flex", flexDirection: "column", gap: 28 }}>
               {[
                 { q: "What's the difference between monthly and yearly pricing?", a: "Monthly pricing charges per month. Yearly pricing covers a full year and saves you roughly 20% — equivalent to paying for 10 months and getting 12." },
-                { q: "How do I get started?", a: "Register for a free account and contact our sales team at sales@partslinkaviation.com to activate your plan. We'll get you set up within one business day." },
+                { q: "How do I get started?", a: "Register for a free account and contact our sales team at admin@partslinkaviation.com to activate your plan. We'll get you set up within one business day." },
                 { q: "What does Mission Control include?", a: "Mission Control adds ERP & MRO system integrations and unlimited multi-user seats on top of everything in Fleet Manager. Contact our team to discuss your specific needs." },
                 { q: "Can I cancel at any time?", a: "Yes. There are no lock-in contracts. Contact us to adjust or cancel your plan at any time. No penalties or hidden fees." },
-                { q: "Do you offer custom pricing for large fleets?", a: "Yes — contact sales@partslinkaviation.com for volume-based custom pricing. We work with airlines, defence contractors, and large MRO operations." },
+                { q: "Do you offer custom pricing for large fleets?", a: "Yes — contact admin@partslinkaviation.com for volume-based custom pricing. We work with airlines, defence contractors, and large MRO operations." },
               ].map(({ q, a }) => (
                 <div key={q} style={{ borderBottom: `1px solid ${BORDER}`, paddingBottom: 24 }}>
                   <h3 style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, fontSize: 18, color: "#fff", marginBottom: 8 }}>{q}</h3>

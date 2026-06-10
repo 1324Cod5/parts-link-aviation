@@ -186,7 +186,7 @@ export default function SubscriptionManagement() {
                 </div>
               ))}
             </div>
-            <a href="mailto:sales@partslinkaviation.com">
+            <a href="mailto:admin@partslinkaviation.com">
               <Button className="w-full gap-2">
                 <Zap className="h-4 w-4" /> Contact Sales to Upgrade
               </Button>

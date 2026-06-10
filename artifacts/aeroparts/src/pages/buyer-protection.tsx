@@ -102,7 +102,7 @@ export default function BuyerProtectionPage() {
         <div style={{ background: CARD, border: `1px solid ${BORDER}`, borderRadius: 12, padding: "20px 24px", marginTop: 32 }}>
           <p style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 800, fontSize: 17, color: "#fff", marginBottom: 8 }}>Report a Listing or Seller</p>
           <p style={{ fontFamily: "'Barlow', sans-serif", fontSize: 15, color: MUTED, margin: 0 }}>
-            To report a fraudulent listing or seller, email <a href="mailto:support@partslinkaviation.com" style={{ color: BLUE, textDecoration: "none" }}>support@partslinkaviation.com</a> with the listing ID and details of your concern. Our team reviews all reports within one business day.
+            To report a fraudulent listing or seller, email <a href="mailto:admin@partslinkaviation.com" style={{ color: BLUE, textDecoration: "none" }}>admin@partslinkaviation.com</a> with the listing ID and details of your concern. Our team reviews all reports within one business day.
           </p>
         </div>
       </div>

@@ -43,7 +43,7 @@ export default function PrivacyPage() {
         </ul>
 
         <H2>4. Data Retention</H2>
-        <P>We retain your data for as long as your account is active. Listing and transaction records are retained for 7 years for compliance and audit purposes. You may request deletion of personal data by contacting support@partslinkaviation.com.</P>
+        <P>We retain your data for as long as your account is active. Listing and transaction records are retained for 7 years for compliance and audit purposes. You may request deletion of personal data by contacting admin@partslinkaviation.com.</P>
 
         <H2>5. Security</H2>
         <P>We use industry-standard encryption (TLS 1.3), secure password hashing (bcrypt), and regular security audits to protect your data. No system is 100% secure — we notify affected users within 72 hours of a confirmed breach.</P>
@@ -61,7 +61,7 @@ export default function PrivacyPage() {
         <P>We use essential, analytics, and preference cookies. See our <a href="/cookies" style={{ color: "#1976d2", textDecoration: "none" }}>Cookie Policy</a> for details and opt-out instructions.</P>
 
         <H2>8. Contact</H2>
-        <P>For privacy questions or data requests, contact our Data Protection Officer at: <a href="mailto:privacy@partslinkaviation.com" style={{ color: "#1976d2", textDecoration: "none" }}>privacy@partslinkaviation.com</a></P>
+        <P>For privacy questions or data requests, contact our Data Protection Officer at: <a href="mailto:admin@partslinkaviation.com" style={{ color: "#1976d2", textDecoration: "none" }}>admin@partslinkaviation.com</a></P>
 
         <div style={{ marginTop: 48, padding: "20px 24px", borderTop: `1px solid ${BORDER}`, fontFamily: "'Barlow', sans-serif", fontSize: 13, color: "#4a6480" }}>
           Parts Link Aviation is a registered platform compliant with GDPR, CCPA, and applicable aviation data regulations.

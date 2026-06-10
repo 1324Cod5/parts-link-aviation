@@ -59,7 +59,7 @@ export default function TermsPage() {
         <P>These terms are governed by the laws of the State of Delaware, USA. Disputes shall be resolved by binding arbitration under JAMS rules.</P>
 
         <H2>10. Contact</H2>
-        <P>Legal inquiries: <a href="mailto:legal@partslinkaviation.com" style={{ color: "#1976d2", textDecoration: "none" }}>legal@partslinkaviation.com</a></P>
+        <P>Legal inquiries: <a href="mailto:admin@partslinkaviation.com" style={{ color: "#1976d2", textDecoration: "none" }}>admin@partslinkaviation.com</a></P>
 
         <div style={{ marginTop: 48, padding: "20px 24px", borderTop: `1px solid ${BORDER}`, fontFamily: "'Barlow', sans-serif", fontSize: 13, color: "#4a6480" }}>
           By using Parts Link Aviation you acknowledge you have read, understood, and agree to these terms.

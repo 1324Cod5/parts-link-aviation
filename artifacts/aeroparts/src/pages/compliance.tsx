@@ -90,7 +90,7 @@ export default function CompliancePage() {
         <div style={{ background: "rgba(25,118,210,0.08)", border: "1px solid rgba(25,118,210,0.2)", borderRadius: 12, padding: "20px 24px", marginTop: 40 }}>
           <p style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 800, fontSize: 17, color: "#fff", marginBottom: 8 }}>Compliance questions?</p>
           <p style={{ fontFamily: "'Barlow', sans-serif", fontSize: 15, color: MUTED, margin: 0 }}>
-            Contact our compliance team at <a href="mailto:compliance@partslinkaviation.com" style={{ color: BLUE, textDecoration: "none" }}>compliance@partslinkaviation.com</a>
+            Contact our compliance team at <a href="mailto:admin@partslinkaviation.com" style={{ color: BLUE, textDecoration: "none" }}>admin@partslinkaviation.com</a>
           </p>
         </div>
       </div>
