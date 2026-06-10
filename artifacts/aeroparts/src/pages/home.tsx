@@ -167,14 +167,12 @@ function Navbar() {
                 fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, fontSize: 13,
                 letterSpacing: 0.5, textDecoration: "none",
               }}
-            ></a></Link>
+            >Get Started</Link>
           </div>
 
           {/* Mobile hamburger */}
           <button
-            className="md:hidden"</div>a>
-                  <Link href="/seller/login" style={{ padding: "8px 16px", borderRadius: 6, border: "1px solid #1a3050", color: "#7ea8c8", fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, fontSize: 13, letterSpacing: 0.5, textDecoration: "none", textTransform: "uppercase" }}>Sign In</Link>Link>
-                  <Link
+            className="md:hidden"
             onClick={() => setOpen(!open)}
             style={{ background: "none", border: "none", color: "#fff", cursor: "pointer", padding: 4 }}
           >
