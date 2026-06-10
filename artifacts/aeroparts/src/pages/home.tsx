@@ -160,6 +160,15 @@ function Navbar() {
               <Zap size={13} />⚡ Submit AOG Request
             </a>
             <Link
+              href="/seller/login"
+              style={{
+                padding: "8px 16px", borderRadius: 6,
+                background: "none", border: "1px solid rgba(255,255,255,0.3)", color: "#fff",
+                fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 600, fontSize: 13,
+                letterSpacing: 0.5, textDecoration: "none",
+              }}
+            >Sign In</Link>
+            <Link
               href="/seller/register"
               style={{
                 padding: "8px 20px", borderRadius: 6,
