@@ -120,4 +120,79 @@ app.use("/api/documents", express.static(DOCUMENTS_DIR, { maxAge: "7d" }));
 
 app.use("/api", router);
 
+// ─── Frontend static files (production only) ──────────────────────────────────
+// Serve the built aeroparts SPA from the same origin as the API so that
+// session cookies remain same-site (no cross-origin cookie issues).
+// In Replit workspace dev mode the built-in router handles cross-port routing,
+// so this block is skipped there.
+if (process.env.NODE_ENV === "production") {
+  const FRONTEND_DIST = path.resolve(
+    import.meta.dirname,
+    "..",
+    "..",
+    "aeroparts",
+    "dist",
+    "public",
+  );
+  if (fs.existsSync(FRONTEND_DIST)) {
+    // redirect: false — prerendered routes live at <route>/index.html and we
+    // serve them without a trailing-slash 301 (keeps canonical URLs clean).
+    app.use(express.static(FRONTEND_DIST, { maxAge: "1h", redirect: false }));
+
+    // Client-side route prefixes from the SPA router (App.tsx). Anything else
+    // is an unknown URL and must return a real 404 status (no soft 404s).
+    const SPA_ROUTE_PREFIXES = [
+      "/marketplace",
+      "/listings",
+      "/login",
+      "/seller",
+      "/admin",
+      "/pricing",
+      "/rfqs",
+      "/mro",
+      "/privacy",
+      "/terms",
+      "/cookies",
+      "/contact",
+      "/about",
+      "/buyer-protection",
+      "/certification",
+      "/compliance",
+      "/seller-guidelines",
+      "/developer",
+      "/watchlist",
+      "/debug-login-free-seller",
+      "/auth-test",
+    ];
+
+    // SPA fallback — prerendered HTML when available, app shell otherwise,
+    // 404 status for unknown routes.
+    app.use((req, res, next) => {
+      if (req.method !== "GET" && req.method !== "HEAD") return next();
+
+      const reqPath = req.path.replace(/\/+$/, "") || "/";
+
+      // Serve the prerendered page if one was generated for this route.
+      const rel = reqPath === "/" ? "index.html" : path.join(reqPath.slice(1), "index.html");
+      const prerendered = path.join(FRONTEND_DIST, rel);
+      if (prerendered.startsWith(FRONTEND_DIST) && fs.existsSync(prerendered)) {
+        return res.sendFile(prerendered);
+      }
+
+      // Pristine app shell (written by aeroparts/prerender.mjs); fall back to
+      // index.html if the prerender step hasn't run.
+      const spaShell = path.join(FRONTEND_DIST, "__spa.html");
+      const shell = fs.existsSync(spaShell) ? spaShell : path.join(FRONTEND_DIST, "index.html");
+
+      const known = SPA_ROUTE_PREFIXES.some(
+        (p) => reqPath === p || reqPath.startsWith(p + "/"),
+      );
+      res.status(known ? 200 : 404).sendFile(shell);
+    });
+    logger.info({ FRONTEND_DIST }, "Serving frontend static files");
+  } else {
+    logger.warn({ FRONTEND_DIST }, "Frontend dist not found — run `pnpm --filter @workspace/aeroparts build` first");
+  }
+}
+
 export default app;
