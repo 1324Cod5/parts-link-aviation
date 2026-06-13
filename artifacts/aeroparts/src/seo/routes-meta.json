@@ -1,0 +1,94 @@
+{
+  "siteUrl": "https://www.partslinkaviation.com",
+  "siteName": "Parts Link Aviation",
+  "routes": {
+    "/": {
+      "title": "Parts Link Aviation — Transparent Aircraft Parts Marketplace",
+      "description": "A transparent marketplace for certified aircraft parts. Founding sellers list free — 0% commission, full 8130-3/EASA Form 1 traceability, AOG matching."
+    },
+    "/marketplace": {
+      "title": "Browse Certified Aircraft Parts | Parts Link Aviation",
+      "description": "Search certified aircraft parts by category, condition and part number. Every listing includes traceable airworthiness documentation."
+    },
+    "/pricing": {
+      "title": "Pricing — Free Founding Seller Listings | Parts Link Aviation",
+      "description": "Founding sellers list free for 6 months. Plans from $149/mo with watchlist alerts, API access and ERP integration. 0% commission on sales."
+    },
+    "/rfqs": {
+      "title": "RFQ Board & AOG Requests | Parts Link Aviation",
+      "description": "Post part requirements and AOG requests. Verified suppliers respond with quotes, lead times and certification documentation in real time."
+    },
+    "/rfqs/new": {
+      "title": "Submit a Part Request or AOG | Parts Link Aviation",
+      "description": "Submit your part number, condition requirements and urgency. AOG requests are flagged immediately and matched with verified suppliers."
+    },
+    "/mro": {
+      "title": "MRO Services Directory | Parts Link Aviation",
+      "description": "Find verified MRO providers for component repair, overhaul and exchange. Compare capabilities and certifications."
+    },
+    "/about": {
+      "title": "About Parts Link Aviation — Our Mission",
+      "description": "Why we built a transparent, 0%-commission marketplace for certified aircraft components, connecting verified sellers with professional buyers."
+    },
+    "/contact": {
+      "title": "Contact Us | Parts Link Aviation",
+      "description": "Get in touch with the Parts Link Aviation team about listings, sourcing, AOG support or partnership inquiries."
+    },
+    "/compliance": {
+      "title": "Compliance & Documentation Standards | Parts Link Aviation",
+      "description": "How Parts Link Aviation handles 8130-3, EASA Form 1 and traceability documentation requirements for every listing."
+    },
+    "/certification": {
+      "title": "Part Certification & Traceability | Parts Link Aviation",
+      "description": "Understand the airworthiness certification behind every listing: FAA 8130-3, EASA Form 1 and equivalent traceability documentation."
+    },
+    "/buyer-protection": {
+      "title": "Buyer Protection | Parts Link Aviation",
+      "description": "How we protect buyers: verified sellers, documentation requirements and dispute support on every transaction."
+    },
+    "/seller-guidelines": {
+      "title": "Seller Guidelines | Parts Link Aviation",
+      "description": "Listing standards, documentation requirements and best practices for selling certified aircraft parts on Parts Link Aviation."
+    },
+    "/developer": {
+      "title": "API & ERP Integration Docs | Parts Link Aviation",
+      "description": "Integrate Parts Link Aviation with AMOS, Ramco, SAP and major MRO platforms. API documentation for inventory sync and RFQ automation."
+    },
+    "/seller/register": {
+      "title": "Become a Founding Seller | Parts Link Aviation",
+      "description": "Apply as a founding seller and list certified aircraft parts free for 6 months. No credit card required, 0% commission."
+    },
+    "/privacy": {
+      "title": "Privacy Policy | Parts Link Aviation",
+      "description": "How Parts Link Aviation collects, uses and protects your data."
+    },
+    "/terms": {
+      "title": "Terms of Service | Parts Link Aviation",
+      "description": "The terms governing use of the Parts Link Aviation marketplace."
+    },
+    "/cookies": {
+      "title": "Cookie Policy | Parts Link Aviation",
+      "description": "How Parts Link Aviation uses cookies and similar technologies."
+    }
+  },
+  "noindexPrefixes": [
+    "/admin",
+    "/seller/dashboard",
+    "/seller/listings",
+    "/seller/analytics",
+    "/seller/billing",
+    "/seller/settings",
+    "/seller/bulk-upload",
+    "/seller/intelligence",
+    "/seller/documents",
+    "/seller/subscription",
+    "/seller/login",
+    "/login",
+    "/mro/dashboard",
+    "/mro/register",
+    "/watchlist",
+    "/debug-login-free-seller",
+    "/auth-test"
+  ],
+  "dynamicPublicPrefixes": ["/listings/", "/rfqs/", "/mro/"]
+}
