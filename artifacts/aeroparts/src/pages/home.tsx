@@ -934,7 +934,6 @@ function HomeFooter() {
         { label: "About Parts Link Aviation", href: "/about" },
         { label: "Contact Us", href: "/contact" },
         { label: "Become a Founding Seller", href: "/seller/register" },
-        { label: "Admin Portal", href: "/admin" },
       ],
     },
   ];
