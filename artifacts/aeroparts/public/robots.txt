@@ -1,2 +1,18 @@
 User-agent: *
 Allow: /
+Disallow: /admin
+Disallow: /admin/
+Disallow: /seller/dashboard
+Disallow: /seller/listings
+Disallow: /seller/analytics
+Disallow: /seller/billing
+Disallow: /seller/settings
+Disallow: /seller/bulk-upload
+Disallow: /seller/intelligence
+Disallow: /seller/documents
+Disallow: /seller/subscription
+Disallow: /watchlist
+Disallow: /debug-login-free-seller
+Disallow: /auth-test
+
+Sitemap: https://www.partslinkaviation.com/sitemap.xml
