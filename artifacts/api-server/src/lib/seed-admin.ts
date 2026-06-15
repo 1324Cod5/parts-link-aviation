@@ -60,6 +60,8 @@ export async function seedAdmin(): Promise<void> {
             companyName: "Parts Link Aviation Admin",
             plan: "enterprise",
             mustChangePassword: false,
+                    failedLoginAttempts: 0,
+                    lockedUntil: null,
             updatedAt: new Date(),
           })
           .where(eq(usersTable.id, canonical.id));
